@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Petal.Scenes;
+using Petal.Utils;
 
 namespace Petal;
 
