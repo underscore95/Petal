@@ -1,4 +1,7 @@
-﻿using Petal.Scenes;
+﻿using System.Drawing;
+using System.Numerics;
+using Petal.Scenes;
+using Petal.Window;
 
 namespace Entry;
 
@@ -11,7 +14,6 @@ public class TestScene : Scene
 
     public override void OnUpdate()
     {
-        
     }
 
     public override void OnDestroy()
