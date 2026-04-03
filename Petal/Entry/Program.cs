@@ -5,14 +5,12 @@ class Program
 {
     public static void Main()
     {
-        Engine engine = new();
+        Engine engine = Engine.Singleton();
         engine.SceneManager.SwitchScene(new TestScene());
 
-        while (true)
+        while (!engine.IsDestroyed)
         {
             engine.Update();
         }
-
-        engine.Destroy();
     }
 }
