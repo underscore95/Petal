@@ -3,13 +3,12 @@
 public abstract class Scene
 {
     private bool _hasInitialized = false;
-    protected Engine? Engine;
+    protected readonly Engine Engine = Engine.Singleton();
 
-    public void Init(Engine engine)
+    public void Init()
     {
         if (_hasInitialized) return;
         _hasInitialized = true;
-        Engine = engine;
         
         OnInit();
     }

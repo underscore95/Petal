@@ -1,6 +1,7 @@
 ﻿namespace Petal.Window;
 
-public class WindowResizeCause
+public enum WindowResizeCause
 {
-    
+    Developer, // Setting Size property
+    User // User resizing window
 }

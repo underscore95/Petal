@@ -1,13 +1,13 @@
 ﻿namespace Petal.Scenes;
 
-public class SceneManager(Engine engine)
+public class SceneManager()
 {
     private Scene? _scene;
 
     public void SwitchScene(Scene scene)
     {
         _scene = scene;
-        _scene.Init(engine);
+        _scene.Init();
     }
 
     public void Update()

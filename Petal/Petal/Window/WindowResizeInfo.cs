@@ -1,6 +1,5 @@
-﻿namespace Petal.Window;
+﻿using Petal.Math;
 
-public class WindowResizeInfo
-{
-    
-}
+namespace Petal.Window;
+
+public readonly record struct WindowResizeInfo(Vector2i PreviousSize, WindowResizeCause Cause);

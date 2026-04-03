@@ -1,14 +1,23 @@
-﻿using Petal.Scenes;
+﻿using System.Diagnostics;
+using Petal.Scenes;
 
 namespace Petal;
 
 public class Engine
 {
-    public readonly SceneManager SceneManager;
+    private static readonly Lazy<Engine> Instance = new(() => new Engine());
 
-    public Engine()
+    public static Engine Singleton()
     {
-        SceneManager = new SceneManager(this);
+        return Instance.Value;
+    }
+    
+    public readonly SceneManager SceneManager;
+    public bool IsDestroyed { get; private set; } = false;
+
+    private Engine()
+    {
+        SceneManager = new SceneManager();
     }
 
     public void Update()
@@ -18,6 +27,10 @@ public class Engine
 
     public void Destroy()
     {
+        Debug.Assert(!IsDestroyed);
+        
         SceneManager.Destroy();
+
+        IsDestroyed = true;
     }
 }
