@@ -1,12 +1,22 @@
 #pragma once
-
-#include "API.h"
+#include "Memory/Ref.h"
 
 namespace Petal {
-    class PETAL_API Engine {
-    public:
-         Engine();
+    class LoggerSystem;
+    class MemorySystem;
 
-         ~Engine();
+    class Engine {
+    public:
+        Engine();
+
+        ~Engine();
+
+    public:
+        MemorySystem& GetMemorySystem() const;
+        LoggerSystem& GetLoggerSystem() const;
+
+    private:
+        std::unique_ptr<MemorySystem> m_memorySystem;
+        Ref<LoggerSystem> m_loggerSystem;
     };
 } // Petal
