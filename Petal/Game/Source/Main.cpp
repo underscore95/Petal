@@ -6,7 +6,7 @@ int main() {
     glm::u32 frameNumber = 0;
 
     Engine engine;
-    Ref<Window> window = engine.GetWindowSystem().OpenWindow();
+    std::shared_ptr<Window> window = engine.GetWindowSystem().OpenWindow();
     OptionalRef<Renderer> rendererOptional = engine.GetRenderingSystem().CreateRenderer(
         window,
         DeviceRequirements::DEFAULT()

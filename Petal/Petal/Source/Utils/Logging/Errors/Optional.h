@@ -64,8 +64,8 @@ namespace Petal {
 
     template<typename T>
     class AllocatedOptional {
-        static_assert(!IsPointer<T>::value, "AllocatedOptional<T*> is forbidden. Use OptionalRef<T> instead.");
-        static_assert(!IsReference<T>::value, "AllocatedOptional<T&> is forbidden. Use OptionalRef<T> instead.");
+        static_assert(!IsPointer<T>::value, "AllocatedOptional<T*> is forbidden. Use Optionalstd::shared_ptr<T> instead.");
+        static_assert(!IsReference<T>::value, "AllocatedOptional<T&> is forbidden. Use Optionalstd::shared_ptr<T> instead.");
         static_assert(!IsResult<T>::value, "AllocatedOptional<Result> is forbidden because it creates constructor ambiguity.");
         static_assert(!IsUniquePtr<T>::value, "AllocatedOptional<std::unique_ptr<T>> is forbidden because it already stores a unique_ptr.");
 
@@ -134,8 +134,8 @@ namespace Petal {
 
     template<typename T>
     class OptionalRef {
-        static_assert(!IsResult<T>::value, "OptionalRef<Result> is forbidden because it creates constructor ambiguity.");
-        static_assert(!IsUniquePtr<T>::value, "OptionalRef<std::unique_ptr<T>> is forbidden. Use AllocatedOptional instead.");
+        static_assert(!IsResult<T>::value, "Optionalstd::shared_ptr<Result> is forbidden because it creates constructor ambiguity.");
+        static_assert(!IsUniquePtr<T>::value, "Optionalstd::shared_ptr<std::unique_ptr<T>> is forbidden. Use AllocatedOptional instead.");
 
     public:
         OptionalRef(T &value)

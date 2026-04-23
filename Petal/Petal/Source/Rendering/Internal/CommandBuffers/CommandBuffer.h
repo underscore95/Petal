@@ -8,7 +8,7 @@ class CommandBuffer {
 public:
     // Create in Renderer
     CommandBuffer(
-        Ref<Logger> logger,
+        std::shared_ptr<Logger> logger,
         VkDevice device,
         VkCommandPool pool,
         VkCommandBufferLevel level,
@@ -30,7 +30,7 @@ private:
     Result CreateCommandBuffer(VkCommandBufferLevel level);
 
 private:
-    Ref<Logger>m_logger;
+    std::shared_ptr<Logger>m_logger;
     VkDevice m_device;
     VkCommandPool m_commandPool;
     VkCommandBuffer m_handle;

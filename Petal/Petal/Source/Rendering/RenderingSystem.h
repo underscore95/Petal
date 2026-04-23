@@ -27,7 +27,7 @@ namespace Petal {
     public:
         const VkInstance &GetInstance() const;
 
-        OptionalRef<Renderer> CreateRenderer(Ref<Window> window, DeviceRequirements deviceRequirements);
+        OptionalRef<Renderer> CreateRenderer(std::shared_ptr<Window> window, DeviceRequirements deviceRequirements);
 
         const Version &GetAPIVersion() const;
 
@@ -76,8 +76,8 @@ namespace Petal {
     private:
         Engine &m_engine;
         Version m_apiVersion;
-        Ref<Logger> m_logger;
-        Ref<Logger> m_graphicsAPILogger;
+        std::shared_ptr<Logger> m_logger;
+        std::shared_ptr<Logger> m_graphicsAPILogger;
         VkInstance m_instance;
         VkDebugUtilsMessengerEXT m_debugMessenger;
         std::unordered_set<std::unique_ptr<Renderer> > m_renderers;

@@ -69,7 +69,7 @@ namespace Petal {
 
     private:
         Renderer &m_renderer;
-        Ref<Logger> m_logger;
+        std::shared_ptr<Logger> m_logger;
         VkSwapchainKHR m_handle;
         VkSurfaceFormat2KHR m_swapchainSurfaceFormat;
         glm::u32 m_numSwapchainImages;
@@ -78,9 +78,9 @@ namespace Petal {
 
         // Frame data
         glm::u32 m_swapchainIndex = 0;
-        std::vector<Ref<VulkanFence> > m_frameCompleteFences;
-        std::vector<Ref<VulkanSemaphore> > m_frameCompleteSemaphores;
-        std::vector<Ref<VulkanSemaphore> > m_swapchainSemaphores;
+        std::vector<std::shared_ptr<VulkanFence> > m_frameCompleteFences;
+        std::vector<std::shared_ptr<VulkanSemaphore> > m_frameCompleteSemaphores;
+        std::vector<std::shared_ptr<VulkanSemaphore> > m_swapchainSemaphores;
         std::shared_ptr<CommandBufferVector> m_beginRenderingCommands;
         std::shared_ptr<CommandBufferVector> m_endRenderingCommands;
         std::vector<CommandBufferStrongRef> m_submittedFrameCommands;

@@ -6,7 +6,7 @@
 namespace Petal {
     VulkanQueue::VulkanQueue(
         Renderer &renderer,
-        Ref<Logger> logger,
+        std::shared_ptr<Logger> logger,
         glm::u32 queueFamily
     ) : m_renderer(renderer),
         m_logger(logger),

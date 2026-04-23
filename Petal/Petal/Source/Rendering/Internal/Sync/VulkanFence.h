@@ -10,7 +10,7 @@ namespace Petal {
         VulkanFence(
             Renderer &renderer,
             VkFenceCreateFlags flags,
-            Ref<Logger> logger,
+            std::shared_ptr<Logger> logger,
             Result &out
         );
 
@@ -22,7 +22,7 @@ namespace Petal {
         VkFence GetHandle() const;
 
     private:
-        Result CreateFence(Ref<Logger> logger, VkFenceCreateFlags flags);
+        Result CreateFence(std::shared_ptr<Logger> logger, VkFenceCreateFlags flags);
 
     private:
         Renderer &m_renderer;

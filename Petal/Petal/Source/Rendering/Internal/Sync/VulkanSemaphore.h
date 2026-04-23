@@ -9,7 +9,7 @@ namespace Petal {
     public:
         VulkanSemaphore(
             Renderer &renderer,
-            Ref<Logger> logger,
+            std::shared_ptr<Logger> logger,
             Result &out
         );
 
@@ -21,7 +21,7 @@ namespace Petal {
         VkSemaphore GetHandle() const;
 
     private:
-        Result CreateSemaphore(Ref<Logger> logger);
+        Result CreateSemaphore(std::shared_ptr<Logger> logger);
 
     private:
         Renderer &m_renderer;

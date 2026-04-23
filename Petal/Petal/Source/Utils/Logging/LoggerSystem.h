@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Logger.h"
-#include "Memory/Ref.h"
 
 namespace Petal {
     class Engine;
@@ -11,9 +10,9 @@ namespace Petal {
         explicit LoggerSystem(Engine &engine);
 
     public:
-        void RegisterLogger(Ref<Logger> logger);
+        void RegisterLogger(std::shared_ptr<Logger> logger);
 
-        Ref<Logger> GetLogger(const std::string &name);
+        std::shared_ptr<Logger> GetLogger(const std::string &name);
 
     public:
         static constexpr const char* OTHER_LOGGER = "Other";
@@ -29,6 +28,6 @@ namespace Petal {
 
     private:
         Engine &m_engine;
-        std::unordered_map<std::string, Ref<Logger> > m_loggers;
+        std::unordered_map<std::string, std::shared_ptr<Logger> > m_loggers;
     };
 } // Petal

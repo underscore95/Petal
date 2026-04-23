@@ -24,7 +24,7 @@ namespace Petal {
         Renderer(
             Engine &engine,
             RenderingSystem &renderingSystem,
-            Ref<Window> window,
+            std::shared_ptr<Window> window,
             const DeviceRequirements &deviceRequirements,
             const RenderSettings &renderSettings,
             Result &result
@@ -38,9 +38,9 @@ namespace Petal {
 
         VkSurfaceKHR GetSurface() const;
 
-        Ref<RenderingDevice> GetDevice() const;
+        std::shared_ptr<RenderingDevice> GetDevice() const;
 
-        Ref<VulkanAllocator> GetAllocator() const;
+        std::shared_ptr<VulkanAllocator> GetAllocator() const;
 
         VulkanSwapchain &GetSwapchain() const;
 
@@ -63,13 +63,13 @@ namespace Petal {
             glm::u32 count
         );
 
-        Optional<Ref<VulkanFence> > CreateFence(VkFenceCreateFlags flags = 0);
+        Optional<std::shared_ptr<VulkanFence> > CreateFence(VkFenceCreateFlags flags = 0);
 
-        Optional<std::vector<Ref<VulkanFence> > > CreateFences(glm::u32 count, VkFenceCreateFlags flags = 0);
+        Optional<std::vector<std::shared_ptr<VulkanFence> > > CreateFences(glm::u32 count, VkFenceCreateFlags flags = 0);
 
-        Optional<Ref<VulkanSemaphore> > CreateSemaphore(VkSemaphoreCreateFlags flags = 0);
+        Optional<std::shared_ptr<VulkanSemaphore> > CreateSemaphore(VkSemaphoreCreateFlags flags = 0);
 
-        Optional<std::vector<Ref<VulkanSemaphore> > > CreateSemaphores(glm::u32 count, VkSemaphoreCreateFlags flags = 0);
+        Optional<std::vector<std::shared_ptr<VulkanSemaphore> > > CreateSemaphores(glm::u32 count, VkSemaphoreCreateFlags flags = 0);
 
         // Shorthand for transitioning an image layout
         // By default, an excessively blocking barrier for graphics queue images is used, but this can be overridden by passing a transition parameter
@@ -97,15 +97,15 @@ namespace Petal {
     private:
         Engine &m_engine;
         RenderingSystem &m_renderingSystem;
-        Ref<Window> m_window;
+        std::shared_ptr<Window> m_window;
 
         VkSurfaceKHR m_surface;
-        Ref<RenderingDevice> m_device;
-        Ref<Logger> m_logger;
-        Ref<VulkanAllocator> m_allocator;
+        std::shared_ptr<RenderingDevice> m_device;
+        std::shared_ptr<Logger> m_logger;
+        std::shared_ptr<VulkanAllocator> m_allocator;
         RenderSettings m_renderSettings;
         // Queue family -> command pool
         std::unordered_map<glm::u32, VkCommandPool> m_commandPools;
-        Ref<VulkanSwapchain> m_swapchain;
+        std::shared_ptr<VulkanSwapchain> m_swapchain;
     };
 } // Petal

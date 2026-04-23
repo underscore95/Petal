@@ -20,9 +20,9 @@ namespace Petal {
         };
 
         m_memorySystem = std::make_unique<MemorySystem>(*this);
-        m_loggerSystem = m_memorySystem->New<LoggerSystem>(*this);
-        m_windowSystem = m_memorySystem->New<WindowSystem>(*this);
-        m_renderingSystem = m_memorySystem->New<RenderingSystem>(*this, DeviceRequirements::DEFAULT_API_VERSION);
+        m_loggerSystem = std::make_shared<LoggerSystem>(*this);
+        m_windowSystem = std::make_shared<WindowSystem>(*this);
+        m_renderingSystem = std::make_shared<RenderingSystem>(*this, DeviceRequirements::DEFAULT_API_VERSION);
     }
 
     Engine::~Engine() {

@@ -8,11 +8,11 @@ namespace Petal {
         Engine &engine
     ) : m_engine(engine) {
         for (auto &loggerName : ENGINE_LOGGERS) {
-            RegisterLogger(engine.GetMemorySystem().New<Logger>(loggerName, LogLevel::Verbose));
+            RegisterLogger(std::make_shared<Logger>(loggerName, LogLevel::Verbose));
         }
     }
 
-    void LoggerSystem::RegisterLogger(Ref<Logger> logger) {
+    void LoggerSystem::RegisterLogger(std::shared_ptr<Logger> logger) {
         if (m_loggers.contains(logger->GetName())) {
             logger->Error("Failed to register logger because another logger with the same name already exists.");
             return;
@@ -21,7 +21,7 @@ namespace Petal {
         m_loggers[logger->GetName()] = logger;
     }
 
-    Ref<Logger> LoggerSystem::GetLogger(const std::string &name) {
+    std::shared_ptr<Logger> LoggerSystem::GetLogger(const std::string &name) {
         const auto it = m_loggers.find(name);
         if (it == m_loggers.end()) {
             assert(false);

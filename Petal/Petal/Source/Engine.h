@@ -1,7 +1,6 @@
 #pragma once
 #include "AppInfo/AppInfo.h"
 #include "AppInfo/EngineInfo.h"
-#include "Memory/Ref.h"
 
 namespace Petal {
     class LoggerSystem;
@@ -36,8 +35,8 @@ namespace Petal {
         EngineInfo m_engineInfo;
         AppInfo m_appInfo;
         std::unique_ptr<MemorySystem> m_memorySystem;
-        Ref<LoggerSystem> m_loggerSystem;
-        Ref<WindowSystem> m_windowSystem;
-        Ref<RenderingSystem> m_renderingSystem;
+        std::shared_ptr<LoggerSystem> m_loggerSystem;
+        std::shared_ptr<WindowSystem> m_windowSystem;
+        std::shared_ptr<RenderingSystem> m_renderingSystem;
     };
 } // Petal

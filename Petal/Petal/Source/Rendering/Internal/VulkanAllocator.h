@@ -24,6 +24,6 @@ namespace Petal {
 
     private:
         VmaAllocator m_allocator;
-        Ref<Logger> m_logger;
+        std::shared_ptr<Logger> m_logger;
     };
 } // Petal

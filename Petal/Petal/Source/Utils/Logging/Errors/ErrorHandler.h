@@ -7,7 +7,7 @@ namespace Petal {
     // If condition is true, the current function will return error code and the logger will print a formatted error message
 #define PETAL_CHECK_COND(condition, errorCode, loggerRef, message, ...) \
     static_assert(typeid(errorCode) == typeid(Result)); \
-    static_assert(typeid(loggerRef) == typeid(Ref<Logger>)); \
+    static_assert(typeid(loggerRef) == typeid(std::shared_ptr<Logger>)); \
     do { \
         if (condition) [[unlikely]] { \
             std::string errorMessageFormatted = std::format(message __VA_OPT__(,) __VA_ARGS__);\

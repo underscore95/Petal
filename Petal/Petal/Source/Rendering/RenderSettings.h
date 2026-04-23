@@ -11,6 +11,6 @@ namespace Petal {
         std::vector<VkPresentModeKHR> PreferredPresentMode{VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR};
 
         // Returns SUCCESS if valid, PETAL_INVALID_RENDER_SETTINGS if invalid.
-        Result IsValid(Ref<Logger> logger) const;
+        Result IsValid(std::shared_ptr<Logger> logger) const;
     };
 } // Petal

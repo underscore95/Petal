@@ -2,7 +2,7 @@
 
 namespace Petal {
     CommandBuffer::CommandBuffer(
-        Ref<Logger> logger,
+        std::shared_ptr<Logger> logger,
         VkDevice device,
         VkCommandPool pool,
         VkCommandBufferLevel level,

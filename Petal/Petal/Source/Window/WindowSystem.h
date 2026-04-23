@@ -1,5 +1,5 @@
 #pragma once
-#include "Memory/Ref.h"
+
 #include "pch.h"
 
 namespace Petal {
@@ -20,18 +20,16 @@ namespace Petal {
 
         void Render();
 
-        [[nodiscard]] Ref<Window> OpenWindow(
+        [[nodiscard]] std::shared_ptr<Window> OpenWindow(
             glm::ivec2 size = {1280, 720},
             const std::string &title = "Petal Engine"
         );
 
-        void CloseWindow(Ref<Window> window);
-
-        Ref<Window> GetFirstWindow() const; // todo remove
+        void CloseWindow(std::shared_ptr<Window> window);
 
     private:
         Engine &m_engine;
-        Ref<Logger> m_logger;
-        std::unordered_set<Ref<Window> > m_windows;
+        std::shared_ptr<Logger> m_logger;
+        std::unordered_set<std::shared_ptr<Window> > m_windows;
     };
 } // Petal

@@ -194,11 +194,11 @@ namespace Petal {
     }
 
     Result VulkanSwapchain::CreateSyncObjects() {
-        Optional<std::vector<Ref<VulkanFence> > > fences = m_renderer.CreateFences(NumSwapchainImages(), VK_FENCE_CREATE_SIGNALED_BIT);
+        Optional<std::vector<std::shared_ptr<VulkanFence> > > fences = m_renderer.CreateFences(NumSwapchainImages(), VK_FENCE_CREATE_SIGNALED_BIT);
         PETAL_CHECK_OPTIONAL_SILENT(fences);
         m_frameCompleteFences = *fences.Value();
 
-        Optional<std::vector<Ref<VulkanSemaphore> > > semaphores = m_renderer.CreateSemaphores(NumSwapchainImages(), 0);
+        Optional<std::vector<std::shared_ptr<VulkanSemaphore> > > semaphores = m_renderer.CreateSemaphores(NumSwapchainImages(), 0);
         PETAL_CHECK_OPTIONAL_SILENT(fences);
         m_frameCompleteSemaphores = *semaphores.Value();
 

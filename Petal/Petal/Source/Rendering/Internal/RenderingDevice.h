@@ -80,7 +80,7 @@ namespace Petal {
         Engine &m_engine;
         RenderingSystem &m_renderingSystem;
         Renderer& m_renderer;
-        Ref<Logger> m_logger;
+        std::shared_ptr<Logger> m_logger;
         VkDevice m_device;
         VkPhysicalDevice m_physicalDevice;
         std::vector<glm::u32> m_requiredQueueFamiliesIndices;

@@ -8,7 +8,6 @@ add_library(Petal SHARED
         Source/Utils/Logging/LogLevel.h
         Source/Utils/Logging/LoggerSystem.cpp
         Source/Utils/Logging/LoggerSystem.h
-        Source/Utils/Memory/Ref.h
         Source/Utils/Memory/MemorySystem.cpp
         Source/Utils/Memory/MemorySystem.h
         Source/Window/Window.cpp

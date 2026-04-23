@@ -8,7 +8,7 @@ namespace Petal {
     public:
         // Create in renderer
         CommandBufferVector(
-            Ref<Logger> logger,
+            std::shared_ptr<Logger> logger,
             VkDevice device,
             VkCommandPool pool,
             VkCommandBufferLevel level,
@@ -33,7 +33,7 @@ namespace Petal {
         Result CreateCommandBuffers(VkCommandBufferLevel level, glm::u32 count);
 
     private:
-        Ref<Logger> m_logger;
+        std::shared_ptr<Logger> m_logger;
         VkDevice m_device;
         VkCommandPool m_commandPool;
         std::vector<VkCommandBuffer> m_handles;

@@ -6,7 +6,7 @@
 namespace Petal {
     VulkanSemaphore::VulkanSemaphore(
         Renderer &renderer,
-        Ref<Logger> logger,
+        std::shared_ptr<Logger> logger,
         Result &out
     ) : m_renderer(renderer) {
         out = CreateSemaphore(logger);
@@ -20,7 +20,7 @@ namespace Petal {
         return m_handle;
     }
 
-    Result VulkanSemaphore::CreateSemaphore(Ref<Logger> logger) {
+    Result VulkanSemaphore::CreateSemaphore(std::shared_ptr<Logger> logger) {
         VkSemaphoreCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
             .pNext = nullptr,

@@ -7,7 +7,7 @@ namespace Petal {
     public:
         VulkanQueue(
             Renderer &renderer,
-            Ref<Logger> logger,
+            std::shared_ptr<Logger> logger,
             glm::u32 queueFamily
         );
 
@@ -20,7 +20,7 @@ namespace Petal {
 
     private:
         Renderer &m_renderer;
-        Ref<Logger> m_logger;
+        std::shared_ptr<Logger> m_logger;
         glm::u32 m_queueFamily;
         VkQueue m_handle;
     };

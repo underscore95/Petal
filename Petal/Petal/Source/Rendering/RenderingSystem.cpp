@@ -35,7 +35,7 @@ namespace Petal {
         return m_instance;
     }
 
-    OptionalRef<Renderer> RenderingSystem::CreateRenderer(Ref<Window> window, DeviceRequirements deviceRequirements) {
+    OptionalRef<Renderer> RenderingSystem::CreateRenderer(std::shared_ptr<Window> window, DeviceRequirements deviceRequirements) {
         Result result = Result::SUCCESS;
 
         auto renderer = std::make_unique<Renderer>(

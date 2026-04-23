@@ -9,7 +9,7 @@
         std::format(fmt, ##__VA_ARGS__)                  \
     )
 
-Petal::Result Petal::RenderSettings::IsValid(Ref<Logger> logger) const {
+Petal::Result Petal::RenderSettings::IsValid(std::shared_ptr<Logger> logger) const {
     CHECK_RENDER_SETTINGS(NumSwapchainImages < 2, "Not enough swapchain images: {}", NumSwapchainImages);
     CHECK_RENDER_SETTINGS(NumSwapchainImages > 3, "Too many swapchain images: {}", NumSwapchainImages);
 

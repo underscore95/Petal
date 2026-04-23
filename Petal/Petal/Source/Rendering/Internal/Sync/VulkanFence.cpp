@@ -7,7 +7,7 @@ namespace Petal {
     VulkanFence::VulkanFence(
         Renderer &renderer,
         VkFenceCreateFlags flags,
-        Ref<Logger> logger,
+        std::shared_ptr<Logger> logger,
         Result &out
     ) : m_renderer(renderer) {
         out = CreateFence(logger, flags);
@@ -21,7 +21,7 @@ namespace Petal {
         return m_handle;
     }
 
-    Result VulkanFence::CreateFence(Ref<Logger> logger, VkFenceCreateFlags flags) {
+    Result VulkanFence::CreateFence(std::shared_ptr<Logger> logger, VkFenceCreateFlags flags) {
         VkFenceCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .pNext = nullptr,

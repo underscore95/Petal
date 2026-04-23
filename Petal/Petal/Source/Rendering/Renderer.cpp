@@ -16,7 +16,7 @@ namespace Petal {
     Renderer::Renderer(
         Engine &engine,
         RenderingSystem &renderingSystem,
-        Ref<Window> window,
+        std::shared_ptr<Window> window,
         const DeviceRequirements &deviceRequirements,
         const RenderSettings &renderSettings,
         Result &result
@@ -34,7 +34,7 @@ namespace Petal {
             return;
         }
 
-        m_device = m_engine.GetMemorySystem().New<RenderingDevice>(
+        m_device = std::make_shared<RenderingDevice>(
             engine,
             renderingSystem,
             *this,
@@ -45,7 +45,7 @@ namespace Petal {
 
         if (result != Result::SUCCESS) return;
 
-        m_allocator = m_engine.GetMemorySystem().New<VulkanAllocator>(
+        m_allocator =std::make_shared<VulkanAllocator>(
             engine,
             *this,
             result
@@ -55,7 +55,7 @@ namespace Petal {
         result = CreateCommandPools();
         if (result != Result::SUCCESS) return;
 
-        m_swapchain = m_engine.GetMemorySystem().New<VulkanSwapchain>(
+        m_swapchain = std::make_shared<VulkanSwapchain>(
             engine,
             *this,
             m_device->GetGraphicsQueueFamily(),
@@ -95,11 +95,11 @@ namespace Petal {
         return m_surface;
     }
 
-    Ref<RenderingDevice> Renderer::GetDevice() const {
+    std::shared_ptr<RenderingDevice> Renderer::GetDevice() const {
         return m_device;
     }
 
-    Ref<VulkanAllocator> Renderer::GetAllocator() const {
+    std::shared_ptr<VulkanAllocator> Renderer::GetAllocator() const {
         return m_allocator;
     }
 
@@ -153,20 +153,20 @@ namespace Petal {
         return commandBuffer;
     }
 
-    Optional<Ref<VulkanFence> > Renderer::CreateFence(VkFenceCreateFlags flags) {
+    Optional<std::shared_ptr<VulkanFence> > Renderer::CreateFence(VkFenceCreateFlags flags) {
         Result result;
-        Ref<VulkanFence> fence = m_engine.GetMemorySystem().New<VulkanFence>(*this, flags, m_logger, result);
+        std::shared_ptr<VulkanFence> fence = std::make_shared<VulkanFence>(*this, flags, m_logger, result);
         if (result != Result::SUCCESS) return result;
         return fence;
     }
 
-    Optional<std::vector<Ref<VulkanFence> > > Renderer::CreateFences(glm::u32 count, VkFenceCreateFlags flags) {
+    Optional<std::vector<std::shared_ptr<VulkanFence> > > Renderer::CreateFences(glm::u32 count, VkFenceCreateFlags flags) {
         PETAL_CHECK_COND(count <= 0, Result::VULKAN_FENCE_CREATION_FAILED, m_logger, "Attempted to create {} fences", count);
 
-        std::vector<Ref<VulkanFence> > fences;
+        std::vector<std::shared_ptr<VulkanFence> > fences;
         fences.reserve(count);
         for (glm::u32 i = 0; i < count; i++) {
-            Optional<Ref<VulkanFence> > fence = CreateFence(flags);
+            Optional<std::shared_ptr<VulkanFence> > fence = CreateFence(flags);
             PETAL_CHECK_OPTIONAL_SILENT(fence);
             fences.push_back(*fence.Value());
         }
@@ -174,21 +174,21 @@ namespace Petal {
         return fences;
     }
 
-    Optional<Ref<VulkanSemaphore> > Renderer::CreateSemaphore(VkSemaphoreCreateFlags flags) {
+    Optional<std::shared_ptr<VulkanSemaphore> > Renderer::CreateSemaphore(VkSemaphoreCreateFlags flags) {
         Result result;
-        Ref<VulkanSemaphore> semaphore = m_engine.GetMemorySystem().New<VulkanSemaphore>(*this, m_logger, result);
+        std::shared_ptr<VulkanSemaphore> semaphore = std::make_shared<VulkanSemaphore>(*this, m_logger, result);
         if (result != Result::SUCCESS) return result;
         return semaphore;
     }
 
-    Optional<std::vector<Ref<VulkanSemaphore> > > Renderer::CreateSemaphores(glm::u32 count, VkSemaphoreCreateFlags flags) {
+    Optional<std::vector<std::shared_ptr<VulkanSemaphore> > > Renderer::CreateSemaphores(glm::u32 count, VkSemaphoreCreateFlags flags) {
         PETAL_CHECK_COND(count <= 0, Result::VULKAN_SEMAPHORE_CREATION_FAILED, m_logger, "Attempted to create {} semaphores", count);
 
-        std::vector<Ref<VulkanSemaphore> > semaphores;
+        std::vector<std::shared_ptr<VulkanSemaphore> > semaphores;
         semaphores.reserve(count);
 
         for (glm::u32 i = 0; i < count; i++) {
-            Optional<Ref<VulkanSemaphore> > semaphore = CreateSemaphore(flags);
+            Optional<std::shared_ptr<VulkanSemaphore> > semaphore = CreateSemaphore(flags);
             PETAL_CHECK_OPTIONAL_SILENT(semaphore);
             semaphores.push_back(*semaphore.Value());
         }

@@ -33,16 +33,16 @@ namespace Petal {
         }
     }
 
-    Ref<Window> WindowSystem::OpenWindow(
+    std::shared_ptr<Window> WindowSystem::OpenWindow(
         glm::ivec2 size,
         const std::string &title
     ) {
-        Ref<Window> window = m_engine.GetMemorySystem().New<Window>(m_engine, size, title);
+        std::shared_ptr<Window> window = std::make_shared<Window>(m_engine, size, title);
         m_windows.insert(window);
         return window;
     }
 
-    void WindowSystem::CloseWindow(Ref<Window> window) {
+    void WindowSystem::CloseWindow(std::shared_ptr<Window> window) {
         const auto it = m_windows.find(window);
         if (it == m_windows.end()) {
             m_logger->Error("Failed to close window titled {}", window->GetTitle());
@@ -50,11 +50,5 @@ namespace Petal {
         }
 
         m_windows.erase(it);
-    }
-
-    Ref<Window> WindowSystem::GetFirstWindow() const {
-        for (auto window : m_windows) return window;
-        assert(false);
-        return nullptr;
     }
 } // Petal
