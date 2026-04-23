@@ -28,6 +28,7 @@
 #include <bit>
 #include <bitset>
 #include <future>
+#include <variant>
 #include <queue>
 
 // GLM

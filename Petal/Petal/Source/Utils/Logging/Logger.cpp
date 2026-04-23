@@ -14,6 +14,10 @@ namespace Petal {
         return m_name;
     }
 
+    void Logger::SetLevel(LogLevel level) {
+        m_level = level;
+    }
+
     void Logger::Log(const std::string &message, LogLevel level) {
         if (m_level > level) return;
 

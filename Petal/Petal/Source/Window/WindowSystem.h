@@ -27,6 +27,8 @@ namespace Petal {
 
         void CloseWindow(Ref<Window> window);
 
+        Ref<Window> GetFirstWindow() const; // todo remove
+
     private:
         Engine &m_engine;
         Ref<Logger> m_logger;

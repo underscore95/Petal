@@ -20,6 +20,8 @@ namespace Petal {
     }
 
     void WindowSystem::Update() {
+        glfwPollEvents();
+
         for (auto &window : m_windows) {
             window->Update();
         }
@@ -48,5 +50,11 @@ namespace Petal {
         }
 
         m_windows.erase(it);
+    }
+
+    Ref<Window> WindowSystem::GetFirstWindow() const {
+        for (auto window : m_windows) return window;
+        assert(false);
+        return nullptr;
     }
 } // Petal

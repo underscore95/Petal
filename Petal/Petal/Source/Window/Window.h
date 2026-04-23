@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pch.h"
+#include "Common.h"
 
 namespace Petal {
     class Engine;
@@ -21,6 +21,10 @@ namespace Petal {
         void Render();
 
         const std::string &GetTitle();
+
+        bool WantsToClose() const;
+
+        Result CreateSurface(const void *instance, void *surfaceOut) const;
 
     private:
         Engine &m_engine;
