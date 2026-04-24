@@ -35,6 +35,7 @@ namespace Petal {
         DISABLE_COPY_AND_MOVE(Renderer);
 
     public:
+        Window &GetWindow() const;
 
         VkSurfaceKHR GetSurface() const;
 
@@ -83,6 +84,10 @@ namespace Petal {
 
         Result DeviceWaitIdle();
 
+        // Wait until the device is idle and then recreate the swapchain.
+        // This is required if the window is resized.
+        Result RecreateSwapchain();
+
         static constexpr VkImageSubresourceRange DEFAULT_IMAGE_SUBRESOURCE_RANGE = {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .baseMipLevel = 0,
@@ -93,6 +98,8 @@ namespace Petal {
 
     private:
         Result CreateCommandPools();
+
+        Result CreateSwapchain();
 
     private:
         Engine &m_engine;

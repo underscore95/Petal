@@ -12,7 +12,6 @@ namespace Petal {
         if (condition) [[unlikely]] { \
             std::string errorMessageFormatted = std::format(message __VA_OPT__(,) __VA_ARGS__);\
             loggerRef->Error("[Error Code: {}] {}", (int)errorCode, errorMessageFormatted); \
-            assert(false);\
             return errorCode; \
         } \
     } while (0)
@@ -22,7 +21,6 @@ namespace Petal {
     static_assert(typeid(errorCode) == typeid(Result)); \
     do { \
         if (condition) [[unlikely]] { \
-            assert(false);\
             return errorCode; \
         } \
     } while (0)

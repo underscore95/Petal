@@ -11,6 +11,7 @@ namespace Petal {
     ) : m_engine(engine) {
         m_title = title;
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Don't create surface/swap chain
+        glfwWindowHint(GLFW_RESIZABLE, true);
         m_handle = glfwCreateWindow(size.x, size.y, m_title.c_str(), nullptr, nullptr);
         glfwMakeContextCurrent(static_cast<GLFWwindow *>(m_handle));
     }
@@ -49,5 +50,11 @@ namespace Petal {
         );
 
         return Result::SUCCESS;
+    }
+
+    glm::uvec2 Window::GetDimensions() const {
+        glm::ivec2 size;
+        glfwGetWindowSize(static_cast<GLFWwindow *>(m_handle), &size.x, &size.y);
+        return size;
     }
 } // Petal

@@ -19,6 +19,7 @@ namespace Petal {
         VULKAN_FENCE_CREATION_FAILED,
         VULKAN_SEMAPHORE_CREATION_FAILED,
         VULKAN_DEVICE_WAIT_IDLE_FAILED,
+        VULKAN_PIPELINE_CREATION_FAILED,
 
         // Render Errors
         PETAL_INVALID_RENDER_SETTINGS,
@@ -27,12 +28,12 @@ namespace Petal {
         PETAL_END_RENDER_FAILED,
         PETAL_FRAME_COMMAND_SUBMIT_FAILED,
         PETAL_PRESENT_FRAME_FAILED,
+        PETAL_WINDOW_RESIZED, // Window was resized, the swapchain needs to be recreated
 
         // Other Errors
         PETAL_OPTIONAL_MOVED_OUT, // Contents of this optional were moved into another optional
         PETAL_OPTIONAL_RELEASED, // Contents of this optional were moved into another variable
         PETAL_OPTIONAL_EMPTY, // Created with no value, may not be an error
-
     };
 
     template<typename T>

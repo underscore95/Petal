@@ -26,10 +26,12 @@ namespace Petal {
 
         glm::u32 NumSwapchainImages() const;
 
-        // Must be called before rendering begins each frame
+        // Must be called before rendering begins each frame.
+        // This function will return PETAL_WINDOW_RESIZED if the window has been resized and the swapchain must be recreated.
         Result BeginRendering();
 
-        // Must be called after rendering completes each frame
+        // Must be called after rendering completes each frame.
+        // This function will return PETAL_WINDOW_RESIZED if the window has been resized and the swapchain must be recreated.
         Result EndRendering();
 
         // Index of the image in the swapchain we are rendering to for the current frame.
@@ -52,7 +54,7 @@ namespace Petal {
     private:
         Result CreateSyncObjects();
 
-        Result CreateSwapchain(const VulkanQueue &queueFamily);
+        Result CreateSwapchain(const VulkanQueue &queue, glm::uvec2 windowSize);
 
         Result CreateSwapchainImages();
 

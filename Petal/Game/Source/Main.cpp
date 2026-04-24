@@ -25,7 +25,11 @@ int main() {
         glm::u32 swapchainIndex = renderer.GetSwapchain().GetSwapchainIndex();
 
         engine.Update();
-        renderer.GetSwapchain().BeginRendering();
+        Result result = renderer.GetSwapchain().BeginRendering();
+        if (result == Result::PETAL_WINDOW_RESIZED) {
+            renderer.RecreateSwapchain();
+            continue;
+        }
 
         commandBuffers->Begin(swapchainIndex, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -35,12 +39,16 @@ int main() {
             swapchainIndex
         );
 
-        commandBuffers->End(swapchainIndex);
+        result = commandBuffers->End(swapchainIndex);
 
         renderer.GetSwapchain().SubmitFrameCommand(CommandBufferStrongRef(commandBuffers, swapchainIndex));
 
         engine.Render();
         renderer.GetSwapchain().EndRendering();
+        if (result == Result::PETAL_WINDOW_RESIZED) {
+            renderer.RecreateSwapchain();
+            continue;
+        }
     }
     renderer.DeviceWaitIdle();
     commandBuffers.reset();

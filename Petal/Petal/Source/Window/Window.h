@@ -26,6 +26,8 @@ namespace Petal {
 
         Result CreateSurface(const void *instance, void *surfaceOut) const;
 
+        glm::uvec2 GetDimensions() const;
+
     private:
         Engine &m_engine;
         void *m_handle;

@@ -45,7 +45,7 @@ namespace Petal {
 
         if (result != Result::SUCCESS) return;
 
-        m_allocator =std::make_shared<VulkanAllocator>(
+        m_allocator = std::make_shared<VulkanAllocator>(
             engine,
             *this,
             result
@@ -55,12 +55,7 @@ namespace Petal {
         result = CreateCommandPools();
         if (result != Result::SUCCESS) return;
 
-        m_swapchain = std::make_shared<VulkanSwapchain>(
-            engine,
-            *this,
-            m_device->GetGraphicsQueueFamily(),
-            result
-        );
+        result = CreateSwapchain();
         if (result != Result::SUCCESS) return;
 
         result = Result::SUCCESS;
@@ -68,7 +63,7 @@ namespace Petal {
     }
 
     Renderer::~Renderer() {
-       Result result = DeviceWaitIdle();
+        Result result = DeviceWaitIdle();
         if (result != Result::SUCCESS) {
             m_logger->Warn("Failed to wait for device to be idle before destroying renderer");
         }
@@ -89,6 +84,10 @@ namespace Petal {
         }
 
         m_logger->Verbose("Destroyed renderer");
+    }
+
+    Window &Renderer::GetWindow() const {
+        return *m_window;
     }
 
     VkSurfaceKHR Renderer::GetSurface() const {
@@ -239,6 +238,16 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
+    Result Renderer::RecreateSwapchain() {
+        Result result = DeviceWaitIdle();
+        PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+
+        m_swapchain.reset();
+
+        result = CreateSwapchain();
+        return result;
+    }
+
     Result Renderer::CreateCommandPools() {
         for (VulkanQueue &queue : m_device->GetQueueFamilies()) {
             VkCommandPoolCreateInfo cmdPoolCreateInfo = {
@@ -256,5 +265,16 @@ namespace Petal {
         }
 
         return Result::SUCCESS;
+    }
+
+    Result Renderer::CreateSwapchain() {
+        Result result;
+        m_swapchain = std::make_shared<VulkanSwapchain>(
+            m_engine,
+            *this,
+            m_device->GetGraphicsQueueFamily(),
+            result
+        );
+        return result;
     }
 } // Petal

@@ -3,9 +3,12 @@
 #include "Engine.h"
 #include "RenderingDevice.h"
 #include "VulkanQueue.h"
+#include "AppInfo/AppInfo.h"
+#include "AppInfo/AppInfo.h"
 #include "CommandBuffers/CommandBufferVector.h"
 #include "Sync/VulkanFence.h"
 #include "Sync/VulkanSemaphore.h"
+#include "Window/Window.h"
 
 namespace Petal {
     VulkanSwapchain::VulkanSwapchain(
@@ -16,7 +19,8 @@ namespace Petal {
     ) : m_renderer(renderer) {
         m_logger = engine.GetLoggerSystem().GetLogger(LoggerSystem::RENDERING_LOGGER);
 
-        resultOut = CreateSwapchain(queueFamily);
+        glm::uvec2 windowSize = renderer.GetWindow().GetDimensions();
+        resultOut = CreateSwapchain(queueFamily, windowSize);
         if (resultOut != Result::SUCCESS) return;
 
         resultOut = CreateSwapchainImages();
@@ -39,7 +43,7 @@ namespace Petal {
         }
         m_endRenderingCommands = commands.Release();
 
-        m_logger->Verbose("Created swapchain");
+        m_logger->Verbose("Created swapchain for window size {}x{}", windowSize.x, windowSize.y);
     }
 
     VulkanSwapchain::~VulkanSwapchain() {
@@ -84,6 +88,7 @@ namespace Petal {
             VK_NULL_HANDLE,
             &m_swapchainIndex
         );
+        PETAL_CHECK_COND_SILENT(res == VK_ERROR_OUT_OF_DATE_KHR, Result::PETAL_WINDOW_RESIZED);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::PETAL_BEGIN_RENDER_FAILED, m_logger, "Failed acquire image with current swapchain index {}: {}", m_swapchainIndex, res);
 
         SubmitFrameCommand(CommandBufferStrongRef(m_beginRenderingCommands, m_swapchainIndex));
@@ -147,6 +152,7 @@ namespace Petal {
         };
 
         VkResult res = vkQueuePresentKHR(m_renderer.GetDevice()->GetGraphicsQueueFamily().GetHandle(), &presentInfo);
+        PETAL_CHECK_COND_SILENT(res == VK_ERROR_OUT_OF_DATE_KHR, Result::PETAL_WINDOW_RESIZED);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::PETAL_END_RENDER_FAILED, m_logger, "Failed to present: {}", res);
 
         m_swapchainIndex = (m_swapchainIndex + 1) % m_numSwapchainImages;
@@ -210,7 +216,8 @@ namespace Petal {
     }
 
     Result VulkanSwapchain::CreateSwapchain(
-        const VulkanQueue &queue
+        const VulkanQueue &queue,
+        glm::uvec2 windowSize
     ) {
         Optional<glm::u32> numSwapchainImagesOptional = CheckRequestedNumImagesSupported();
         PETAL_CHECK_OPTIONAL_SILENT(numSwapchainImagesOptional);
@@ -232,7 +239,7 @@ namespace Petal {
             .minImageCount = m_numSwapchainImages,
             .imageFormat = m_swapchainSurfaceFormat.surfaceFormat.format,
             .imageColorSpace = m_swapchainSurfaceFormat.surfaceFormat.colorSpace,
-            .imageExtent = m_renderer.GetDevice()->GetSurfaceCapabilities().surfaceCapabilities.currentExtent,
+            .imageExtent = VkExtent2D{windowSize.x, windowSize.y},
             .imageArrayLayers = 1,
             .imageUsage = (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT),
             .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
