@@ -14,7 +14,8 @@ namespace Petal {
 
     void LoggerSystem::RegisterLogger(std::shared_ptr<Logger> logger) {
         if (m_loggers.contains(logger->GetName())) {
-            logger->Error("Failed to register logger because another logger with the same name already exists.");
+            logger->Error(
+                "Failed to register logger because another logger with the same name already exists.\nThis may be your problem:\nYou don't need to register loggers created via LoggerSystem::CreateLogger.");
             return;
         }
 
@@ -29,5 +30,11 @@ namespace Petal {
         }
 
         return it->second;
+    }
+
+    std::shared_ptr<Logger> LoggerSystem::CreateLogger(const std::string &name, LogLevel logLevel) {
+        std::shared_ptr<Logger> logger = std::make_unique<Logger>(name, logLevel);
+        RegisterLogger(logger);
+        return logger;
     }
 } // Petal

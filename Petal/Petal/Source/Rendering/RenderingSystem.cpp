@@ -4,6 +4,7 @@
 #include "Memory/MemorySystem.h"
 #include "Window/Window.h"
 #include "Window/WindowSystem.h"
+#include "Shaders/ShaderSubsystem.h"
 
 namespace Petal {
     RenderingSystem::RenderingSystem(
@@ -20,6 +21,10 @@ namespace Petal {
 #ifndef NDEBUG
         if (CreateDebugCallback() != Result::SUCCESS)return;
 #endif
+
+        Result result;
+        m_shaderSubsystem = std::make_unique<ShaderSubsystem>(m_engine, *this, m_logger, result);
+        if (result != Result::SUCCESS) return;
     }
 
     RenderingSystem::~RenderingSystem() {
@@ -55,6 +60,10 @@ namespace Petal {
 
     const Version &RenderingSystem::GetAPIVersion() const {
         return m_apiVersion;
+    }
+
+    ShaderSubsystem &RenderingSystem::GetShaderSubsystem() const {
+        return *m_shaderSubsystem;
     }
 
     Result RenderingSystem::CreateInstance() {

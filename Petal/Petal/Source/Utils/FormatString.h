@@ -9,7 +9,7 @@
 // Allows a type to be used in std::format
 
 // Example usage:
-// PETAL_MAKE_FORMATTABLE(Petal::LogLevel, instance, {
+// PETAL_MAKE_FORMATTABLE_BODY(Petal::LogLevel, instance, {
 //     return formatter<std::string>::format(
 //         std::format("{}", Petal::LogLevelEnum::Names[static_cast<int>(instance)]),
 //         ctx

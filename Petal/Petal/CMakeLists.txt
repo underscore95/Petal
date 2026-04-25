@@ -57,6 +57,18 @@ add_library(Petal SHARED
         Source/Utils/Color/Color.h
         Source/Rendering/Internal/CommandBuffers/CommandBufferRef.cpp
         Source/Rendering/Internal/CommandBuffers/CommandBufferRef.h
+        Source/Rendering/Shaders/ShaderSubsystem.cpp
+        Source/Rendering/Shaders/ShaderSubsystem.h
+        Source/Rendering/Shaders/slang.h
+        Source/Rendering/Shaders/ShaderType.h
+        Source/Rendering/Shaders/ShaderAsset.h
+        Source/Rendering/Shaders/VulkanShaderResource.cpp
+        Source/Rendering/Shaders/VulkanShaderResource.h
+        Source/Rendering/Shaders/IntermediateShaderResource.h
+        Source/Utils/File/FileUtils.cpp
+        Source/Utils/File/FileUtils.h
+        Source/Utils/Timing/Timer.cpp
+        Source/Utils/Timing/Timer.h
 )
 
 # Macros
@@ -75,11 +87,12 @@ target_include_directories(Petal PUBLIC Source/Utils)
 # PCHs
 target_precompile_headers(Petal PRIVATE Source/pch.h)
 target_precompile_headers(Petal PRIVATE Source/Common.h)
+target_precompile_headers(Petal PRIVATE Source/Rendering/Shaders/slang.h)
 
 # Other options
 if (MSVC)
     target_compile_options(Petal PRIVATE /Zc:preprocessor)
-endif()
+endif ()
 
 # Libraries
 # Vulkan
@@ -102,3 +115,7 @@ target_link_libraries(Petal PRIVATE glfw)
 # GLM
 find_package(glm CONFIG REQUIRED)
 target_link_libraries(Petal PUBLIC glm::glm)
+
+# slang
+find_package(slang CONFIG REQUIRED)
+target_link_libraries(Petal PRIVATE slang::slang)

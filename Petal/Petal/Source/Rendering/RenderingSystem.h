@@ -11,6 +11,7 @@
 
 namespace Petal {
     class Engine;
+    class ShaderSubsystem;
     class Window;
 
     class RenderingSystem {
@@ -31,7 +32,9 @@ namespace Petal {
 
         const Version &GetAPIVersion() const;
 
+        ShaderSubsystem& GetShaderSubsystem() const;
     private:
+
         // Instance
         Result CreateInstance();
 
@@ -81,5 +84,6 @@ namespace Petal {
         VkInstance m_instance;
         VkDebugUtilsMessengerEXT m_debugMessenger;
         std::unordered_set<std::unique_ptr<Renderer> > m_renderers;
+        std::unique_ptr<ShaderSubsystem> m_shaderSubsystem;
     };
 } // Petal

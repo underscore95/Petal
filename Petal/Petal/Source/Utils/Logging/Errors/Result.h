@@ -21,6 +21,10 @@ namespace Petal {
         VULKAN_DEVICE_WAIT_IDLE_FAILED,
         VULKAN_PIPELINE_CREATION_FAILED,
 
+        // Slang errors
+        SLANG_INIT_FAILED,
+        SLANG_SHADER_COMPILATION_FAILED,
+
         // Render Errors
         PETAL_INVALID_RENDER_SETTINGS,
         PETAL_INVALID_QUEUE_FAMILY,

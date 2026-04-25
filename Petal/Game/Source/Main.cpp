@@ -6,12 +6,19 @@ int main() {
     glm::u32 frameNumber = 0;
 
     Engine engine;
+    std::shared_ptr<Logger> logger = engine.GetLoggerSystem().CreateLogger("Game");
+
     std::shared_ptr<Window> window = engine.GetWindowSystem().OpenWindow();
     OptionalRef<Renderer> rendererOptional = engine.GetRenderingSystem().CreateRenderer(
         window,
         DeviceRequirements::DEFAULT()
     );
     if (rendererOptional.IsEmpty()) return -1;
+
+    IntermediateShaderResource out;
+    ShaderAsset asset("C:/Coding/Projects/Petal/Petal/Petal/Assets/Shaders/main.slang", ShaderType::FRAGMENT);
+    Result r = engine.GetRenderingSystem().GetShaderSubsystem().CompileSlangShader(asset, out);
+    logger->Info("created shader: {}", static_cast<int>(r));
 
     Renderer &renderer = *rendererOptional.Value();
     std::shared_ptr<CommandBufferVector> commandBuffers = renderer.CreateCommandBuffers(

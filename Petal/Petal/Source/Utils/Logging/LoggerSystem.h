@@ -14,6 +14,8 @@ namespace Petal {
 
         std::shared_ptr<Logger> GetLogger(const std::string &name);
 
+        std::shared_ptr<Logger> CreateLogger(const std::string &name, LogLevel logLevel = LogLevel::Verbose);
+
     public:
         static constexpr const char* OTHER_LOGGER = "Other";
         static constexpr const char* WINDOW_LOGGER = "Window";

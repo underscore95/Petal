@@ -10,3 +10,4 @@
 #include "Window/WindowSystem.h"
 #include "Window/Window.h"
 #include "Rendering/RenderingSystem.h"
+#include "Rendering/Shaders/ShaderSubsystem.h"
