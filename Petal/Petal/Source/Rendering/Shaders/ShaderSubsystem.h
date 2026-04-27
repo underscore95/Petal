@@ -19,12 +19,13 @@ namespace Petal {
         ~ShaderSubsystem();
 
     public:
+        Optional<IntermediateShaderResource> CompileSlangShader(const ShaderAsset &asset);
 
-
-        Result CompileSlangShader(const ShaderAsset &asset, IntermediateShaderResource &out);
     private:
         void TryLogDiagnosticBlob(Slang::ComPtr<slang::IBlob> blob) const;
+
         Result CreateGlobalSession();
+
         Result CreateSession();
 
     private:

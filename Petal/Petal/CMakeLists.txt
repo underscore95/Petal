@@ -69,6 +69,7 @@ add_library(Petal SHARED
         Source/Utils/File/FileUtils.h
         Source/Utils/Timing/Timer.cpp
         Source/Utils/Timing/Timer.h
+        Source/Rendering/Shaders/ShaderInfo.h
 )
 
 # Macros

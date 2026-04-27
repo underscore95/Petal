@@ -16,9 +16,12 @@ int main() {
     if (rendererOptional.IsEmpty()) return -1;
 
     IntermediateShaderResource out;
-    ShaderAsset asset("C:/Coding/Projects/Petal/Petal/Petal/Assets/Shaders/main.slang", ShaderType::FRAGMENT);
-    Result r = engine.GetRenderingSystem().GetShaderSubsystem().CompileSlangShader(asset, out);
-    logger->Info("created shader: {}", static_cast<int>(r));
+    ShaderAsset asset("C:/Coding/Projects/Petal/Petal/Petal/Assets/Shaders/main.slang", {
+                          {ShaderType::VERTEX, {"vertexMain"}},
+                          {ShaderType::FRAGMENT, {"fragmentMain"}}
+                      });
+    auto shader = engine.GetRenderingSystem().GetShaderSubsystem().CompileSlangShader(asset);
+    assert(shader.HasValue());
 
     Renderer &renderer = *rendererOptional.Value();
     std::shared_ptr<CommandBufferVector> commandBuffers = renderer.CreateCommandBuffers(

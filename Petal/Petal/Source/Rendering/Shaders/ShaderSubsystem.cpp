@@ -36,73 +36,90 @@ namespace Petal {
         m_logger->Error("[Slang Error] {}", static_cast<const char *>(blob->getBufferPointer()));
     }
 
-    Result ShaderSubsystem::CompileSlangShader(
-        const ShaderAsset &asset,
-        IntermediateShaderResource &out
+    Optional<IntermediateShaderResource> ShaderSubsystem::CompileSlangShader(
+        const ShaderAsset &asset
     ) {
         Timer timer;
 
-        bool isOutputEmpty = !out.SlangModules.empty()
-                             || !out.LinkedPrograms.empty()
-                             || !out.SPIRV.empty();
-        PETAL_CHECK_COND(
-            isOutputEmpty,
-            Result::SLANG_SHADER_COMPILATION_FAILED,
-            m_logger,
-            "Failed to load shader modules because the output resource was not empty."
+        IntermediateShaderResource out = {};
+
+        // Load module
+        ComPtr<IBlob> diagnosticsBlob;
+        std::string moduleName = asset.Source.filename().string();
+        std::string modulePath = asset.Source.string();
+        std::string source = FileUtils::Read(asset.Source, m_logger);
+
+        ComPtr<IModule> slangModule = ComPtr<IModule>(
+            m_session->loadModuleFromSourceString(
+                moduleName.c_str(),
+                modulePath.c_str(),
+                source.c_str(),
+                diagnosticsBlob.writeRef()
+            )
         );
 
-        for (const std::pair<const ShaderType, std::filesystem::path> &sourceFile : asset.SourceFiles) {
-            // Compile shader
-            ShaderType type = sourceFile.first;
-            const std::filesystem::path &path = sourceFile.second;
+        TryLogDiagnosticBlob(diagnosticsBlob);
+        PETAL_CHECK_COND(!slangModule, Result::SLANG_SHADER_COMPILATION_FAILED, m_logger, "Failed to load shader module {}", modulePath);
 
-            ComPtr<IBlob> diagnosticsBlob;
-            std::string moduleName = path.filename().string();
-            std::string modulePath = path.string();
-            std::string source = FileUtils::Read(path, m_logger);
+        // Find entry points
+        std::vector<IComponentType *> components;
+        components.reserve(1 + asset.Shaders.size());
+        components.push_back(slangModule);
 
-            ComPtr<IModule> slangModule = ComPtr<IModule>(
-                m_session->loadModuleFromSourceString(
-                    moduleName.c_str(),
-                    modulePath.c_str(),
-                    source.c_str(),
-                    diagnosticsBlob.writeRef()
-                )
-            );
+        // Keep a reference to the entry points so they can't be destroyed after the loop ends
+        std::vector<ComPtr<IEntryPoint> > entryPoints;
+        entryPoints.reserve(asset.Shaders.size());
 
-            // Check success
-            TryLogDiagnosticBlob(diagnosticsBlob);
-            PETAL_CHECK_COND(!slangModule, Result::SLANG_SHADER_COMPILATION_FAILED, m_logger, "Failed to load shader module {}", modulePath);
+        for (const std::pair<const ShaderType, ShaderInfo> &shader : asset.Shaders) {
+            ShaderType type = shader.first;
+            const std::string &entryPointFunctionName = shader.second.EntryPoint;
 
-            out.SlangModules[type] = slangModule;
-
-            // Link
-            ComPtr<IComponentType> linkedProgram;
+            // Find entry point
+            ComPtr<IEntryPoint> entryPoint;
             diagnosticsBlob = {};
-            SlangResult result = slangModule->link(linkedProgram.writeRef(), diagnosticsBlob.writeRef());
+            SlangResult result = slangModule->findEntryPointByName(entryPointFunctionName.c_str(), entryPoint.writeRef());
             TryLogDiagnosticBlob(diagnosticsBlob);
             PETAL_CHECK_COND(
-                SLANG_FAILED(result),
+                SLANG_FAILED(result) || !entryPoint,
                 Result::SLANG_SHADER_COMPILATION_FAILED,
                 m_logger,
-                "Failed to link code for shader {}: {}", modulePath, result
+                "Failed to find entry point {} in {}", entryPointFunctionName, modulePath
             );
 
-            out.LinkedPrograms[type] = linkedProgram;
-
-            // Compile to SPIRV
-            ComPtr<IBlob> spirvCode;
-            diagnosticsBlob = {};
-            result = linkedProgram->getEntryPointCode(0, 0, spirvCode.writeRef(), diagnosticsBlob.writeRef());
-            TryLogDiagnosticBlob(diagnosticsBlob);
-            PETAL_CHECK_COND(
-                SLANG_FAILED(result),
-                Result::SLANG_SHADER_COMPILATION_FAILED,
-                m_logger,
-                "Failed to compile linked code for shader {}: {}", modulePath, result
-            );
+            components.push_back(entryPoint);
+            entryPoints.push_back(entryPoint);
         }
+
+        // Create composite program
+        ComPtr<IComponentType> program;
+        diagnosticsBlob = {};
+        SlangResult result = m_session->createCompositeComponentType(
+            components.data(),
+            components.size(),
+            program.writeRef(),
+            diagnosticsBlob.writeRef()
+        );
+        TryLogDiagnosticBlob(diagnosticsBlob);
+        PETAL_CHECK_COND(
+            SLANG_FAILED(result) || !program,
+            Result::SLANG_SHADER_COMPILATION_FAILED,
+            m_logger,
+            "Failed to compose program for shader {}: {}", modulePath, result
+        );
+
+        // Compile
+        ComPtr<IBlob> spirvCode;
+        diagnosticsBlob = {};
+        result = program->getEntryPointCode(0, 0, spirvCode.writeRef(), diagnosticsBlob.writeRef());
+        TryLogDiagnosticBlob(diagnosticsBlob);
+        PETAL_CHECK_COND(
+            SLANG_FAILED(result) || !spirvCode,
+            Result::SLANG_SHADER_COMPILATION_FAILED,
+            m_logger,
+            "Failed to compile linked code for shader {}: {}", modulePath, result
+        );
+
+        out.SPIRV = spirvCode;
 
         m_logger->Verbose("Compiled shader in {} ms", timer.MillisSinceStart());
         return Result::SUCCESS;
