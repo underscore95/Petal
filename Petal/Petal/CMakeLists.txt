@@ -70,6 +70,8 @@ add_library(Petal SHARED
         Source/Utils/Timing/Timer.cpp
         Source/Utils/Timing/Timer.h
         Source/Rendering/Shaders/ShaderInfo.h
+        Source/Rendering/Shaders/VulkanShader.cpp
+        Source/Rendering/Shaders/VulkanShader.h
 )
 
 # Macros

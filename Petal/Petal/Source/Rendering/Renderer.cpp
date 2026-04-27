@@ -11,6 +11,9 @@
 #include "Internal/VulkanSwapchain.h"
 #include "Internal/Sync/VulkanFence.h"
 #include "Internal/Sync/VulkanSemaphore.h"
+#include "Shaders/IntermediateShaderResource.h"
+#include "Shaders/ShaderSubsystem.h"
+#include "Shaders/VulkanShader.h"
 
 namespace Petal {
     Renderer::Renderer(
@@ -112,6 +115,23 @@ namespace Petal {
 
     const RenderSettings &Renderer::GetRenderSettings() const {
         return m_renderSettings;
+    }
+
+    AllocatedOptional<VulkanShader> Renderer::CompileShader(const ShaderAsset &asset) {
+        // TODO cache the SPIRV
+
+        Optional<IntermediateShaderResource> intermediateShader = m_renderingSystem.GetShaderSubsystem().CompileSlangShader(asset);
+        PETAL_CHECK_OPTIONAL_SILENT(intermediateShader);
+
+        Result result;
+        auto shader = AllocatedOptional<VulkanShader>::Emplace(
+            *this,
+            *intermediateShader.Value(),
+            m_logger,
+            result
+        );
+        if (result != Result::SUCCESS) return result;
+        return shader;
     }
 
     AllocatedOptional<CommandBuffer> Renderer::CreateCommandBuffer(

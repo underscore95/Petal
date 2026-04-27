@@ -6,6 +6,8 @@
 #include "Internal/DeviceRequirements.h"
 
 namespace Petal {
+    class VulkanShader;
+    struct ShaderAsset;
     class VulkanQueue;
     class VulkanSemaphore;
     class VulkanFence;
@@ -48,6 +50,8 @@ namespace Petal {
         RenderingSystem &GetRenderingSystem() const;
 
         const RenderSettings &GetRenderSettings() const;
+
+        AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset);
 
         // Create a command buffer.
         // It is recommended to move the command buffer into a shared ptr after creation so it can be converted into a CommandBufferRef
