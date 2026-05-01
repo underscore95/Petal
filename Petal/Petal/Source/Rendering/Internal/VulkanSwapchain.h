@@ -51,6 +51,9 @@ namespace Petal {
             const CommandBufferStrongRef &commandBuffer
         );
 
+        // Submit a command and it will run while blocking
+        Result SubmitBlockingCommand(VkCommandBuffer commandBuffer);
+
     private:
         Result CreateSyncObjects();
 
@@ -77,6 +80,7 @@ namespace Petal {
         glm::u32 m_numSwapchainImages;
         std::vector<VkImage> m_images;
         std::vector<VkImageView> m_imageViews;
+        std::shared_ptr<VulkanFence> m_blockingCommandFence;
 
         // Frame data
         glm::u32 m_swapchainIndex = 0;

@@ -2,7 +2,6 @@
 
 #include "LogLevel.h"
 #include "pch.h"
-#include "FormatTypes.h"
 
 namespace Petal {
     class Logger {

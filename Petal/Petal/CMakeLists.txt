@@ -29,7 +29,7 @@ add_library(Petal SHARED
         Source/Utils/Logging/Errors/Optional.h
         Source/Utils/ConstraintMatching.cpp
         Source/Utils/ConstraintMatching.h
-        Source/Utils/FormatTypes.h
+        Source/Utils/FormatContainers.h
         Source/Rendering/Internal/DeviceRequirements.cpp
         Source/Rendering/Internal/DeviceRequirements.h
         Source/Rendering/Renderer.cpp
@@ -61,6 +61,7 @@ add_library(Petal SHARED
         Source/Rendering/Shaders/ShaderSubsystem.h
         Source/Rendering/Shaders/slang.h
         Source/Rendering/Shaders/ShaderType.h
+        Source/Rendering/Shaders/ShaderType.cpp
         Source/Rendering/Shaders/ShaderAsset.h
         Source/Rendering/Shaders/VulkanShaderResource.cpp
         Source/Rendering/Shaders/VulkanShaderResource.h
@@ -72,6 +73,19 @@ add_library(Petal SHARED
         Source/Rendering/Shaders/ShaderInfo.h
         Source/Rendering/Shaders/VulkanShader.cpp
         Source/Rendering/Shaders/VulkanShader.h
+        Source/Rendering/Resources/ResourceType.h
+        Source/Rendering/Resources/ShaderResource.h
+        Source/Rendering/Resources/ResourceType.cpp
+        Source/Rendering/Memory/GPUBuffer.cpp
+        Source/Rendering/Memory/GPUBuffer.h
+        Source/Rendering/Memory/GPUBufferSubsystem.cpp
+        Source/Rendering/Memory/GPUBufferSubsystem.h
+        Source/Rendering/Memory/VulkanBuffer.cpp
+        Source/Rendering/Memory/VulkanBuffer.h
+        Source/Rendering/Memory/BufferType.cpp
+        Source/Rendering/Memory/BufferType.h
+        Source/Utils/Hash.h
+        Source/Rendering/Resources/ShaderResource.cpp
 )
 
 # Macros
@@ -109,7 +123,7 @@ target_link_libraries(Petal PRIVATE Vulkan::UtilityHeaders)
 
 # Vulkan Memory Allocator
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
-target_link_libraries(Petal PRIVATE GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(Petal PUBLIC GPUOpen::VulkanMemoryAllocator)
 
 # GLFW
 find_package(glfw3 CONFIG REQUIRED)
@@ -122,3 +136,7 @@ target_link_libraries(Petal PUBLIC glm::glm)
 # slang
 find_package(slang CONFIG REQUIRED)
 target_link_libraries(Petal PRIVATE slang::slang)
+
+# magic-enum
+find_package(magic_enum CONFIG REQUIRED)
+target_link_libraries(Petal PRIVATE magic_enum::magic_enum)

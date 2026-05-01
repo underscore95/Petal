@@ -66,8 +66,15 @@ namespace Petal {
         components.reserve(1 + asset.Shaders.size());
         components.push_back(slangModule);
 
+        std::unordered_map<ShaderType, IMetadata *> metadatas; // Used for reflection later
+
         // Keep a reference to the entry points so they can't be destroyed after the loop ends
-        std::vector<ComPtr<IEntryPoint> > entryPoints;
+        // and attach some information to them
+        struct EntryPointInfo {
+            ComPtr<IEntryPoint> Ptr;
+            ShaderType Type;
+        };
+        std::vector<EntryPointInfo> entryPoints;
         entryPoints.reserve(asset.Shaders.size());
 
         for (const std::pair<const ShaderType, ShaderInfo> &shader : asset.Shaders) {
@@ -87,7 +94,21 @@ namespace Petal {
             );
 
             components.push_back(entryPoint);
-            entryPoints.push_back(entryPoint);
+            entryPoints.emplace_back(entryPoint, type);
+            //
+            // // Get metadata
+            // IMetadata *metadata;
+            // diagnosticsBlob = {};
+            // result = entryPoint->getEntryPointMetadata(0, 0, &metadata, diagnosticsBlob.writeRef()); // todo maybe on composite...
+            // TryLogDiagnosticBlob(diagnosticsBlob);
+            // PETAL_CHECK_COND(
+            //     SLANG_FAILED(result) || !metadata,
+            //     Result::SLANG_SHADER_COMPILATION_FAILED,
+            //     m_logger,
+            //     "Failed to find entry point metadata for {} in {}", entryPointFunctionName, modulePath
+            // );
+            //
+            // metadatas[type] = metadata;
         }
 
         // Create composite program
@@ -107,6 +128,28 @@ namespace Petal {
             "Failed to compose program for shader {}: {}", modulePath, result
         );
 
+        // Metadata
+        for (size_t i = 0; i < entryPoints.size(); i++) {
+            IMetadata *metadata = nullptr;
+            diagnosticsBlob = {};
+            SlangResult result = program->getEntryPointMetadata(
+                static_cast<SlangInt>(i),
+                0,
+                &metadata,
+                diagnosticsBlob.writeRef()
+            );
+            TryLogDiagnosticBlob(diagnosticsBlob);
+
+            PETAL_CHECK_COND(
+                SLANG_FAILED(result) || !metadata,
+                Result::SLANG_SHADER_COMPILATION_FAILED,
+                m_logger,
+                "Failed to get metadata for entry point {} ({}) in {}", i, entryPoints[i].Type, modulePath
+            );
+
+            metadatas[entryPoints[i].Type] = metadata;
+        }
+
         // Compile
         ComPtr<IBlob> spirvCode;
         diagnosticsBlob = {};
@@ -121,8 +164,21 @@ namespace Petal {
 
         out.SPIRV = spirvCode;
 
+        // Reflection
+        diagnosticsBlob = {};
+        ProgramLayout *programLayout = program->getLayout(0, diagnosticsBlob.writeRef());
+        TryLogDiagnosticBlob(diagnosticsBlob);
+
+        Result petalResult = ReflectResourceTypes(programLayout->getGlobalParamsVarLayout(), metadatas, out.Resources);
+        PETAL_CHECK_COND(
+            petalResult != Result::SUCCESS,
+            petalResult,
+            m_logger,
+            "Failed to reflect resource types for shader: {}", modulePath
+        );
+
         m_logger->Verbose("Compiled shader in {} ms", timer.MillisSinceStart());
-        return Result::SUCCESS;
+        return out;
     }
 
     Result ShaderSubsystem::CreateGlobalSession() {
@@ -160,6 +216,85 @@ namespace Petal {
 
         SlangResult result = m_globalSession->createSession(sessionDesc, m_session.writeRef());
         PETAL_CHECK_COND(SLANG_FAILED(result) || !m_session, Result::SLANG_INIT_FAILED, m_logger, "Failed to create session: {}", result);
+        return Result::SUCCESS;
+    }
+
+    Result ShaderSubsystem::ReflectResourceTypes(
+        slang::VariableLayoutReflection *variableLayout,
+        std::unordered_map<ShaderType, slang::IMetadata *> fullMetadata,
+        std::vector<ShaderResource> &resources
+    ) {
+        ResourceType resourceType;
+        TypeReflection::Kind variableType = variableLayout->getTypeLayout()->getKind();
+        switch (variableType) {
+            // Recursively iterate fields in structs
+            case TypeReflection::Kind::Struct:
+                if (variableLayout->getTypeLayout()->getFieldCount() == 0) {
+                    m_logger->Warn("Struct {} with no fields in shader", variableLayout->getName());
+                }
+
+                for (glm::u32 i = 0; i < variableLayout->getTypeLayout()->getFieldCount(); i++) {
+                    VariableLayoutReflection *field = variableLayout->getTypeLayout()->getFieldByIndex(i);
+                    Result result = ReflectResourceTypes(field, fullMetadata, resources);
+                    PETAL_CHECK_COND_SILENT(result == Result::SUCCESS, result);
+                }
+                return Result::SUCCESS;
+
+            // Get resource type
+            case TypeReflection::Kind::ConstantBuffer:
+                resourceType = ResourceType::CONSTANT_BUFFER;
+                break;
+            default:
+                m_logger->Error("Unsupported field type {} (field name: {}) in shader.", variableType, variableLayout->getName());
+                return Result::PETAL_SHADER_REFLECTION_FAILED;
+        }
+
+        // Get resource information
+        ShaderResource resource = {
+            .Name = variableLayout->getName(),
+            .Type = resourceType,
+            .Size = 0,
+            .BindingIndex = variableLayout->getBindingIndex(),
+            .BindingSet = variableLayout->getBindingSpace(),
+            .Stages = {}
+        };
+
+        // Check what stages use the parameter
+        for (const std::pair<const ShaderType, IMetadata *> metadataPair : fullMetadata) {
+            ShaderType shaderType = metadataPair.first;
+            IMetadata *metadata = metadataPair.second;
+
+            bool used;
+            SlangResult result = metadata->isParameterLocationUsed(
+                static_cast<SlangParameterCategory>(variableLayout->getCategory()), // I don't know why there is two enums in slang for this
+                resource.BindingSet,
+                resource.BindingIndex,
+                used
+            );
+
+            PETAL_CHECK_COND(
+                SLANG_FAILED(result),
+                Result::PETAL_SHADER_REFLECTION_FAILED,
+                m_logger,
+                "Failed to check if parameter {} is used in shader: {}", resource.Name, result
+            );
+
+            if (used) {
+                resource.Stages.push_back(shaderType);
+            }
+        }
+
+        // This gets the size of the type inside the resource, for example size of Camera from ConstantBuffer<Camera>
+        TypeLayoutReflection *typeLayout = variableLayout->getTypeLayout();
+        PETAL_CHECK_COND_SILENT(!typeLayout, Result::PETAL_SHADER_REFLECTION_FAILED);
+        VariableLayoutReflection *elementVarLayout = typeLayout->getElementVarLayout();
+        PETAL_CHECK_COND_SILENT(!elementVarLayout, Result::PETAL_SHADER_REFLECTION_FAILED);
+        TypeLayoutReflection *elementVarTypeLayout = elementVarLayout->getTypeLayout();
+        PETAL_CHECK_COND_SILENT(!elementVarTypeLayout, Result::PETAL_SHADER_REFLECTION_FAILED);
+        resource.Size = elementVarTypeLayout->getSize();
+
+        resources.push_back(resource);
+
         return Result::SUCCESS;
     }
 } // Petal

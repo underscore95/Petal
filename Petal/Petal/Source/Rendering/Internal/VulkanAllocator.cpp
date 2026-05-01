@@ -1,5 +1,15 @@
 #define VMA_IMPLEMENTATION
 
+#ifndef NDEBUG
+
+// Enable VMA Debug features
+#define VMA_DEBUG_INITIALIZE_ALLOCATIONS 1
+#define VMA_DEBUG_MARGIN 16
+#define VMA_DEBUG_DETECT_CORRUPTION 1
+#define VMA_RECORDING_ENABLED 1
+
+#endif
+
 #include "VulkanAllocator.h"
 
 #include "Engine.h"
@@ -43,7 +53,7 @@ namespace Petal {
         VkResult res = vmaCreateAllocator(&createInfo, &m_allocator);
         PETAL_CHECK_COND(
             res != VK_SUCCESS,
-            Result::VULKAN_VMA_CREATION_FAILED,
+            Result::VMA_CREATION_FAILED,
             m_logger,
             "{}",
             res

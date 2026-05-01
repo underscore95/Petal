@@ -18,6 +18,11 @@ namespace Petal {
         Optional(Result result)
             : m_present(false),
               m_result(result) {
+            if (result == Result::SUCCESS) [[unlikely]] {
+#ifndef NDEBUG
+                __debugbreak();
+#endif
+            }
         }
 
         Optional(const Optional &other) = delete;
@@ -51,10 +56,10 @@ namespace Petal {
         }
 
     public:
-        Result GetResult() { return m_result; }
+        Result GetResult() const { return m_result; }
         T *Value() { return m_present ? &m_value : nullptr; }
-        bool HasValue() { return m_present; }
-        bool IsEmpty() { return !HasValue(); }
+        bool HasValue() const { return m_present; }
+        bool IsEmpty() const { return !HasValue(); }
 
     private:
         T m_value;
@@ -79,6 +84,11 @@ namespace Petal {
         AllocatedOptional(const Result &result)
             : m_present(false),
               m_result(result) {
+            if (result == Result::SUCCESS) [[unlikely]] {
+#ifndef NDEBUG
+                __debugbreak();
+#endif
+            }
         }
 
         AllocatedOptional(const AllocatedOptional &other) = delete;
@@ -121,10 +131,10 @@ namespace Petal {
         }
 
     public:
-        Result GetResult() { return m_result; }
+        Result GetResult() const { return m_result; }
         T *Value() { return m_present ? m_value.get() : nullptr; }
-        bool HasValue() { return m_present; }
-        bool IsEmpty() { return !HasValue(); }
+        bool HasValue() const { return m_present; }
+        bool IsEmpty() const { return !HasValue(); }
 
     private:
         std::unique_ptr<T> m_value;
@@ -134,8 +144,7 @@ namespace Petal {
 
     template<typename T>
     class OptionalRef {
-        static_assert(!IsResult<T>::value, "Optionalstd::shared_ptr<Result> is forbidden because it creates constructor ambiguity.");
-        static_assert(!IsUniquePtr<T>::value, "Optionalstd::shared_ptr<std::unique_ptr<T>> is forbidden. Use AllocatedOptional instead.");
+        static_assert(!IsResult<T>::value, "OptionalRef<Result> is forbidden because it creates constructor ambiguity.");
 
     public:
         OptionalRef(T &value)
@@ -148,6 +157,11 @@ namespace Petal {
             : m_value(nullptr),
               m_present(false),
               m_result(result) {
+            if (result == Result::SUCCESS) [[unlikely]] {
+#ifndef NDEBUG
+                __debugbreak();
+#endif
+            }
         }
 
         OptionalRef(const OptionalRef &other) = delete;
@@ -184,7 +198,7 @@ namespace Petal {
         }
 
     public:
-        Result GetResult() {
+        Result GetResult() const {
             return m_result;
         }
 
@@ -192,11 +206,11 @@ namespace Petal {
             return m_present ? m_value : nullptr;
         }
 
-        bool HasValue() {
+        bool HasValue() const {
             return m_present;
         }
 
-        bool IsEmpty() {
+        bool IsEmpty() const {
             return !HasValue();
         }
 
@@ -206,6 +220,15 @@ namespace Petal {
         Result m_result;
     };
 
+#define PETAL_CHECK_OPTIONAL(optional, loggerRef, message, ...) \
+    do { \
+        const auto& __optionalStored = (optional); \
+        PETAL_CHECK_COND(__optionalStored.IsEmpty(), __optionalStored.GetResult(), loggerRef, message, ##__VA_ARGS__); \
+    } while (0)
+
 #define PETAL_CHECK_OPTIONAL_SILENT(optional) \
-    PETAL_CHECK_COND_SILENT(optional.IsEmpty(), optional.GetResult())
+    do { \
+        const auto& __optionalStored = optional; \
+        PETAL_CHECK_COND_SILENT(__optionalStored.IsEmpty(), __optionalStored.GetResult()); \
+    } while (0)
 } // Petal

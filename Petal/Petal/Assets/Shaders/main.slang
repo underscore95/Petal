@@ -27,9 +27,7 @@ struct Camera
     float4x4 mvp;
 }
 
-ParameterBlock<Scene> scene;
 ConstantBuffer<Camera> camera;
-SamplerState samplerState;
 
 struct VOut
 {
@@ -51,7 +49,5 @@ VOut vertexMain(Vertex input)
 [shader("fragment")]
 float4 fragmentMain(VOut input) : SV_Target
 {
-    let texture = scene.textures[scene.materials[0].albedoTextureIndex];
-    let color = texture.Sample(samplerState, input.uv);
-    return color;
+    return float4(1,1,1,1);
 }

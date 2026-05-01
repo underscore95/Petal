@@ -8,4 +8,5 @@ namespace Petal {
     static constexpr glm::u32 VULKAN_SENTINEL_SURFACE_CAPABILITIES_UNLIMITED_SWAPCHAIN_IMAGES = 0;
 
     static constexpr glm::u64 PETAL_U64_MAX = UINT64_MAX;
+    static constexpr glm::u64 PETAL_U32_MAX = UINT32_MAX;
 } // Petal

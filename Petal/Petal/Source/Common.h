@@ -1,5 +1,9 @@
 #pragma once
 
+#include <magic_enum/magic_enum.hpp>
+#include "Hash.h"
+#include "FormatString.h"
+#include "FormatContainers.h"
 #include "CopyMoveMacros.h"
 #include "CommonTraits.h"
 #include "Color/Color.h"

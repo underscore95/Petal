@@ -1,4 +1,5 @@
 #include "Petal.h"
+#include "Rendering/Memory/GPUBufferSubsystem.h"
 
 int main() {
     using namespace Petal;
@@ -30,7 +31,17 @@ int main() {
             {ShaderType::FRAGMENT, {"fragmentMain"}}
         }
     );
-    auto shader = renderer.CompileShader(asset);
+    auto shaderOpt = renderer.CompileShader(asset);
+    std::shared_ptr<VulkanShader> shader = shaderOpt.Release();
+
+    AllocatedOptional<GPUBuffer> bufferOptional = renderer.GetBufferSubsystem().CreateIndependentBuffer("Camera", sizeof(glm::mat4x4));
+    assert(bufferOptional.HasValue());
+    std::shared_ptr<GPUBuffer> cameraBuffer = bufferOptional.Release();
+    glm::mat4x4 matrix = glm::identity<glm::mat4x4>();
+    Result result = renderer.GetBufferSubsystem().Write(*cameraBuffer, &matrix, sizeof(matrix));
+    assert(result == Result::SUCCESS);
+    result = shader->BindBuffer("camera", *cameraBuffer);
+    assert(result == Result::SUCCESS);
 
     while (!window->WantsToClose()) {
         frameNumber++;

@@ -9,7 +9,8 @@ namespace Petal {
     static_assert(typeid(errorCode) == typeid(Result)); \
     static_assert(typeid(loggerRef) == typeid(std::shared_ptr<Logger>)); \
     do { \
-        if (condition) [[unlikely]] { \
+        const bool& __conditionStored = condition; \
+        if (__conditionStored) [[unlikely]] { \
             std::string errorMessageFormatted = std::format(message __VA_OPT__(,) __VA_ARGS__);\
             loggerRef->Error("[Error Code: {}] {}", (int)errorCode, errorMessageFormatted); \
             return errorCode; \
@@ -20,9 +21,10 @@ namespace Petal {
 #define PETAL_CHECK_COND_SILENT(condition, errorCode) \
     static_assert(typeid(errorCode) == typeid(Result)); \
     do { \
-        if (condition) [[unlikely]] { \
+        const bool& __conditionStored = condition; \
+        if (__conditionStored) [[unlikely]] { \
             return errorCode; \
         } \
-    } while (0)
+} while (0)
 
 } // Petal

@@ -199,7 +199,47 @@ namespace Petal {
         m_submittedFrameCommandSubmitInfos.push_back(commandInfo);
     }
 
+    Result VulkanSwapchain::SubmitBlockingCommand(VkCommandBuffer commandBuffer) {
+        VkCommandBufferSubmitInfo commandInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+            .pNext = nullptr,
+            .commandBuffer = commandBuffer,
+            .deviceMask = 0
+        };
+
+        VkSubmitInfo2 submit = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .pNext = nullptr,
+            .flags = 0,
+            .waitSemaphoreInfoCount = 0,
+            .pWaitSemaphoreInfos = nullptr,
+            .commandBufferInfoCount = 1,
+            .pCommandBufferInfos = &commandInfo,
+            .signalSemaphoreInfoCount = 0,
+            .pSignalSemaphoreInfos = nullptr
+        };
+
+        VkResult result = vkQueueSubmit2(
+            m_renderer.GetDevice()->GetGraphicsQueueFamily().GetHandle(),
+            1,
+            &submit,
+            m_blockingCommandFence->GetHandle()
+        );
+        PETAL_CHECK_COND(
+            result != VK_SUCCESS,
+            Result::PETAL_COMMAND_SUBMIT_FAILED,
+            m_logger,
+            "Failed to submit blocking command: {}", result
+        );
+
+        return Result::SUCCESS;
+    }
+
     Result VulkanSwapchain::CreateSyncObjects() {
+        Optional<std::shared_ptr<VulkanFence> > blockingFenceOptional = m_renderer.CreateFence();
+        PETAL_CHECK_OPTIONAL_SILENT(blockingFenceOptional);
+        m_blockingCommandFence = *blockingFenceOptional.Value();
+
         Optional<std::vector<std::shared_ptr<VulkanFence> > > fences = m_renderer.CreateFences(NumSwapchainImages(), VK_FENCE_CREATE_SIGNALED_BIT);
         PETAL_CHECK_OPTIONAL_SILENT(fences);
         m_frameCompleteFences = *fences.Value();

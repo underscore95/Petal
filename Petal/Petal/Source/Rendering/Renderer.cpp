@@ -11,6 +11,7 @@
 #include "Internal/VulkanSwapchain.h"
 #include "Internal/Sync/VulkanFence.h"
 #include "Internal/Sync/VulkanSemaphore.h"
+#include "Memory/GPUBufferSubsystem.h"
 #include "Shaders/IntermediateShaderResource.h"
 #include "Shaders/ShaderSubsystem.h"
 #include "Shaders/VulkanShader.h"
@@ -61,11 +62,16 @@ namespace Petal {
         result = CreateSwapchain();
         if (result != Result::SUCCESS) return;
 
+        m_bufferSubsystem = std::make_unique<GPUBufferSubsystem>(*this, m_logger, result);
+        if (result != Result::SUCCESS) return;
+
         result = Result::SUCCESS;
         m_logger->Verbose("Created renderer");
     }
 
     Renderer::~Renderer() {
+        m_bufferSubsystem.reset();
+
         Result result = DeviceWaitIdle();
         if (result != Result::SUCCESS) {
             m_logger->Warn("Failed to wait for device to be idle before destroying renderer");
@@ -117,8 +123,12 @@ namespace Petal {
         return m_renderSettings;
     }
 
+    GPUBufferSubsystem &Renderer::GetBufferSubsystem() const {
+        return *m_bufferSubsystem;
+    }
+
     AllocatedOptional<VulkanShader> Renderer::CompileShader(const ShaderAsset &asset) {
-        // TODO cache the SPIRV
+        // TODO cache the SPIRV and reflection info
 
         Optional<IntermediateShaderResource> intermediateShader = m_renderingSystem.GetShaderSubsystem().CompileSlangShader(asset);
         PETAL_CHECK_OPTIONAL_SILENT(intermediateShader);

@@ -6,6 +6,7 @@
 
 namespace Petal {
     class RenderingSystem;
+    struct ShaderResource;
 
     class ShaderSubsystem {
     public:
@@ -27,6 +28,8 @@ namespace Petal {
         Result CreateGlobalSession();
 
         Result CreateSession();
+
+        Result ReflectResourceTypes(slang::VariableLayoutReflection *variableLayout, std::unordered_map<ShaderType, slang::IMetadata *> fullMetadata, std::vector<ShaderResource> &resources);
 
     private:
         Engine &m_engine;

@@ -138,6 +138,7 @@ namespace Petal {
 
 
         PETAL_CHECK_COND(true, Result::VULKAN_DEVICE_CREATION_FAILED, m_logger, "No device found that met all requirements");
+        return Result::SUCCESS;
     }
 
     Result RenderingDevice::QuerySupportedSurfaceFormats() {
