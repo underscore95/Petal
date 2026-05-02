@@ -7,7 +7,13 @@
 namespace Petal {
     // Represents a compiled shader that has yet to be tied to a specific graphics API
     struct IntermediateShaderResource {
-        Slang::ComPtr<slang::IBlob> SPIRV;
+        struct ShaderStage {
+            std::string EntryFunctionName;
+            glm::u32 EntryPointIndex;
+            Slang::ComPtr<slang::IBlob> SPIRV;
+        };
+
         std::vector<ShaderResource> Resources;
+        std::unordered_map<ShaderType, ShaderStage> ShaderTypes;
     };
 } // Petal

@@ -45,6 +45,7 @@ namespace Petal {
         PETAL_COMMAND_SUBMIT_FAILED,
         PETAL_PRESENT_FRAME_FAILED,
         PETAL_WINDOW_RESIZED, // Window was resized, the swapchain needs to be recreated
+        PETAL_UNSUPPORTED_FORMAT,
 
         // Petal Other Errors
         PETAL_OPTIONAL_MOVED_OUT, // Contents of this optional were moved into another optional

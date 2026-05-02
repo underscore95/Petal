@@ -82,6 +82,44 @@ namespace Petal {
         }
     }
 
+    Optional<VkFormat> RenderingDevice::FindDepthFormat() const {
+        static const std::vector DEPTH_FORMATS = {
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D24_UNORM_S8_UINT
+        };
+
+        return FindSupportedFormat(
+            DEPTH_FORMATS,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+        );
+    }
+
+    Optional<VkFormat> RenderingDevice::FindSupportedFormat(
+        const std::vector<VkFormat> &candidates,
+        VkImageTiling tiling,
+        VkFormatFeatureFlags requestedFeatures
+    ) const {
+        VkFormat candidateFormat = VK_FORMAT_UNDEFINED;
+        for (int i = 0; i < candidates.size(); i++) {
+            candidateFormat = candidates[i];
+            VkFormatProperties properties;
+            vkGetPhysicalDeviceFormatProperties(m_physicalDevice, candidateFormat, &properties);
+
+            if ((tiling == VK_IMAGE_TILING_LINEAR) &&
+                (properties.linearTilingFeatures & requestedFeatures) == requestedFeatures) {
+                return candidateFormat;
+            }
+            if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+                (properties.optimalTilingFeatures & requestedFeatures) == requestedFeatures) {
+                return candidateFormat;
+            }
+        }
+
+        return Result::PETAL_UNSUPPORTED_FORMAT;
+    }
+
     Result RenderingDevice::QueryDeviceSurfaceCapabilities() {
         VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
@@ -158,7 +196,7 @@ namespace Petal {
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_DEVICE_CREATION_FAILED, m_logger, "Failed to query number of surface formats: {}", res);
 
         m_surfaceFormats.resize(numSurfaceFormats);
-        for (auto& format : m_surfaceFormats) {
+        for (auto &format : m_surfaceFormats) {
             format.sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR;
             format.pNext = nullptr;
         }
@@ -169,8 +207,6 @@ namespace Petal {
             m_surfaceFormats.data()
         );
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_DEVICE_CREATION_FAILED, m_logger, "Failed to query surface formats: {}", res);
-
-        m_logger->Info("Supported surface formats: {}", m_surfaceFormats);
 
         return Result::SUCCESS;
     }
@@ -351,7 +387,7 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
-    void RenderingDevice::GetDeviceAndIndexingFeatures(
+    void RenderingDevice::GetDeviceFeatures(
         VkPhysicalDeviceFeatures2 &deviceFeatures,
         VkPhysicalDeviceDescriptorIndexingFeaturesEXT &indexingFeatures) const {
         indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
@@ -390,7 +426,26 @@ namespace Petal {
         // Get device features
         VkPhysicalDeviceFeatures2 queriedDeviceFeatures;
         VkPhysicalDeviceDescriptorIndexingFeaturesEXT queriedIndexingFeatures;
-        GetDeviceAndIndexingFeatures(queriedDeviceFeatures, queriedIndexingFeatures);
+        GetDeviceFeatures(queriedDeviceFeatures, queriedIndexingFeatures);
+
+        // Shader draw parameters
+        static constexpr Version SHADER_DRAW_PARAMETERS_VERSION = {0, 1, 1, 0};
+
+        VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeature = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
+            .pNext = nullptr,
+            .shaderDrawParameters = VK_TRUE
+        };
+
+        if (m_renderingSystem.GetAPIVersion() < SHADER_DRAW_PARAMETERS_VERSION) {
+            PETAL_CHECK_COND(
+                !m_deviceExtensions.contains(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME),
+                Result::VULKAN_DEVICE_CREATION_FAILED,
+                m_logger,
+                "Shader draw parameters extension wasn't supported"
+            );
+            deviceExtensions.push_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
+        }
 
         // Dynamic rendering
         static constexpr Version DYNAMIC_RENDERING_VERSION = {0, 1, 3, 0};
@@ -406,7 +461,7 @@ namespace Petal {
 
         VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeature = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-            .pNext = nullptr,
+            .pNext = &shaderDrawParametersFeature,
             .dynamicRendering = VK_TRUE
         };
 

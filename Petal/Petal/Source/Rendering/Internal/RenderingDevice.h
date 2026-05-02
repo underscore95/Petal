@@ -46,7 +46,16 @@ namespace Petal {
 
         void InitializeQueueFamilies();
 
+        // Search for a supported depth format
+        Optional<VkFormat> FindDepthFormat() const;
+
     private:
+        Optional<VkFormat> FindSupportedFormat(
+            const std::vector<VkFormat> &candidates,
+            VkImageTiling tiling,
+            VkFormatFeatureFlags requestedFeatures
+        ) const;
+
         Result QueryDeviceSurfaceCapabilities();
 
         Result SelectPhysicalDevice(const DeviceRequirements &deviceRequirements);
@@ -69,7 +78,10 @@ namespace Petal {
 
         Result GetExtensions();
 
-        void GetDeviceAndIndexingFeatures(VkPhysicalDeviceFeatures2 &deviceFeatures, VkPhysicalDeviceDescriptorIndexingFeaturesEXT &indexingFeatures) const;
+        void GetDeviceFeatures(
+            VkPhysicalDeviceFeatures2 &deviceFeatures,
+            VkPhysicalDeviceDescriptorIndexingFeaturesEXT &indexingFeatures
+        ) const;
 
         Result CreateLogicalDevice(DeviceRequirements deviceRequirements);
 
@@ -79,7 +91,7 @@ namespace Petal {
     private:
         Engine &m_engine;
         RenderingSystem &m_renderingSystem;
-        Renderer& m_renderer;
+        Renderer &m_renderer;
         std::shared_ptr<Logger> m_logger;
         VkDevice m_device;
         VkPhysicalDevice m_physicalDevice;

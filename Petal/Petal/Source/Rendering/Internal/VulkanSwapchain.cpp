@@ -235,6 +235,10 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
+    VkSurfaceFormat2KHR VulkanSwapchain::GetSurfaceFormat() const {
+        return m_swapchainSurfaceFormat;
+    }
+
     Result VulkanSwapchain::CreateSyncObjects() {
         Optional<std::shared_ptr<VulkanFence> > blockingFenceOptional = m_renderer.CreateFence();
         PETAL_CHECK_OPTIONAL_SILENT(blockingFenceOptional);

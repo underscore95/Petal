@@ -7,8 +7,6 @@ using namespace slang;
 using namespace Slang;
 
 namespace Petal {
-    struct IntermediateShaderResource;
-
     ShaderSubsystem::ShaderSubsystem(
         Engine &engine,
         RenderingSystem &renderingSystem,
@@ -77,6 +75,7 @@ namespace Petal {
         std::vector<EntryPointInfo> entryPoints;
         entryPoints.reserve(asset.Shaders.size());
 
+        glm::u32 entryPointIndex=0;
         for (const std::pair<const ShaderType, ShaderInfo> &shader : asset.Shaders) {
             ShaderType type = shader.first;
             const std::string &entryPointFunctionName = shader.second.EntryPoint;
@@ -95,20 +94,15 @@ namespace Petal {
 
             components.push_back(entryPoint);
             entryPoints.emplace_back(entryPoint, type);
-            //
-            // // Get metadata
-            // IMetadata *metadata;
-            // diagnosticsBlob = {};
-            // result = entryPoint->getEntryPointMetadata(0, 0, &metadata, diagnosticsBlob.writeRef()); // todo maybe on composite...
-            // TryLogDiagnosticBlob(diagnosticsBlob);
-            // PETAL_CHECK_COND(
-            //     SLANG_FAILED(result) || !metadata,
-            //     Result::SLANG_SHADER_COMPILATION_FAILED,
-            //     m_logger,
-            //     "Failed to find entry point metadata for {} in {}", entryPointFunctionName, modulePath
-            // );
-            //
-            // metadatas[type] = metadata;
+            out.ShaderTypes[type] = IntermediateShaderResource::ShaderStage{
+                .EntryFunctionName = entryPoint->getFunctionReflection()->getName(),
+                .EntryPointIndex = entryPointIndex,
+                .SPIRV = nullptr
+            };
+            m_logger->Verbose("Found shader entry point {} with name {} and index {}", type, out.ShaderTypes[type].EntryFunctionName, out.ShaderTypes[type].EntryPointIndex);
+
+            assert(entryPointIndex + 2 == components.size());
+            entryPointIndex++;
         }
 
         // Create composite program
@@ -116,7 +110,7 @@ namespace Petal {
         diagnosticsBlob = {};
         SlangResult result = m_session->createCompositeComponentType(
             components.data(),
-            components.size(),
+            static_cast<glm::u32>(components.size()),
             program.writeRef(),
             diagnosticsBlob.writeRef()
         );
@@ -151,18 +145,20 @@ namespace Petal {
         }
 
         // Compile
-        ComPtr<IBlob> spirvCode;
-        diagnosticsBlob = {};
-        result = program->getEntryPointCode(0, 0, spirvCode.writeRef(), diagnosticsBlob.writeRef());
-        TryLogDiagnosticBlob(diagnosticsBlob);
-        PETAL_CHECK_COND(
-            SLANG_FAILED(result) || !spirvCode,
-            Result::SLANG_SHADER_COMPILATION_FAILED,
-            m_logger,
-            "Failed to compile linked code for shader {}: {}", modulePath, result
-        );
+        for (std::pair<const ShaderType, IntermediateShaderResource::ShaderStage> &pair : out.ShaderTypes) {
+            ComPtr<IBlob> spirvCode;
+            diagnosticsBlob = {};
+            result = program->getEntryPointCode(pair.second.EntryPointIndex, 0, spirvCode.writeRef(), diagnosticsBlob.writeRef());
+            TryLogDiagnosticBlob(diagnosticsBlob);
+            PETAL_CHECK_COND(
+                SLANG_FAILED(result) || !spirvCode,
+                Result::SLANG_SHADER_COMPILATION_FAILED,
+                m_logger,
+                "Failed to compile linked code for shader {}: {}", modulePath, result
+            );
 
-        out.SPIRV = spirvCode;
+            pair.second.SPIRV = spirvCode;
+        }
 
         // Reflection
         diagnosticsBlob = {};
@@ -209,6 +205,10 @@ namespace Petal {
         {
             CompilerOptionEntry{
                 CompilerOptionName::EmitSpirvDirectly, {CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr}
+            },
+            // Don't rename entry points to "main" in the SPIRV
+            {
+                slang::CompilerOptionName::VulkanUseEntryPointName, slang::CompilerOptionValue{CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr}
             }
         };
         sessionDesc.compilerOptionEntries = options.data();
@@ -224,36 +224,40 @@ namespace Petal {
         std::unordered_map<ShaderType, slang::IMetadata *> fullMetadata,
         std::vector<ShaderResource> &resources
     ) {
-        ResourceType resourceType;
+        Optional<ResourceType> resourceType(Result::PETAL_SHADER_REFLECTION_INVALID_TYPE);
         TypeReflection::Kind variableType = variableLayout->getTypeLayout()->getKind();
-        switch (variableType) {
-            // Recursively iterate fields in structs
-            case TypeReflection::Kind::Struct:
-                if (variableLayout->getTypeLayout()->getFieldCount() == 0) {
-                    m_logger->Warn("Struct {} with no fields in shader", variableLayout->getName());
-                }
+        SlangResourceShape shape = variableLayout->getType()->getResourceShape();
 
-                for (glm::u32 i = 0; i < variableLayout->getTypeLayout()->getFieldCount(); i++) {
-                    VariableLayoutReflection *field = variableLayout->getTypeLayout()->getFieldByIndex(i);
-                    Result result = ReflectResourceTypes(field, fullMetadata, resources);
-                    PETAL_CHECK_COND_SILENT(result == Result::SUCCESS, result);
-                }
-                return Result::SUCCESS;
+        // Recursively iterate fields in structs
+        if (variableType == TypeReflection::Kind::Struct) {
+            if (variableLayout->getTypeLayout()->getFieldCount() == 0) {
+                m_logger->Warn("Struct {} with no fields in shader", variableLayout->getName());
+            }
 
-            // Get resource type
-            case TypeReflection::Kind::ConstantBuffer:
-                resourceType = ResourceType::CONSTANT_BUFFER;
-                break;
-            default:
-                m_logger->Error("Unsupported field type {} (field name: {}) in shader.", variableType, variableLayout->getName());
-                return Result::PETAL_SHADER_REFLECTION_FAILED;
+            for (glm::u32 i = 0; i < variableLayout->getTypeLayout()->getFieldCount(); i++) {
+                VariableLayoutReflection *field = variableLayout->getTypeLayout()->getFieldByIndex(i);
+                Result result = ReflectResourceTypes(field, fullMetadata, resources);
+                PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+            }
+            return Result::SUCCESS;
+        } else if (variableType == TypeReflection::Kind::Resource) {
+            // Don't know the type...
+            if (shape == SlangResourceShape::SLANG_STRUCTURED_BUFFER) {
+                resourceType = ResourceType::STORAGE_BUFFER;
+            }
+        } else if (variableType == TypeReflection::Kind::ConstantBuffer) {
+            // todo support constant buffer / ubo
+        }
+
+        if (resourceType.IsEmpty()) {
+            m_logger->Error("Unsupported field type {} (field name: {}, shape: {}, kind: {}) in shader.", variableType, shape, variableType, variableLayout->getName());
+            return Result::PETAL_SHADER_REFLECTION_FAILED;
         }
 
         // Get resource information
         ShaderResource resource = {
             .Name = variableLayout->getName(),
-            .Type = resourceType,
-            .Size = 0,
+            .Type = *resourceType.Value(),
             .BindingIndex = variableLayout->getBindingIndex(),
             .BindingSet = variableLayout->getBindingSpace(),
             .Stages = {}
@@ -283,15 +287,6 @@ namespace Petal {
                 resource.Stages.push_back(shaderType);
             }
         }
-
-        // This gets the size of the type inside the resource, for example size of Camera from ConstantBuffer<Camera>
-        TypeLayoutReflection *typeLayout = variableLayout->getTypeLayout();
-        PETAL_CHECK_COND_SILENT(!typeLayout, Result::PETAL_SHADER_REFLECTION_FAILED);
-        VariableLayoutReflection *elementVarLayout = typeLayout->getElementVarLayout();
-        PETAL_CHECK_COND_SILENT(!elementVarLayout, Result::PETAL_SHADER_REFLECTION_FAILED);
-        TypeLayoutReflection *elementVarTypeLayout = elementVarLayout->getTypeLayout();
-        PETAL_CHECK_COND_SILENT(!elementVarTypeLayout, Result::PETAL_SHADER_REFLECTION_FAILED);
-        resource.Size = elementVarTypeLayout->getSize();
 
         resources.push_back(resource);
 

@@ -19,9 +19,17 @@ namespace Petal {
     }
 
     void Logger::Log(const std::string &message, LogLevel level) {
+        static constexpr const char *ResetColour = "\033[0m";
         if (m_level > level) return;
 
         std::unique_lock lock(Mutex);
-        std::cout << std::format("[{}] ({}) {}", level, m_name, message) << std::endl;
+        std::cout << std::format(
+            "{}[{}] ({}) {}{}",
+            LogLevelEnum::Colors[static_cast<size_t>(level)],
+            level,
+            m_name,
+            message,
+            ResetColour
+        ) << std::endl;
     }
 } // Petal

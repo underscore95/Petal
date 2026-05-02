@@ -16,6 +16,13 @@ namespace Petal {
         static constexpr std::array<const char *, NumValues> Names = {
             "Verbose", "Info", "Warn", "Error"
         };
+
+        static constexpr std::array<const char *, NumValues> Colors = {
+            "\033[37m", // Verbose - white
+            "\033[36m", // Info - cyan
+            "\033[33m", // Warn - yellow
+            "\033[31m" // Error - red
+        };
     };
 } // Petal
 

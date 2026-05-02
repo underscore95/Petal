@@ -1,16 +1,13 @@
 #pragma once
 
-#include <complex.h>
-#include <vector>
-
 #include "Common.h"
 #include <vulkan/vulkan_core.h>
-
-#include "ShaderType.h"
+#include "Rendering/Shaders/ShaderType.h"
 #include "Rendering/Renderer.h"
 #include "Rendering/Resources/ResourceType.h"
 
 namespace Petal {
+    class VulkanGraphicsPipeline;
     struct ShaderResource;
     class GPUBuffer;
     struct IntermediateShaderResource;
@@ -20,6 +17,13 @@ namespace Petal {
         struct ResourceLocation {
             glm::u32 Binding;
             glm::u32 Set;
+        };
+
+    public:
+        struct Stage {
+            ShaderType Type;
+            std::string EntryPointFunctionName;
+            VkShaderModule ShaderModule;
         };
 
     public:
@@ -33,10 +37,12 @@ namespace Petal {
         ~VulkanShader();
 
     public:
-        VkShaderModule GetHandle() const;
-
         // Bind a resource
         Result BindBuffer(const std::string &name, const GPUBuffer &buffer);
+
+        const std::vector<Stage> &GetShaderStages() const;
+
+        const std::vector<VkDescriptorSetLayout> &GetDescriptorSetLayouts() const;
 
     private:
         Result CreateShaderModule(
@@ -50,12 +56,12 @@ namespace Petal {
     private:
         Renderer &m_renderer;
         std::shared_ptr<Logger> m_logger;
-        VkShaderModule m_handle;
         VkDescriptorPool m_descriptorPool;
         std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
         std::vector<VkDescriptorSet> m_descriptorSets;
+        // resource name -> resource
         std::unordered_map<std::string, ShaderResource> m_resources;
+        std::vector<Stage> m_shaderStages;
+        std::unique_ptr<VulkanGraphicsPipeline> m_pipeline;
     };
 } // Petal
-
-

@@ -54,6 +54,8 @@ namespace Petal {
         // Submit a command and it will run while blocking
         Result SubmitBlockingCommand(VkCommandBuffer commandBuffer);
 
+        VkSurfaceFormat2KHR GetSurfaceFormat() const;
+
     private:
         Result CreateSyncObjects();
 

@@ -11,6 +11,6 @@
 #include "Window/Window.h"
 #include "Rendering/RenderingSystem.h"
 #include "Rendering/Shaders/ShaderSubsystem.h"
-#include "Rendering/Shaders/VulkanShader.h"
+#include "Rendering/Internal/VulkanShader.h"
 #include "Rendering/Memory/GPUBuffer.h"
 #include "Rendering/Memory/GPUBufferSubsystem.h"

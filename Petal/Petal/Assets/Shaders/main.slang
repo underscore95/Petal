@@ -3,31 +3,20 @@
 // This is a compile-only example, so there is no output from the playground.
 // You can use the "Compile" button to compile this example to different targets.
 
-struct Vertex
+struct VertexData
 {
     float3 position;
     float3 normal;
     float2 uv;
-}
-
-struct Material
-{
-    int albedoTextureIndex;
-    int normalTextureIndex;
-}
-
-struct Scene
-{
-    StructuredBuffer<Material> materials;
-    Texture2D textures[128];
-}
+};
 
 struct Camera
 {
     float4x4 mvp;
 }
 
-ConstantBuffer<Camera> camera;
+StructuredBuffer<Camera> camera;
+StructuredBuffer<VertexData> vertices;
 
 struct VOut
 {
@@ -37,12 +26,14 @@ struct VOut
 }
 
 [shader("vertex")]
-VOut vertexMain(Vertex input)
+VOut vertexMain(uint vertexID : SV_VertexID)
 {
+    VertexData v = vertices[vertexID];
+
     VOut output;
-    output.position = mul(camera.mvp, float4(input.position, 1.0));
-    output.normal = input.normal;
-    output.uv = input.uv;
+    output.position = mul(camera[0].mvp, float4(v.position, 1.0));
+    output.normal = v.normal;
+    output.uv = v.uv;
     return output;
 }
 

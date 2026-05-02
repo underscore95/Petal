@@ -4,7 +4,7 @@
 
 namespace Petal {
     enum class ResourceType {
-        CONSTANT_BUFFER,
+        STORAGE_BUFFER,
         COUNT
     };
 

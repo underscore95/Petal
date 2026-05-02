@@ -245,10 +245,13 @@ namespace Petal {
                 objectsStr += ", ";
             }
         }
+        if (!objectsStr.empty()) {
+            objectsStr = "\nObjects: {}" + objectsStr;
+        }
 
         // Build message
         std::string message = std::format(
-            "[{} ({})] {}\nObjects: {}",
+            "[{} ({})] {}{}",
             pCallbackData->pMessageIdName ? pCallbackData->pMessageIdName : "NoID",
             pCallbackData->messageIdNumber,
             pCallbackData->pMessage,

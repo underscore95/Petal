@@ -1,9 +1,10 @@
 #include "VulkanShader.h"
 
-#include "IntermediateShaderResource.h"
+#include "Rendering/Shaders/IntermediateShaderResource.h"
 #include "Rendering/Internal/RenderingDevice.h"
 #include "Rendering/Memory/GPUBuffer.h"
 #include "FormatContainers.h"
+#include "VulkanGraphicsPipeline.h"
 
 struct SetInfo {
     glm::u32 NumDescriptors = 0;
@@ -23,16 +24,31 @@ namespace Petal {
         }
 
         resultOut = CreateShaderModule(shader);
-        if (resultOut != Result::SUCCESS)return;
+        if (resultOut != Result::SUCCESS) return;
 
         resultOut = CreateDescriptors(shader);
-        if (resultOut != Result::SUCCESS)return;
+        if (resultOut != Result::SUCCESS) return;
+
+        m_pipeline = std::make_unique<VulkanGraphicsPipeline>(
+            m_renderer,
+            *this,
+            m_logger,
+            VulkanGraphicsPipeline::PipelineSettings{},
+            resultOut
+        );
+        if (resultOut != Result::SUCCESS) return;
 
         logger->Verbose("Initialized Vulkan shader!");
     }
 
     VulkanShader::~VulkanShader() {
-        if (m_handle) vkDestroyShaderModule(m_renderer.GetDevice()->GetDevice(), m_handle, nullptr);
+        m_pipeline.reset();
+
+        for (const Stage &stage : m_shaderStages) {
+            if (stage.ShaderModule == VK_NULL_HANDLE) continue;
+            vkDestroyShaderModule(m_renderer.GetDevice()->GetDevice(), stage.ShaderModule, nullptr);
+        }
+        m_shaderStages.clear();
 
         m_descriptorSets.clear(); // Destroying the pool destroys these
 
@@ -42,10 +58,6 @@ namespace Petal {
         m_descriptorSetLayouts.clear();
 
         if (m_descriptorPool) vkDestroyDescriptorPool(m_renderer.GetDevice()->GetDevice(), m_descriptorPool, nullptr);
-    }
-
-    VkShaderModule VulkanShader::GetHandle() const {
-        return m_handle;
     }
 
     Result VulkanShader::CreateDescriptors(
@@ -199,29 +211,51 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
+    const std::vector<VulkanShader::Stage> &VulkanShader::GetShaderStages() const {
+        return m_shaderStages;
+    }
+
+    const std::vector<VkDescriptorSetLayout> &VulkanShader::GetDescriptorSetLayouts() const {
+        return m_descriptorSetLayouts;
+    }
+
     Result VulkanShader::CreateShaderModule(
         const IntermediateShaderResource &shader
     ) {
-        VkShaderModuleCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .codeSize = shader.SPIRV->getBufferSize(), // size in bytes even though the ptr is u32
-            .pCode = static_cast<const glm::u32 *>(shader.SPIRV->getBufferPointer())
-        };
+        for (const std::pair<const ShaderType, IntermediateShaderResource::ShaderStage> &pair : shader.ShaderTypes) {
+            ShaderType type = pair.first;
+            const IntermediateShaderResource::ShaderStage &stage = pair.second;
 
-        VkResult result = vkCreateShaderModule(
-            m_renderer.GetDevice()->GetDevice(),
-            &info,
-            nullptr,
-            &m_handle
-        );
-        PETAL_CHECK_COND(
-            result !=VK_SUCCESS,
-            Result::VULKAN_SHADER_CREATION_FAILED,
-            m_logger,
-            "Failed to create shader module: {}", result
-        );
+            VkShaderModuleCreateInfo info = {
+                .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .codeSize = stage.SPIRV->getBufferSize(), // size in bytes even though the ptr is u32
+                .pCode = static_cast<const glm::u32 *>(stage.SPIRV->getBufferPointer())
+            };
+
+            Stage vulkanStage = {
+                .Type = type,
+                .EntryPointFunctionName = stage.EntryFunctionName,
+                .ShaderModule = VK_NULL_HANDLE
+            };
+
+            VkResult result = vkCreateShaderModule(
+                m_renderer.GetDevice()->GetDevice(),
+                &info,
+                nullptr,
+                &vulkanStage.ShaderModule
+            );
+            PETAL_CHECK_COND(
+                result != VK_SUCCESS,
+                Result::VULKAN_SHADER_CREATION_FAILED,
+                m_logger,
+                "Failed to create shader module: {}", result
+            );
+
+            m_shaderStages.push_back(vulkanStage);
+        }
+
         return Result::SUCCESS;
     }
 } // Petal
