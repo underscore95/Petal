@@ -164,13 +164,20 @@ namespace Petal {
         return commandBuffer;
     }
 
-    AllocatedOptional<CommandBufferVector> Renderer::CreateCommandBuffers(const VulkanQueue &queue, VkCommandBufferLevel level, glm::u32 count) {
-        auto it = m_commandPools.find(queue.GetQueueFamilyIndex());
+    AllocatedOptional<CommandBufferVector> Renderer::CreateCommandBuffers(const VulkanQueue &queueFamily, VkCommandBufferLevel level, glm::u32 count) {
+        PETAL_CHECK_COND(
+            count == 0,
+            Result::VULKAN_COMMAND_BUFFER_CREATION_FAILED,
+            m_logger,
+            "Attempted to create 0 command buffers"
+        );
+
+        auto it = m_commandPools.find(queueFamily.GetQueueFamilyIndex());
         PETAL_CHECK_COND(
             it == m_commandPools.end(),
             Result::PETAL_INVALID_QUEUE_FAMILY,
             m_logger,
-            "Failed to create command buffer vector because {} is an invalid queue family", queue.GetQueueFamilyIndex()
+            "Failed to create command buffer vector because {} is an invalid queue family", queueFamily.GetQueueFamilyIndex()
         );
 
         VkCommandPool commandPool = it->second;
@@ -180,6 +187,29 @@ namespace Petal {
         PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
         return commandBuffer;
+    }
+
+    AllocatedOptional<CommandBufferVector> Renderer::CreateCommandBuffersWithContents(
+        const VulkanQueue &queueFamily,
+        VkCommandBufferLevel level,
+        glm::u32 count,
+        VkCommandBufferUsageFlags usageFlags,
+        const std::function<void(VkCommandBuffer, glm::u32)> &lambda
+    ) {
+        AllocatedOptional<CommandBufferVector> commandBufferVector = CreateCommandBuffers(queueFamily, level, count);
+        if (commandBufferVector.IsEmpty()) return commandBufferVector;
+
+        for (glm::u32 i = 0; i < count; i++) {
+            Result result = commandBufferVector.Value()->Begin(i, usageFlags);
+            PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+
+            lambda(commandBufferVector.Value()->GetHandle(i), i);
+
+            result = commandBufferVector.Value()->End(i);
+            PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+        }
+
+        return commandBufferVector;
     }
 
     Optional<std::shared_ptr<VulkanFence> > Renderer::CreateFence(VkFenceCreateFlags flags) {

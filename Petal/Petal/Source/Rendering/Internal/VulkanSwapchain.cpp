@@ -2,9 +2,9 @@
 #include "Rendering/Renderer.h"
 #include "Engine.h"
 #include "RenderingDevice.h"
+#include "VulkanGraphicsPipeline.h"
 #include "VulkanQueue.h"
-#include "AppInfo/AppInfo.h"
-#include "AppInfo/AppInfo.h"
+#include "VulkanShader.h"
 #include "CommandBuffers/CommandBufferVector.h"
 #include "Sync/VulkanFence.h"
 #include "Sync/VulkanSemaphore.h"
@@ -28,20 +28,6 @@ namespace Petal {
 
         resultOut = CreateSyncObjects();
         if (resultOut != Result::SUCCESS) return;
-
-        AllocatedOptional<CommandBufferVector> commands = CreateImageTransitionCommands(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-        if (commands.IsEmpty()) {
-            resultOut = commands.GetResult();
-            return;
-        }
-        m_beginRenderingCommands = commands.Release();
-
-        commands = CreateImageTransitionCommands(VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-        if (commands.IsEmpty()) {
-            resultOut = commands.GetResult();
-            return;
-        }
-        m_endRenderingCommands = commands.Release();
 
         m_logger->Verbose("Created swapchain for window size {}x{}", windowSize.x, windowSize.y);
     }
@@ -91,20 +77,16 @@ namespace Petal {
         PETAL_CHECK_COND_SILENT(res == VK_ERROR_OUT_OF_DATE_KHR, Result::PETAL_WINDOW_RESIZED);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::PETAL_BEGIN_RENDER_FAILED, m_logger, "Failed acquire image with current swapchain index {}: {}", m_swapchainIndex, res);
 
-        SubmitFrameCommand(CommandBufferStrongRef(m_beginRenderingCommands, m_swapchainIndex));
-
         return Result::SUCCESS;
     }
 
     Result VulkanSwapchain::EndRendering() {
-        SubmitFrameCommand(CommandBufferStrongRef(m_endRenderingCommands, m_swapchainIndex));
-
         VkSemaphoreSubmitInfo waitInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .pNext = nullptr,
             .semaphore = m_swapchainSemaphores[GetSwapchainIndex()]->GetHandle(),
             .value = 1,
-            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
+            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR | VK_PIPELINE_STAGE_2_CLEAR_BIT,
             .deviceIndex = 0
         };
 
@@ -113,7 +95,7 @@ namespace Petal {
             .pNext = nullptr,
             .semaphore = m_frameCompleteSemaphores[GetSwapchainIndex()]->GetHandle(),
             .value = 1,
-            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
+            .stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
             .deviceIndex = 0
         };
 
@@ -219,11 +201,12 @@ namespace Petal {
             .pSignalSemaphoreInfos = nullptr
         };
 
+        VkFence fence = m_blockingCommandFence->GetHandle();
         VkResult result = vkQueueSubmit2(
             m_renderer.GetDevice()->GetGraphicsQueueFamily().GetHandle(),
             1,
             &submit,
-            m_blockingCommandFence->GetHandle()
+            fence
         );
         PETAL_CHECK_COND(
             result != VK_SUCCESS,
@@ -232,11 +215,119 @@ namespace Petal {
             "Failed to submit blocking command: {}", result
         );
 
+        result = vkWaitForFences(
+            m_renderer.GetDevice()->GetDevice(),
+            1,
+            &fence,
+            true,
+            1000000000
+        );
+        PETAL_CHECK_COND(
+            result != VK_SUCCESS,
+            Result::PETAL_COMMAND_SUBMIT_FAILED,
+            m_logger,
+            "Failed to wait for blocking command: {}", result
+        );
+
+        result = vkResetFences(
+            m_renderer.GetDevice()->GetDevice(),
+            1,
+            &fence
+        );
+        PETAL_CHECK_COND(
+            result != VK_SUCCESS,
+            Result::PETAL_COMMAND_SUBMIT_FAILED,
+            m_logger,
+            "Failed to reset fence for blocking command: {}", result
+        );
+
         return Result::SUCCESS;
     }
 
     VkSurfaceFormat2KHR VulkanSwapchain::GetSurfaceFormat() const {
         return m_swapchainSurfaceFormat;
+    }
+
+    void VulkanSwapchain::CmdBeginRendering(const CommandBufferVector &commandBuffers) const {
+        for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
+            VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
+            m_renderer.CmdTransitionImage(
+                commandBuffer,
+                m_images[swapchainIndex],
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_GENERAL
+            );
+
+            glm::uvec2 windowSize = m_renderer.GetWindow().GetDimensions();
+
+            VkRenderingAttachmentInfo colorAttachment = {
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .pNext = nullptr,
+                .imageView = m_imageViews[swapchainIndex],
+                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .resolveMode = VK_RESOLVE_MODE_NONE,
+                .resolveImageView = nullptr,
+                .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = {} // todo
+            };
+
+            VkRenderingInfo renderingInfo = {
+                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .renderArea = {{0, 0}, {windowSize.x, windowSize.y}},
+                .layerCount = 1,
+                .viewMask = 0,
+                .colorAttachmentCount = 1,
+                .pColorAttachments = &colorAttachment,
+                .pDepthAttachment = nullptr,
+                .pStencilAttachment = nullptr
+            };
+            vkCmdBeginRendering(commandBuffer, &renderingInfo);
+
+            VkViewport viewport = {
+                .x = 0,
+                .y = 0,
+                .width = static_cast<float>(windowSize.x),
+                .height = static_cast<float>(windowSize.y),
+                .minDepth = 0,
+                .maxDepth = 1
+            };
+
+            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+            vkCmdSetScissor(commandBuffer, 0, 1, &renderingInfo.renderArea);
+        }
+    }
+
+    void VulkanSwapchain::CmdEndRendering(const CommandBufferVector &commandBuffers) const {
+        for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
+            VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
+            vkCmdEndRendering(commandBuffer);
+
+            m_renderer.CmdTransitionImage(
+                commandBuffer,
+                m_images[swapchainIndex], VK_IMAGE_LAYOUT_GENERAL,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+            );
+        }
+    }
+
+    void VulkanSwapchain::CmdRender(
+        const VulkanShader &shader,
+        const CommandBufferVector &commandBuffers,
+        glm::u32 numVertices,
+        glm::u32 numInstances,
+        glm::u32 firstVertex,
+        glm::u32 firstInstance
+    ) {
+        for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
+            VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
+
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.GetPipeline().GetHandle());
+            vkCmdDraw(commandBuffer, numVertices, numInstances, firstVertex, firstInstance);
+        }
     }
 
     Result VulkanSwapchain::CreateSyncObjects() {
@@ -415,34 +506,5 @@ namespace Petal {
         m_logger->Warn("Surface format VK_FORMAT_B8G8R8A8_SRGB and VK_COLOR_SPACE_SRGB_NONLINEAR_KHR is not supported, defaulting to format {}", surfaceFormats[0]);
         m_swapchainSurfaceFormat = surfaceFormats[0];
         return Result::SUCCESS;
-    }
-
-    AllocatedOptional<CommandBufferVector> VulkanSwapchain::CreateImageTransitionCommands(
-        VkImageLayout oldLayout,
-        VkImageLayout newLayout
-    ) {
-        AllocatedOptional<CommandBufferVector> commandsOptional = m_renderer.CreateCommandBuffers(
-            m_renderer.GetDevice()->GetGraphicsQueueFamily(),
-            VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            m_numSwapchainImages
-        );
-        PETAL_CHECK_OPTIONAL_SILENT(commandsOptional);
-
-        for (glm::u32 i = 0; i < commandsOptional.Value()->Size(); i++) {
-            Result result = commandsOptional.Value()->Begin(i, 0);
-            PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "");
-
-            m_renderer.CmdTransitionImage(
-                commandsOptional.Value()->GetHandle(i),
-                m_images[i],
-                oldLayout,
-                newLayout
-            );
-
-            result = commandsOptional.Value()->End(i);
-            PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "");
-        }
-
-        return std::move(commandsOptional);
     }
 } // Petal

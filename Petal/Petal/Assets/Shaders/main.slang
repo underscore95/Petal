@@ -3,20 +3,11 @@
 // This is a compile-only example, so there is no output from the playground.
 // You can use the "Compile" button to compile this example to different targets.
 
-struct VertexData
-{
-    float3 position;
-    float3 normal;
-    float2 uv;
-};
+#include "Common.h"
 
-struct Camera
-{
-    float4x4 mvp;
-}
-
-StructuredBuffer<Camera> camera;
+//StructuredBuffer<Camera> camera;
 StructuredBuffer<VertexData> vertices;
+StructuredBuffer<uint> indices;
 
 struct VOut
 {
@@ -28,10 +19,12 @@ struct VOut
 [shader("vertex")]
 VOut vertexMain(uint vertexID : SV_VertexID)
 {
-    VertexData v = vertices[vertexID];
+    uint index = indices[vertexID];
+    VertexData v = vertices[index];
 
     VOut output;
-    output.position = mul(camera[0].mvp, float4(v.position, 1.0));
+    output.position = float4(v.position, 1.0);
+    //output.position = mul(camera[0].mvp, float4(v.position, 1.0));
     output.normal = v.normal;
     output.uv = v.uv;
     return output;

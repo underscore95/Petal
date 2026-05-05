@@ -1,5 +1,6 @@
 #include "Petal.h"
 #include "Rendering/Memory/GPUBufferSubsystem.h"
+#include "../../Petal/Assets/Shaders/Common.h"
 
 int main() {
     using namespace Petal;
@@ -32,16 +33,70 @@ int main() {
         }
     );
     auto shaderOpt = renderer.CompileShader(asset);
-    std::shared_ptr<VulkanShader> shader = shaderOpt.Release();
 
-    AllocatedOptional<GPUBuffer> bufferOptional = renderer.GetBufferSubsystem().CreateIndependentBuffer("Camera", sizeof(glm::mat4x4));
-    assert(bufferOptional.HasValue());
-    std::shared_ptr<GPUBuffer> cameraBuffer = bufferOptional.Release();
-    glm::mat4x4 matrix = glm::identity<glm::mat4x4>();
-    Result result = renderer.GetBufferSubsystem().Write(*cameraBuffer, &matrix, sizeof(matrix));
+    // Buffers
+    using namespace PetalShader;
+    std::array<VertexData, 3> vertexData = {
+        VertexData{{0.0f, 0.5f, 0.0f}, 0, {0.0f, 0.0f, 1.0f}, 0, {0.5f, 1.0f}, 0, 0},
+        VertexData{{0.5f, -0.5f, 0.0f}, 0, {0.0f, 0.0f, 1.0f}, 0, {1.0f, 0.0f}, 0, 0},
+        VertexData{{-0.5f, -0.5f, 0.0f}, 0, {0.0f, 0.0f, 1.0f}, 0, {0.0f, 0.0f}, 0, 0}
+    };
+
+    std::array<glm::u32, 3> indexData = {0, 1, 2};
+
+    // Create buffers
+    auto vertexBufferOptional =
+            renderer.GetBufferSubsystem().CreateIndependentBuffer(
+                "Vertex Buffer",
+                sizeof(VertexData) * vertexData.size()
+            );
+    assert(vertexBufferOptional.HasValue());
+    std::shared_ptr<GPUBuffer> vertexBuffer = vertexBufferOptional.Release();
+    shaderOpt->BindBuffer("vertices", *vertexBuffer);
+
+    auto indexBufferOptional =
+            renderer.GetBufferSubsystem().CreateIndependentBuffer(
+                "Index Buffer",
+                sizeof(glm::u32) * indexData.size()
+            );
+    assert(indexBufferOptional.HasValue());
+    std::shared_ptr<GPUBuffer> indexBuffer = indexBufferOptional.Release();
+    shaderOpt->BindBuffer("indices", *indexBuffer);
+
+    // Upload buffer data
+    Result result;
+
+    result = renderer.GetBufferSubsystem().Write(
+        *vertexBuffer,
+        vertexData.data(),
+        sizeof(vertexData[0]) * vertexData.size()
+    );
     assert(result == Result::SUCCESS);
-    result = shader->BindBuffer("camera", *cameraBuffer);
+
+    result = renderer.GetBufferSubsystem().Write(
+        *indexBuffer,
+        indexData.data(),
+        sizeof(indexData[0]) * indexData.size()
+    );
     assert(result == Result::SUCCESS);
+
+    commandBuffers->BeginAll(0);
+
+    renderer.GetSwapchain().CmdBeginRendering(*commandBuffers);
+
+    for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers->Size(); swapchainIndex++) {
+        shaderOpt->BindResources(commandBuffers->GetHandle(swapchainIndex));
+        // renderer.GetSwapchain().CmdClear(
+        //     commandBuffers->GetHandle(swapchainIndex),
+        //     Color{0.0f, 0.0f, (frameNumber % 10000) / 10000.0f, 1.0f},
+        //     swapchainIndex
+        // );
+    }
+
+    renderer.GetSwapchain().CmdRender(*shaderOpt.Value(), *commandBuffers, indexData.size());
+    renderer.GetSwapchain().CmdEndRendering(*commandBuffers);
+
+    commandBuffers->EndAll();
 
     while (!window->WantsToClose()) {
         frameNumber++;
@@ -53,16 +108,6 @@ int main() {
             renderer.RecreateSwapchain();
             continue;
         }
-
-        commandBuffers->Begin(swapchainIndex, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-        renderer.GetSwapchain().CmdClear(
-            commandBuffers->GetHandle(swapchainIndex),
-            Color{0.0f, 0.0f, (frameNumber % 10000) / 10000.0f, 1.0f},
-            swapchainIndex
-        );
-
-        result = commandBuffers->End(swapchainIndex);
 
         renderer.GetSwapchain().SubmitFrameCommand(CommandBufferStrongRef(commandBuffers, swapchainIndex));
 

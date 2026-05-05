@@ -55,7 +55,9 @@ namespace Petal {
 
         const RenderSettings &GetRenderSettings() const;
 
-        GPUBufferSubsystem& GetBufferSubsystem() const;
+        GPUBufferSubsystem &GetBufferSubsystem() const;
+
+        const VulkanShader &GetShader() const;
 
         AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset);
 
@@ -72,6 +74,17 @@ namespace Petal {
             const VulkanQueue &queueFamily,
             VkCommandBufferLevel level,
             glm::u32 count
+        );
+
+        // Create N command buffers.
+        // It is recommended to move the command buffers into a shared ptr after creation so it can be converted into a CommandBufferRef
+        // The lambda is executed once per command buffer to record, you do not need to begin/end inside this lambda
+        AllocatedOptional<CommandBufferVector> CreateCommandBuffersWithContents(
+            const VulkanQueue &queueFamily,
+            VkCommandBufferLevel level,
+            glm::u32 count,
+            VkCommandBufferUsageFlags usageFlags,
+            const std::function<void(VkCommandBuffer, glm::u32)> &lambda
         );
 
         Optional<std::shared_ptr<VulkanFence> > CreateFence(VkFenceCreateFlags flags = 0);

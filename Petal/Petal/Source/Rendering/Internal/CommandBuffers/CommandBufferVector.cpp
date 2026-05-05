@@ -67,6 +67,22 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
+    Result CommandBufferVector::BeginAll(VkCommandBufferUsageFlags usageFlags) const {
+        for (glm::u32 i = 0; i < Size(); i++) {
+            Result result = Begin(i, usageFlags);
+            PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+        }
+        return Result::SUCCESS;
+    }
+
+    Result CommandBufferVector::EndAll() const {
+        for (glm::u32 i = 0; i < Size(); i++) {
+            Result result = End(i);
+            PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+        }
+        return Result::SUCCESS;
+    }
+
     VkCommandBuffer CommandBufferVector::GetHandle(glm::u32 index) const {
         return m_handles[index];
     }

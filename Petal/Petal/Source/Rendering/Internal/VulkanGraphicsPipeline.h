@@ -8,6 +8,7 @@ namespace Petal {
             bool RenderWireframe = false;
             bool CullBackFaces = true;
         };
+
     public:
         VulkanGraphicsPipeline(
             Renderer &renderer,
@@ -20,6 +21,9 @@ namespace Petal {
         ~VulkanGraphicsPipeline();
 
     public:
+        VkPipeline GetHandle() const;
+
+        VkPipelineLayout GetLayout() const;
 
     private:
         Result CreatePipelineLayout();

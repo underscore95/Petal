@@ -61,6 +61,11 @@ namespace Petal {
         bool HasValue() const { return m_present; }
         bool IsEmpty() const { return !HasValue(); }
 
+        T *operator->() {
+            assert(HasValue());
+            return m_value.get();
+        }
+
     private:
         T m_value;
         bool m_present;
@@ -135,6 +140,11 @@ namespace Petal {
         T *Value() { return m_present ? m_value.get() : nullptr; }
         bool HasValue() const { return m_present; }
         bool IsEmpty() const { return !HasValue(); }
+
+        T *operator->() {
+            assert(HasValue());
+            return m_value.get();
+        }
 
     private:
         std::unique_ptr<T> m_value;
@@ -212,6 +222,11 @@ namespace Petal {
 
         bool IsEmpty() const {
             return !HasValue();
+        }
+
+        T *operator->() {
+            assert(HasValue());
+            return m_value.get();
         }
 
     private:

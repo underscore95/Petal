@@ -18,12 +18,18 @@ namespace Petal {
 
         ~CommandBufferVector();
 
-        CommandBufferVector(CommandBufferVector&& other) noexcept;
-        CommandBufferVector& operator=(CommandBufferVector&& other) noexcept;
+        CommandBufferVector(CommandBufferVector &&other) noexcept;
+
+        CommandBufferVector &operator=(CommandBufferVector &&other) noexcept;
 
     public:
         Result Begin(glm::u32 index, VkCommandBufferUsageFlags usageFlags) const;
+
         Result End(glm::u32 index) const;
+
+        Result BeginAll(VkCommandBufferUsageFlags usageFlags) const;
+
+        Result EndAll() const;
 
         VkCommandBuffer GetHandle(glm::u32 index) const;
 

@@ -88,6 +88,7 @@ add_library(Petal SHARED
         Source/Rendering/Resources/ShaderResource.cpp
         Source/Rendering/Internal/VulkanGraphicsPipeline.cpp
         Source/Rendering/Internal/VulkanGraphicsPipeline.h
+        Assets/Shaders/Common.h
 )
 
 # Macros

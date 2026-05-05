@@ -4,6 +4,10 @@
 
 
 namespace Petal {
+    class VulkanShader;
+}
+
+namespace Petal {
     class Renderer;
     class VulkanSemaphore;
     class CommandBufferVector;
@@ -28,6 +32,7 @@ namespace Petal {
 
         // Must be called before rendering begins each frame.
         // This function will return PETAL_WINDOW_RESIZED if the window has been resized and the swapchain must be recreated.
+        // You must also call CmdBeginRendering on any command buffer used for rendering
         Result BeginRendering();
 
         // Must be called after rendering completes each frame.
@@ -56,6 +61,25 @@ namespace Petal {
 
         VkSurfaceFormat2KHR GetSurfaceFormat() const;
 
+        // This must be called before any render commands are recorded into the command buffer
+        // CommandBufferVector should contain NumSwapchainImages() command buffers
+        void CmdBeginRendering(const CommandBufferVector &commandBuffers) const;
+
+        // This must be called once all render commands have been recorded into the command buffer, if CmdBeginRendering has been called.
+        // CommandBufferVector should contain NumSwapchainImages() command buffers
+        void CmdEndRendering(const CommandBufferVector &commandBuffers) const;
+
+        // Instanced rendering using a specific shader
+        // Bind the vertex buffer and index buffer (if using) to the shader before submitting the command buffer.
+        void CmdRender(
+            const VulkanShader &shader,
+            const CommandBufferVector &commandBuffers,
+            glm::u32 numVertices,
+            glm::u32 numInstances = 1,
+            glm::u32 firstVertex = 0,
+            glm::u32 firstInstance = 0
+        );
+
     private:
         Result CreateSyncObjects();
 
@@ -68,11 +92,6 @@ namespace Petal {
         Optional<VkPresentModeKHR> CheckRequestedPresentMode() const;
 
         Result ChooseSurfaceFormat();
-
-        AllocatedOptional<CommandBufferVector> CreateImageTransitionCommands(
-            VkImageLayout oldLayout,
-            VkImageLayout newLayout
-        );
 
     private:
         Renderer &m_renderer;
@@ -89,8 +108,6 @@ namespace Petal {
         std::vector<std::shared_ptr<VulkanFence> > m_frameCompleteFences;
         std::vector<std::shared_ptr<VulkanSemaphore> > m_frameCompleteSemaphores;
         std::vector<std::shared_ptr<VulkanSemaphore> > m_swapchainSemaphores;
-        std::shared_ptr<CommandBufferVector> m_beginRenderingCommands;
-        std::shared_ptr<CommandBufferVector> m_endRenderingCommands;
         std::vector<CommandBufferStrongRef> m_submittedFrameCommands;
         std::vector<VkCommandBufferSubmitInfo> m_submittedFrameCommandSubmitInfos;
     };

@@ -39,6 +39,14 @@ namespace Petal {
         );
     }
 
+    VkPipeline VulkanGraphicsPipeline::GetHandle() const {
+        return m_pipeline;
+    }
+
+    VkPipelineLayout VulkanGraphicsPipeline::GetLayout() const {
+        return m_pipelineLayout;
+    }
+
     Result VulkanGraphicsPipeline::CreatePipelineLayout() {
         VkPushConstantRange pushConstantRange = {
             .stageFlags = VK_SHADER_STAGE_ALL,
@@ -146,7 +154,7 @@ namespace Petal {
         }
 
         // Vertex input state
-        VkPipelineVertexInputStateCreateInfo vertexInputState= {
+        VkPipelineVertexInputStateCreateInfo vertexInputState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
         };
 

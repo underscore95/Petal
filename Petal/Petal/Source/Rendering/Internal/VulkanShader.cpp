@@ -5,6 +5,9 @@
 #include "Rendering/Memory/GPUBuffer.h"
 #include "FormatContainers.h"
 #include "VulkanGraphicsPipeline.h"
+#include "VulkanQueue.h"
+#include "VulkanSwapchain.h"
+#include "CommandBuffers/CommandBuffer.h"
 
 struct SetInfo {
     glm::u32 NumDescriptors = 0;
@@ -208,7 +211,22 @@ namespace Petal {
             nullptr
         );
 
+        m_logger->Verbose("Bound buffer {} to set {} index {} (resource name: {})", buffer.GetName(), shaderResource.BindingSet, shaderResource.BindingIndex, shaderResource.Name);
+
         return Result::SUCCESS;
+    }
+
+    void VulkanShader::BindResources(VkCommandBuffer commandBuffer) const {
+        vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_pipeline->GetLayout(),
+            0,
+            static_cast<glm::u32>(m_descriptorSets.size()),
+            m_descriptorSets.data(),
+            0,
+            nullptr
+        );
     }
 
     const std::vector<VulkanShader::Stage> &VulkanShader::GetShaderStages() const {
@@ -217,6 +235,10 @@ namespace Petal {
 
     const std::vector<VkDescriptorSetLayout> &VulkanShader::GetDescriptorSetLayouts() const {
         return m_descriptorSetLayouts;
+    }
+
+    const VulkanGraphicsPipeline &VulkanShader::GetPipeline() const {
+        return *m_pipeline;
     }
 
     Result VulkanShader::CreateShaderModule(

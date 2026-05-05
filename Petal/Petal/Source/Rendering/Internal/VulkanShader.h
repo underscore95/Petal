@@ -40,9 +40,14 @@ namespace Petal {
         // Bind a resource
         Result BindBuffer(const std::string &name, const GPUBuffer &buffer);
 
+        // Must be called once for each command buffer before this shader is used
+        void BindResources(VkCommandBuffer commandBuffer) const;
+
         const std::vector<Stage> &GetShaderStages() const;
 
         const std::vector<VkDescriptorSetLayout> &GetDescriptorSetLayouts() const;
+
+        const VulkanGraphicsPipeline &GetPipeline() const;
 
     private:
         Result CreateShaderModule(
