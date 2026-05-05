@@ -19,12 +19,12 @@ namespace Petal {
     public:
         static constexpr const char* OTHER_LOGGER = "Other";
         static constexpr const char* WINDOW_LOGGER = "Window";
-        static constexpr const char* RENDERING_LOGGER = "Rendering";
+        static constexpr const char* GRAPHICS_LOGGER = "Graphics";
         static constexpr const char* GRAPHICS_API_LOGGER = "GraphicsAPI";
         static constexpr std::array ENGINE_LOGGERS = {
             OTHER_LOGGER,
             WINDOW_LOGGER,
-            RENDERING_LOGGER,
+            GRAPHICS_LOGGER,
             GRAPHICS_API_LOGGER
         };
 

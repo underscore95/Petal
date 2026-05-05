@@ -14,8 +14,8 @@ add_library(Petal SHARED
         Source/Window/Window.h
         Source/Window/WindowSystem.cpp
         Source/Window/WindowSystem.h
-        Source/Rendering/RenderingSystem.cpp
-        Source/Rendering/RenderingSystem.h
+        Source/Graphics/GraphicsSystem.cpp
+        Source/Graphics/GraphicsSystem.h
         Source/Utils/AppInfo/EngineInfo.h
         Source/Utils/AppInfo/Version.h
         Source/Common.h
@@ -23,71 +23,71 @@ add_library(Petal SHARED
         Source/Utils/Logging/Errors/ErrorHandler.h
         Source/Utils/Logging/Errors/Result.h
         Source/Utils/FormatString.h
-        Source/Rendering/Internal/VkFormat.h
-        Source/Rendering/Internal/RenderingDevice.cpp
-        Source/Rendering/Internal/RenderingDevice.h
+        Source/Graphics/Internal/VkFormat.h
+        Source/Graphics/Internal/RenderingDevice.cpp
+        Source/Graphics/Internal/RenderingDevice.h
         Source/Utils/Logging/Errors/Optional.h
         Source/Utils/ConstraintMatching.cpp
         Source/Utils/ConstraintMatching.h
         Source/Utils/FormatContainers.h
-        Source/Rendering/Internal/DeviceRequirements.cpp
-        Source/Rendering/Internal/DeviceRequirements.h
-        Source/Rendering/Renderer.cpp
-        Source/Rendering/Renderer.h
-        Source/Rendering/Internal/VulkanAllocator.cpp
-        Source/Rendering/Internal/VulkanAllocator.h
-        Source/Rendering/Internal/VulkanSwapchain.cpp
-        Source/Rendering/Internal/VulkanSwapchain.h
-        Source/Rendering/RenderSettings.h
-        Source/Rendering/RenderSettings.cpp
+        Source/Graphics/Internal/DeviceRequirements.cpp
+        Source/Graphics/Internal/DeviceRequirements.h
+        Source/Graphics/GraphicsContext.cpp
+        Source/Graphics/GraphicsContext.h
+        Source/Graphics/Internal/VulkanAllocator.cpp
+        Source/Graphics/Internal/VulkanAllocator.h
+        Source/Graphics/Internal/VulkanSwapchain.cpp
+        Source/Graphics/Internal/VulkanSwapchain.h
+        Source/Graphics/GraphicsSettings.h
+        Source/Graphics/GraphicsSettings.cpp
         Source/Constants.h
-        Source/Rendering/Internal/CommandBuffers/CommandBuffer.cpp
-        Source/Rendering/Internal/CommandBuffers/CommandBuffer.h
-        Source/Rendering/Internal/CommandBuffers/CommandBufferVector.cpp
-        Source/Rendering/Internal/CommandBuffers/CommandBufferVector.h
-        Source/Rendering/Internal/VulkanQueue.cpp
-        Source/Rendering/Internal/VulkanQueue.h
+        Source/Graphics/Internal/CommandBuffers/CommandBuffer.cpp
+        Source/Graphics/Internal/CommandBuffers/CommandBuffer.h
+        Source/Graphics/Internal/CommandBuffers/CommandBufferVector.cpp
+        Source/Graphics/Internal/CommandBuffers/CommandBufferVector.h
+        Source/Graphics/Internal/VulkanQueue.cpp
+        Source/Graphics/Internal/VulkanQueue.h
         Source/Utils/CommonTraits.h
         Source/CopyMoveMacros.h
-        Source/Rendering/Internal/Sync/VulkanFence.cpp
-        Source/Rendering/Internal/Sync/VulkanFence.h
-        Source/Rendering/Internal/Sync/VulkanSemaphore.cpp
-        Source/Rendering/Internal/Sync/VulkanSemaphore.h
+        Source/Graphics/Internal/Sync/VulkanFence.cpp
+        Source/Graphics/Internal/Sync/VulkanFence.h
+        Source/Graphics/Internal/Sync/VulkanSemaphore.cpp
+        Source/Graphics/Internal/Sync/VulkanSemaphore.h
         Source/Utils/Color/Color.cpp
         Source/Utils/Color/Color.h
-        Source/Rendering/Internal/CommandBuffers/CommandBufferRef.cpp
-        Source/Rendering/Internal/CommandBuffers/CommandBufferRef.h
-        Source/Rendering/Shaders/ShaderSubsystem.cpp
-        Source/Rendering/Shaders/ShaderSubsystem.h
-        Source/Rendering/Shaders/slang.h
-        Source/Rendering/Shaders/ShaderType.h
-        Source/Rendering/Shaders/ShaderType.cpp
-        Source/Rendering/Shaders/ShaderAsset.h
-        Source/Rendering/Shaders/VulkanShaderResource.cpp
-        Source/Rendering/Shaders/VulkanShaderResource.h
-        Source/Rendering/Shaders/IntermediateShaderResource.h
+        Source/Graphics/Internal/CommandBuffers/CommandBufferRef.cpp
+        Source/Graphics/Internal/CommandBuffers/CommandBufferRef.h
+        Source/Graphics/Shaders/ShaderSubsystem.cpp
+        Source/Graphics/Shaders/ShaderSubsystem.h
+        Source/Graphics/Shaders/slang.h
+        Source/Graphics/Shaders/ShaderType.h
+        Source/Graphics/Shaders/ShaderType.cpp
+        Source/Graphics/Shaders/ShaderAsset.h
+        Source/Graphics/Shaders/VulkanShaderResource.cpp
+        Source/Graphics/Shaders/VulkanShaderResource.h
+        Source/Graphics/Shaders/IntermediateShaderResource.h
         Source/Utils/File/FileUtils.cpp
         Source/Utils/File/FileUtils.h
         Source/Utils/Timing/Timer.cpp
         Source/Utils/Timing/Timer.h
-        Source/Rendering/Shaders/ShaderInfo.h
-        Source/Rendering/Internal/VulkanShader.cpp
-        Source/Rendering/Internal/VulkanShader.h
-        Source/Rendering/Resources/ResourceType.h
-        Source/Rendering/Resources/ShaderResource.h
-        Source/Rendering/Resources/ResourceType.cpp
-        Source/Rendering/Memory/GPUBuffer.cpp
-        Source/Rendering/Memory/GPUBuffer.h
-        Source/Rendering/Memory/GPUBufferSubsystem.cpp
-        Source/Rendering/Memory/GPUBufferSubsystem.h
-        Source/Rendering/Memory/VulkanBuffer.cpp
-        Source/Rendering/Memory/VulkanBuffer.h
-        Source/Rendering/Memory/BufferType.cpp
-        Source/Rendering/Memory/BufferType.h
+        Source/Graphics/Shaders/ShaderInfo.h
+        Source/Graphics/Internal/VulkanShader.cpp
+        Source/Graphics/Internal/VulkanShader.h
+        Source/Graphics/Resources/ResourceType.h
+        Source/Graphics/Resources/ShaderResource.h
+        Source/Graphics/Resources/ResourceType.cpp
+        Source/Graphics/Memory/GPUBuffer.cpp
+        Source/Graphics/Memory/GPUBuffer.h
+        Source/Graphics/Memory/GPUBufferSubsystem.cpp
+        Source/Graphics/Memory/GPUBufferSubsystem.h
+        Source/Graphics/Memory/VulkanBuffer.cpp
+        Source/Graphics/Memory/VulkanBuffer.h
+        Source/Graphics/Memory/BufferType.cpp
+        Source/Graphics/Memory/BufferType.h
         Source/Utils/Hash.h
-        Source/Rendering/Resources/ShaderResource.cpp
-        Source/Rendering/Internal/VulkanGraphicsPipeline.cpp
-        Source/Rendering/Internal/VulkanGraphicsPipeline.h
+        Source/Graphics/Resources/ShaderResource.cpp
+        Source/Graphics/Internal/VulkanGraphicsPipeline.cpp
+        Source/Graphics/Internal/VulkanGraphicsPipeline.h
         Assets/Shaders/Common.h
 )
 
@@ -107,7 +107,7 @@ target_include_directories(Petal PUBLIC Source/Utils)
 # PCHs
 target_precompile_headers(Petal PRIVATE Source/pch.h)
 target_precompile_headers(Petal PRIVATE Source/Common.h)
-target_precompile_headers(Petal PRIVATE Source/Rendering/Shaders/slang.h)
+target_precompile_headers(Petal PRIVATE Source/Graphics/Shaders/slang.h)
 
 # Other options
 if (MSVC)

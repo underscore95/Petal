@@ -1,5 +1,5 @@
 #include "Petal.h"
-#include "Rendering/Memory/GPUBufferSubsystem.h"
+#include "Graphics/Memory/GPUBufferSubsystem.h"
 #include "../../Petal/Assets/Shaders/Common.h"
 
 int main() {
@@ -11,13 +11,13 @@ int main() {
     std::shared_ptr<Logger> logger = engine.GetLoggerSystem().CreateLogger("Game");
 
     std::shared_ptr<Window> window = engine.GetWindowSystem().OpenWindow();
-    OptionalRef<Renderer> rendererOptional = engine.GetRenderingSystem().CreateRenderer(
+    OptionalRef<GraphicsContext> rendererOptional = engine.GetRenderingSystem().CreateRenderer(
         window,
         DeviceRequirements::DEFAULT()
     );
     if (rendererOptional.IsEmpty()) return -1;
 
-    Renderer &renderer = *rendererOptional.Value();
+    GraphicsContext &renderer = *rendererOptional.Value();
     std::shared_ptr<CommandBufferVector> commandBuffers = renderer.CreateCommandBuffers(
         renderer.GetDevice()->GetGraphicsQueueFamily(),
         VK_COMMAND_BUFFER_LEVEL_PRIMARY,
