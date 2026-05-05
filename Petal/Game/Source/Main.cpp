@@ -98,6 +98,10 @@ int main() {
 
     commandBuffers->EndAll();
 
+    engine.GetScheduler().ScheduleFrames([logger]() { logger->Info("Scheduled after 10000 frames!"); }, 10000);
+    engine.GetScheduler().ScheduleFrames([logger]() { logger->Info("Scheduled after 10 frames!"); }, 10);
+    engine.GetScheduler().ScheduleFrames([logger]() { logger->Info("Scheduled after 1000 frames!"); }, 1000);
+
     while (!window->WantsToClose()) {
         frameNumber++;
         glm::u32 swapchainIndex = graphicsContext.GetSwapchain().GetSwapchainIndex();
@@ -118,7 +122,6 @@ int main() {
         }
 
         engine.Render();
-
     }
     graphicsContext.DeviceWaitIdle();
     commandBuffers.reset();

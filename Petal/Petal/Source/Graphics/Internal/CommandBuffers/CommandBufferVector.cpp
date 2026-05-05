@@ -1,47 +1,40 @@
 #include "CommandBufferVector.h"
 
+#include "Graphics/GraphicsContext.h"
+#include "Graphics/Internal/RenderingDevice.h"
+#include "Graphics/Internal/VulkanSwapchain.h"
+
 namespace Petal {
     CommandBufferVector::CommandBufferVector(
         std::shared_ptr<Logger> logger,
-        VkDevice device,
+        GraphicsContext &context,
         VkCommandPool pool,
         VkCommandBufferLevel level,
         glm::u32 count,
         Result &out
     ) : m_logger(logger),
-        m_device(device),
+        m_context(context),
         m_commandPool(pool) {
         out = CreateCommandBuffers(level, count);
     }
 
     CommandBufferVector::~CommandBufferVector() {
         if (!m_handles.empty()) {
-            vkFreeCommandBuffers(m_device, m_commandPool, static_cast<glm::u32>(m_handles.size()), m_handles.data());
+            vkFreeCommandBuffers(
+                m_context.GetDevice()->GetDevice(),
+                m_commandPool,
+                static_cast<glm::u32>(m_handles.size()),
+                m_handles.data()
+            );
         }
     }
 
     CommandBufferVector::CommandBufferVector(CommandBufferVector &&other) noexcept
         : m_logger(std::move(other.m_logger)),
-          m_device(other.m_device),
+          m_context(other.m_context),
           m_commandPool(other.m_commandPool),
           m_handles(std::move(other.m_handles)) {
         other.m_handles.clear();
-    }
-
-    CommandBufferVector &CommandBufferVector::operator=(CommandBufferVector &&other) noexcept {
-        if (this != &other) {
-            if (!m_handles.empty()) {
-                vkFreeCommandBuffers(m_device, m_commandPool, static_cast<uint32_t>(m_handles.size()), m_handles.data());
-            }
-
-            m_logger = std::move(other.m_logger);
-            m_device = other.m_device;
-            m_commandPool = other.m_commandPool;
-            m_handles = std::move(other.m_handles);
-
-            other.m_handles.clear();
-        }
-        return *this;
     }
 
     Result CommandBufferVector::Begin(glm::u32 index, VkCommandBufferUsageFlags usageFlags) const {
@@ -91,6 +84,10 @@ namespace Petal {
         return static_cast<glm::u32>(m_handles.size());
     }
 
+    bool CommandBufferVector::IsSwapchainSize() const {
+        return m_context.GetSwapchain().NumSwapchainImages() == Size();
+    }
+
     Result CommandBufferVector::CreateCommandBuffers(VkCommandBufferLevel level, glm::u32 count) {
         m_handles.resize(count);
 
@@ -102,7 +99,7 @@ namespace Petal {
             .commandBufferCount = count
         };
 
-        VkResult res = vkAllocateCommandBuffers(m_device, &allocInfo, m_handles.data());
+        VkResult res = vkAllocateCommandBuffers(m_context.GetDevice()->GetDevice(), &allocInfo, m_handles.data());
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_COMMAND_BUFFER_CREATION_FAILED, m_logger, "Failed to create command buffers because: {}", res);
         return Result::SUCCESS;
     }

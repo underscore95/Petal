@@ -249,6 +249,8 @@ namespace Petal {
     }
 
     void VulkanSwapchain::CmdBeginRendering(const CommandBufferVector &commandBuffers) const {
+        assert(commandBuffers.IsSwapchainSize());
+
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
             VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
             m_renderer.CmdTransitionImage(
@@ -302,6 +304,8 @@ namespace Petal {
     }
 
     void VulkanSwapchain::CmdEndRendering(const CommandBufferVector &commandBuffers) const {
+        assert(commandBuffers.IsSwapchainSize());
+
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
             VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
             vkCmdEndRendering(commandBuffer);

@@ -183,7 +183,7 @@ namespace Petal {
         VkCommandPool commandPool = it->second;
 
         Result result;
-        auto commandBuffer = AllocatedOptional<CommandBufferVector>::Emplace(m_logger, m_device->GetDevice(), commandPool, level, count, result);
+        auto commandBuffer = AllocatedOptional<CommandBufferVector>::Emplace(m_logger, *this, commandPool, level, count, result);
         PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
         return commandBuffer;

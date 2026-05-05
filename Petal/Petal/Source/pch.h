@@ -30,6 +30,7 @@
 #include <future>
 #include <variant>
 #include <queue>
+#include <stacktrace>
 
 // GLM
 #include <glm/glm.hpp>

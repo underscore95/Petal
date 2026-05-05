@@ -4,12 +4,14 @@
 #include <vulkan/vulkan.h>
 
 namespace Petal {
+    class GraphicsContext;
+
     class CommandBufferVector {
     public:
         // Create in renderer
         CommandBufferVector(
             std::shared_ptr<Logger> logger,
-            VkDevice device,
+            GraphicsContext &context,
             VkCommandPool pool,
             VkCommandBufferLevel level,
             glm::u32 count,
@@ -19,8 +21,6 @@ namespace Petal {
         ~CommandBufferVector();
 
         CommandBufferVector(CommandBufferVector &&other) noexcept;
-
-        CommandBufferVector &operator=(CommandBufferVector &&other) noexcept;
 
     public:
         Result Begin(glm::u32 index, VkCommandBufferUsageFlags usageFlags) const;
@@ -35,12 +35,15 @@ namespace Petal {
 
         glm::u32 Size() const;
 
+        // Check if the size of this vector is equal to the number of swapchain images
+        bool IsSwapchainSize() const;
+
     private:
         Result CreateCommandBuffers(VkCommandBufferLevel level, glm::u32 count);
 
     private:
+        GraphicsContext &m_context;
         std::shared_ptr<Logger> m_logger;
-        VkDevice m_device;
         VkCommandPool m_commandPool;
         std::vector<VkCommandBuffer> m_handles;
     };

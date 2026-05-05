@@ -57,8 +57,6 @@ namespace Petal {
 
         GPUBufferSubsystem &GetBufferSubsystem() const;
 
-        const VulkanShader &GetShader() const;
-
         AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset);
 
         // Create a command buffer.
