@@ -22,16 +22,16 @@ namespace Petal {
         GraphicsSystem &renderingSystem,
         std::shared_ptr<Window> window,
         const DeviceRequirements &deviceRequirements,
-        const GraphicsSettings &renderSettings,
+        const GraphicsSettings &graphicsSettings,
         Result &result
     )
         : m_engine(engine),
           m_renderingSystem(renderingSystem),
           m_window(window),
-          m_renderSettings(renderSettings) {
+          m_graphicsSettings(graphicsSettings) {
         m_logger = engine.GetLoggerSystem().GetLogger(LoggerSystem::GRAPHICS_LOGGER);
 
-        if (m_renderSettings.IsValid(m_logger) != Result::SUCCESS) return;
+        if (m_graphicsSettings.IsValid(m_logger) != Result::SUCCESS) return;
 
         if (window->CreateSurface(&renderingSystem.GetInstance(), &m_surface) != Result::SUCCESS) {
             result = Result::VULKAN_SURFACE_CREATION_FAILED;
@@ -119,8 +119,8 @@ namespace Petal {
         return m_renderingSystem;
     }
 
-    const GraphicsSettings &GraphicsContext::GetRenderSettings() const {
-        return m_renderSettings;
+    const GraphicsSettings &GraphicsContext::GetGraphicsSettings() const {
+        return m_graphicsSettings;
     }
 
     GPUBufferSubsystem &GraphicsContext::GetBufferSubsystem() const {

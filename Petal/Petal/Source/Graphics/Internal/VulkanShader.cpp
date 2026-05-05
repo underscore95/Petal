@@ -229,6 +229,12 @@ namespace Petal {
         );
     }
 
+    void VulkanShader::BindResources(const CommandBufferVector &commandBuffer) const {
+        for (glm::u32 i = 0; i < commandBuffer.Size(); i++) {
+            BindResources(commandBuffer.GetHandle(i));
+        }
+    }
+
     const std::vector<VulkanShader::Stage> &VulkanShader::GetShaderStages() const {
         return m_shaderStages;
     }

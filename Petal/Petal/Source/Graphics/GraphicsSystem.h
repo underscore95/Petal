@@ -28,13 +28,13 @@ namespace Petal {
     public:
         const VkInstance &GetInstance() const;
 
-        OptionalRef<GraphicsContext> CreateRenderer(std::shared_ptr<Window> window, DeviceRequirements deviceRequirements);
+        OptionalRef<GraphicsContext> CreateGraphicsContext(std::shared_ptr<Window> window, DeviceRequirements deviceRequirements);
 
         const Version &GetAPIVersion() const;
 
         ShaderSubsystem& GetShaderSubsystem() const;
-    private:
 
+    private:
         // Instance
         Result CreateInstance();
 

@@ -42,6 +42,7 @@ namespace Petal {
 
         // Must be called once for each command buffer before this shader is used
         void BindResources(VkCommandBuffer commandBuffer) const;
+        void BindResources(const CommandBufferVector& commandBuffer) const;
 
         const std::vector<Stage> &GetShaderStages() const;
 

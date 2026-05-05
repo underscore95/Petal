@@ -452,12 +452,12 @@ namespace Petal {
 
     Optional<glm::u32> VulkanSwapchain::CheckRequestedNumImagesSupported() {
         const VkSurfaceCapabilitiesKHR &surfaceCapabilities = m_renderer.GetDevice()->GetSurfaceCapabilities().surfaceCapabilities;
-        glm::u32 numImages = m_renderer.GetRenderSettings().NumSwapchainImages;
+        glm::u32 numImages = m_renderer.GetGraphicsSettings().NumSwapchainImages;
 
         // Check maximum
         if (surfaceCapabilities.maxImageCount != VULKAN_SENTINEL_SURFACE_CAPABILITIES_UNLIMITED_SWAPCHAIN_IMAGES && numImages > surfaceCapabilities.maxImageCount) {
             PETAL_CHECK_COND(
-                m_renderer.GetRenderSettings().AllowDoubleBufferingFallback,
+                m_renderer.GetGraphicsSettings().AllowDoubleBufferingFallback,
                 Result::VULKAN_SWAPCHAIN_CREATION_FAILED,
                 m_logger,
                 "Requested {} swapchain images but {} was the maximum and falling back to double buffering was disabled",
@@ -470,7 +470,7 @@ namespace Petal {
 
         // Check minimum
         PETAL_CHECK_COND(
-            m_renderer.GetRenderSettings().NumSwapchainImages < surfaceCapabilities.minImageCount,
+            m_renderer.GetGraphicsSettings().NumSwapchainImages < surfaceCapabilities.minImageCount,
             Result::VULKAN_SWAPCHAIN_CREATION_FAILED,
             m_logger,
             "Requested (or fell back to) {} swapchain images but {} was the minimum",
@@ -482,7 +482,7 @@ namespace Petal {
     }
 
     Optional<VkPresentModeKHR> VulkanSwapchain::CheckRequestedPresentMode() const {
-        for (VkPresentModeKHR requested : m_renderer.GetRenderSettings().PreferredPresentMode) {
+        for (VkPresentModeKHR requested : m_renderer.GetGraphicsSettings().PreferredPresentMode) {
             for (VkPresentModeKHR supported : m_renderer.GetDevice()->GetPresentModes()) {
                 if (supported == requested) return requested;
             }

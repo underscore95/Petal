@@ -22,7 +22,7 @@ namespace Petal {
         m_memorySystem = std::make_unique<MemorySystem>(*this);
         m_loggerSystem = std::make_shared<LoggerSystem>(*this);
         m_windowSystem = std::make_shared<WindowSystem>(*this);
-        m_renderingSystem = std::make_shared<GraphicsSystem>(*this, DeviceRequirements::DEFAULT_API_VERSION);
+        m_graphicsSystem = std::make_shared<GraphicsSystem>(*this, DeviceRequirements::DEFAULT_API_VERSION);
     }
 
     Engine::~Engine() {
@@ -40,8 +40,8 @@ namespace Petal {
         return *m_windowSystem;
     }
 
-    GraphicsSystem &Engine::GetRenderingSystem() const {
-        return *m_renderingSystem;
+    GraphicsSystem &Engine::GetGraphicsSystem() const {
+        return *m_graphicsSystem;
     }
 
     const EngineInfo &Engine::GetEngineInfo() const {

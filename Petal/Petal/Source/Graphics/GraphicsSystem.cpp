@@ -40,7 +40,7 @@ namespace Petal {
         return m_instance;
     }
 
-    OptionalRef<GraphicsContext> GraphicsSystem::CreateRenderer(std::shared_ptr<Window> window, DeviceRequirements deviceRequirements) {
+    OptionalRef<GraphicsContext> GraphicsSystem::CreateGraphicsContext(std::shared_ptr<Window> window, DeviceRequirements deviceRequirements) {
         Result result = Result::SUCCESS;
 
         auto renderer = std::make_unique<GraphicsContext>(

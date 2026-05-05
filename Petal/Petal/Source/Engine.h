@@ -21,7 +21,7 @@ namespace Petal {
 
         WindowSystem &GetWindowSystem() const;
 
-        GraphicsSystem &GetRenderingSystem() const;
+        GraphicsSystem &GetGraphicsSystem() const;
 
         const EngineInfo &GetEngineInfo() const;
 
@@ -37,6 +37,6 @@ namespace Petal {
         std::unique_ptr<MemorySystem> m_memorySystem;
         std::shared_ptr<LoggerSystem> m_loggerSystem;
         std::shared_ptr<WindowSystem> m_windowSystem;
-        std::shared_ptr<GraphicsSystem> m_renderingSystem;
+        std::shared_ptr<GraphicsSystem> m_graphicsSystem;
     };
 } // Petal

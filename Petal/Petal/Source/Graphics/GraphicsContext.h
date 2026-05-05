@@ -32,7 +32,7 @@ namespace Petal {
             GraphicsSystem &renderingSystem,
             std::shared_ptr<Window> window,
             const DeviceRequirements &deviceRequirements,
-            const GraphicsSettings &renderSettings,
+            const GraphicsSettings &graphicsSettings,
             Result &result
         );
 
@@ -53,7 +53,7 @@ namespace Petal {
 
         GraphicsSystem &GetRenderingSystem() const;
 
-        const GraphicsSettings &GetRenderSettings() const;
+        const GraphicsSettings &GetGraphicsSettings() const;
 
         GPUBufferSubsystem &GetBufferSubsystem() const;
 
@@ -133,7 +133,7 @@ namespace Petal {
         std::shared_ptr<RenderingDevice> m_device;
         std::shared_ptr<Logger> m_logger;
         std::shared_ptr<VulkanAllocator> m_allocator;
-        GraphicsSettings m_renderSettings;
+        GraphicsSettings m_graphicsSettings;
         // Queue family -> command pool
         std::unordered_map<glm::u32, VkCommandPool> m_commandPools;
         std::shared_ptr<VulkanSwapchain> m_swapchain;

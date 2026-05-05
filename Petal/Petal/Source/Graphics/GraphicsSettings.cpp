@@ -5,7 +5,7 @@
         cond, \
         Result::PETAL_INVALID_GRAPHICS_SETTINGS, \
         logger, \
-        "Invalid RenderSettings! {}", \
+        "Invalid GraphicsSettings! {}", \
         std::format(fmt, ##__VA_ARGS__)                  \
     )
 
@@ -20,7 +20,7 @@ Petal::Result Petal::GraphicsSettings::IsValid(std::shared_ptr<Logger> logger) c
     );
 
     if (PushConstantSize > 128) {
-        logger->Warn("RenderSettings push constant size was {}, some GPUs may not support more than 128 bytes.", PushConstantSize);
+        logger->Warn("GraphicsSettings push constant size was {}, some GPUs may not support more than 128 bytes.", PushConstantSize);
     }
 
 #undef CHECK_RENDER_SETTINGS

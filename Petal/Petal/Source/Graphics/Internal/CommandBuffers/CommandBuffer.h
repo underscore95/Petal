@@ -3,37 +3,37 @@
 #include "Common.h"
 
 namespace Petal {
-
-class CommandBuffer {
-public:
-    // Create in Renderer
-    CommandBuffer(
-        std::shared_ptr<Logger> logger,
-        VkDevice device,
-        VkCommandPool pool,
-        VkCommandBufferLevel level,
-       Result &out
+    class CommandBuffer {
+    public:
+        // Create in GraphicsContext
+        CommandBuffer(
+            std::shared_ptr<Logger> logger,
+            VkDevice device,
+            VkCommandPool pool,
+            VkCommandBufferLevel level,
+            Result &out
         );
-    ~CommandBuffer();
 
-    CommandBuffer(CommandBuffer&& other) noexcept;
-    CommandBuffer& operator=(CommandBuffer&& other) noexcept;
+        ~CommandBuffer();
 
-public:
-    Result Begin(VkCommandBufferUsageFlags usageFlags) const ;
+        CommandBuffer(CommandBuffer &&other) noexcept;
 
-    Result End() const ;
+        CommandBuffer &operator=(CommandBuffer &&other) noexcept;
 
-    VkCommandBuffer GetHandle() const;
+    public:
+        Result Begin(VkCommandBufferUsageFlags usageFlags) const;
 
-private:
-    Result CreateCommandBuffer(VkCommandBufferLevel level);
+        Result End() const;
 
-private:
-    std::shared_ptr<Logger>m_logger;
-    VkDevice m_device;
-    VkCommandPool m_commandPool;
-    VkCommandBuffer m_handle;
-};
+        VkCommandBuffer GetHandle() const;
 
+    private:
+        Result CreateCommandBuffer(VkCommandBufferLevel level);
+
+    private:
+        std::shared_ptr<Logger> m_logger;
+        VkDevice m_device;
+        VkCommandPool m_commandPool;
+        VkCommandBuffer m_handle;
+    };
 } // Petal

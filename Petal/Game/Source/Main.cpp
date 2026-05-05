@@ -11,17 +11,17 @@ int main() {
     std::shared_ptr<Logger> logger = engine.GetLoggerSystem().CreateLogger("Game");
 
     std::shared_ptr<Window> window = engine.GetWindowSystem().OpenWindow();
-    OptionalRef<GraphicsContext> rendererOptional = engine.GetRenderingSystem().CreateRenderer(
+    OptionalRef<GraphicsContext> rendererOptional = engine.GetGraphicsSystem().CreateGraphicsContext(
         window,
         DeviceRequirements::DEFAULT()
     );
     if (rendererOptional.IsEmpty()) return -1;
 
-    GraphicsContext &renderer = *rendererOptional.Value();
-    std::shared_ptr<CommandBufferVector> commandBuffers = renderer.CreateCommandBuffers(
-        renderer.GetDevice()->GetGraphicsQueueFamily(),
+    GraphicsContext &graphicsContext = *rendererOptional.Value();
+    std::shared_ptr<CommandBufferVector> commandBuffers = graphicsContext.CreateCommandBuffers(
+        graphicsContext.GetDevice()->GetGraphicsQueueFamily(),
         VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        renderer.GetSwapchain().NumSwapchainImages()
+        graphicsContext.GetSwapchain().NumSwapchainImages()
     ).Release();
 
     IntermediateShaderResource out;
@@ -32,7 +32,7 @@ int main() {
             {ShaderType::FRAGMENT, {"fragmentMain"}}
         }
     );
-    auto shaderOpt = renderer.CompileShader(asset);
+    auto shaderOpt = graphicsContext.CompileShader(asset);
 
     // Buffers
     using namespace PetalShader;
@@ -46,7 +46,7 @@ int main() {
 
     // Create buffers
     auto vertexBufferOptional =
-            renderer.GetBufferSubsystem().CreateIndependentBuffer(
+            graphicsContext.GetBufferSubsystem().CreateIndependentBuffer(
                 "Vertex Buffer",
                 sizeof(VertexData) * vertexData.size()
             );
@@ -55,7 +55,7 @@ int main() {
     shaderOpt->BindBuffer("vertices", *vertexBuffer);
 
     auto indexBufferOptional =
-            renderer.GetBufferSubsystem().CreateIndependentBuffer(
+            graphicsContext.GetBufferSubsystem().CreateIndependentBuffer(
                 "Index Buffer",
                 sizeof(glm::u32) * indexData.size()
             );
@@ -66,14 +66,14 @@ int main() {
     // Upload buffer data
     Result result;
 
-    result = renderer.GetBufferSubsystem().Write(
+    result = graphicsContext.GetBufferSubsystem().Write(
         *vertexBuffer,
         vertexData.data(),
         sizeof(vertexData[0]) * vertexData.size()
     );
     assert(result == Result::SUCCESS);
 
-    result = renderer.GetBufferSubsystem().Write(
+    result = graphicsContext.GetBufferSubsystem().Write(
         *indexBuffer,
         indexData.data(),
         sizeof(indexData[0]) * indexData.size()
@@ -82,10 +82,10 @@ int main() {
 
     commandBuffers->BeginAll(0);
 
-    renderer.GetSwapchain().CmdBeginRendering(*commandBuffers);
+    graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
 
     for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers->Size(); swapchainIndex++) {
-        shaderOpt->BindResources(commandBuffers->GetHandle(swapchainIndex));
+        shaderOpt->BindResources(*commandBuffers);
         // renderer.GetSwapchain().CmdClear(
         //     commandBuffers->GetHandle(swapchainIndex),
         //     Color{0.0f, 0.0f, (frameNumber % 10000) / 10000.0f, 1.0f},
@@ -93,32 +93,34 @@ int main() {
         // );
     }
 
-    renderer.GetSwapchain().CmdRender(*shaderOpt.Value(), *commandBuffers, indexData.size());
-    renderer.GetSwapchain().CmdEndRendering(*commandBuffers);
+    graphicsContext.GetSwapchain().CmdRender(*shaderOpt.Value(), *commandBuffers, indexData.size());
+    graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
 
     commandBuffers->EndAll();
 
     while (!window->WantsToClose()) {
         frameNumber++;
-        glm::u32 swapchainIndex = renderer.GetSwapchain().GetSwapchainIndex();
+        glm::u32 swapchainIndex = graphicsContext.GetSwapchain().GetSwapchainIndex();
 
         engine.Update();
-        Result result = renderer.GetSwapchain().BeginRendering();
+        Result result = graphicsContext.GetSwapchain().BeginRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
-            renderer.RecreateSwapchain();
+            graphicsContext.RecreateSwapchain();
             continue;
         }
 
-        renderer.GetSwapchain().SubmitFrameCommand(CommandBufferStrongRef(commandBuffers, swapchainIndex));
+        graphicsContext.GetSwapchain().SubmitFrameCommand(CommandBufferStrongRef(commandBuffers, swapchainIndex));
+
+        graphicsContext.GetSwapchain().EndRendering();
+        if (result == Result::PETAL_WINDOW_RESIZED) {
+            graphicsContext.RecreateSwapchain();
+            continue;
+        }
 
         engine.Render();
-        renderer.GetSwapchain().EndRendering();
-        if (result == Result::PETAL_WINDOW_RESIZED) {
-            renderer.RecreateSwapchain();
-            continue;
-        }
+
     }
-    renderer.DeviceWaitIdle();
+    graphicsContext.DeviceWaitIdle();
     commandBuffers.reset();
     engine.GetWindowSystem().CloseWindow(window);
     return 0;

@@ -51,7 +51,7 @@ namespace Petal {
         VkPushConstantRange pushConstantRange = {
             .stageFlags = VK_SHADER_STAGE_ALL,
             .offset = 0,
-            .size = m_renderer.GetRenderSettings().PushConstantSize
+            .size = m_renderer.GetGraphicsSettings().PushConstantSize
         };
 
         const std::vector<VkDescriptorSetLayout> &layouts = m_shader.GetDescriptorSetLayouts();
@@ -59,7 +59,7 @@ namespace Petal {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = static_cast<glm::u32>(layouts.size()),
             .pSetLayouts = layouts.data(),
-            .pushConstantRangeCount = m_renderer.GetRenderSettings().PushConstantSize > 0 ? 1u : 0u, // no need for a range if we don't have any
+            .pushConstantRangeCount = m_renderer.GetGraphicsSettings().PushConstantSize > 0 ? 1u : 0u, // no need for a range if we don't have any
             .pPushConstantRanges = &pushConstantRange
         };
 
