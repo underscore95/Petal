@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pch.h"
+#include "FormatString.h"
 
 namespace Petal {
     enum class LogLevel {
@@ -16,17 +16,17 @@ namespace Petal {
         static constexpr std::array<const char *, NumValues> Names = {
             "Verbose", "Info", "Warn", "Error"
         };
+
+        static constexpr std::array<const char *, NumValues> Colors = {
+            "\033[37m", // Verbose - white
+            "\033[36m", // Info - cyan
+            "\033[33m", // Warn - yellow
+            "\033[31m" // Error - red
+        };
     };
 } // Petal
 
-// Source - https://stackoverflow.com/a/59914918
-// Posted by vitaut, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-04-11, License - CC BY-SA 4.0
-
-template<>
-struct std::formatter<Petal::LogLevel> : std::formatter<std::string> {
-    auto format(Petal::LogLevel instance, format_context &ctx) const {
-        return formatter<string>::format(
-            std::format("{}", Petal::LogLevelEnum::Names[static_cast<int>(instance)]), ctx);
-    }
-};
+PETAL_MAKE_FORMATTABLE(
+    Petal::LogLevel, level,
+    std::format("{}", Petal::LogLevelEnum::Names[static_cast<int>(level)])
+);

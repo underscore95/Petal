@@ -10,6 +10,11 @@ namespace Petal {
 
     public:
         template<typename... Args>
+        void Log(LogLevel level, const std::string &fmt, Args &&... args) {
+            Log(std::vformat(fmt, std::make_format_args(args...)), level);
+        }
+
+        template<typename... Args>
         void Verbose(const std::string &fmt, Args &&... args) {
             Log(std::vformat(fmt, std::make_format_args(args...)), LogLevel::Verbose);
         }
@@ -29,7 +34,9 @@ namespace Petal {
             Log(std::vformat(fmt, std::make_format_args(args...)), LogLevel::Error);
         }
 
-        const std::string& GetName() const;
+        const std::string &GetName() const;
+
+        void SetLevel(LogLevel level);
 
     private:
         void Log(const std::string &message, LogLevel level);
