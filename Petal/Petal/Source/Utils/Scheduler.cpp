@@ -1,10 +1,10 @@
 #include "Scheduler.h"
 
-#include "Engine.h"
-
 namespace Petal {
-    Scheduler::Scheduler(const Engine &engine) {
-        m_logger = engine.GetLoggerSystem().GetLogger(LoggerSystem::SCHEDULER_LOGGER);
+    Scheduler::Scheduler(
+        const std::shared_ptr<Logger> &logger
+    )
+        : m_logger(logger) {
     }
 
     Scheduler::~Scheduler() {

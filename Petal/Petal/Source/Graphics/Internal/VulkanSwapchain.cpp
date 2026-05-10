@@ -16,7 +16,8 @@ namespace Petal {
         GraphicsContext &renderer,
         const VulkanQueue &queueFamily,
         Result &resultOut
-    ) : m_renderer(renderer) {
+    ) : m_engine(engine),
+        m_context(renderer) {
         m_logger = engine.GetLoggerSystem().GetLogger(LoggerSystem::GRAPHICS_LOGGER);
 
         glm::uvec2 windowSize = renderer.GetWindow().GetDimensions();
@@ -34,13 +35,13 @@ namespace Petal {
 
     VulkanSwapchain::~VulkanSwapchain() {
         for (auto &imageView : m_imageViews) {
-            vkDestroyImageView(m_renderer.GetDevice()->GetDevice(), imageView, nullptr);
+            vkDestroyImageView(m_context.GetDevice()->GetDevice(), imageView, nullptr);
         }
         m_imageViews.clear();
 
         // Destroying the swapchain destroys the images
         vkDestroySwapchainKHR(
-            m_renderer.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetDevice(),
             m_handle,
             nullptr
         );
@@ -59,15 +60,15 @@ namespace Petal {
     Result VulkanSwapchain::BeginRendering() {
         // Wait for previous frame to complete
         VkFence frameCompleteFence = m_frameCompleteFences[m_swapchainIndex]->GetHandle();
-        VkResult res = vkWaitForFences(m_renderer.GetDevice()->GetDevice(), 1, &frameCompleteFence, true, PETAL_U64_MAX);
+        VkResult res = vkWaitForFences(m_context.GetDevice()->GetDevice(), 1, &frameCompleteFence, true, PETAL_U64_MAX);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::PETAL_BEGIN_RENDER_FAILED, m_logger, "Failed to wait for fence: {}", res);
 
-        res = vkResetFences(m_renderer.GetDevice()->GetDevice(), 1, &frameCompleteFence);
+        res = vkResetFences(m_context.GetDevice()->GetDevice(), 1, &frameCompleteFence);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::PETAL_BEGIN_RENDER_FAILED, m_logger, "Failed to reset fence: {}", res);
 
         // Request new frame
         res = vkAcquireNextImageKHR(
-            m_renderer.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetDevice(),
             m_handle,
             PETAL_U64_MAX,
             m_swapchainSemaphores[m_swapchainIndex]->GetHandle(),
@@ -112,7 +113,7 @@ namespace Petal {
         };
 
         VkResult result = vkQueueSubmit2(
-            m_renderer.GetDevice()->GetGraphicsQueueFamily().GetHandle(),
+            m_context.GetDevice()->GetGraphicsQueueFamily().GetHandle(),
             1,
             &submit,
             m_frameCompleteFences[GetSwapchainIndex()]->GetHandle()
@@ -133,7 +134,7 @@ namespace Petal {
             .pResults = nullptr
         };
 
-        VkResult res = vkQueuePresentKHR(m_renderer.GetDevice()->GetGraphicsQueueFamily().GetHandle(), &presentInfo);
+        VkResult res = vkQueuePresentKHR(m_context.GetDevice()->GetGraphicsQueueFamily().GetHandle(), &presentInfo);
         PETAL_CHECK_COND_SILENT(res == VK_ERROR_OUT_OF_DATE_KHR, Result::PETAL_WINDOW_RESIZED);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::PETAL_END_RENDER_FAILED, m_logger, "Failed to present: {}", res);
 
@@ -203,7 +204,7 @@ namespace Petal {
 
         VkFence fence = m_blockingCommandFence->GetHandle();
         VkResult result = vkQueueSubmit2(
-            m_renderer.GetDevice()->GetGraphicsQueueFamily().GetHandle(),
+            m_context.GetDevice()->GetGraphicsQueueFamily().GetHandle(),
             1,
             &submit,
             fence
@@ -216,7 +217,7 @@ namespace Petal {
         );
 
         result = vkWaitForFences(
-            m_renderer.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetDevice(),
             1,
             &fence,
             true,
@@ -230,7 +231,7 @@ namespace Petal {
         );
 
         result = vkResetFences(
-            m_renderer.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetDevice(),
             1,
             &fence
         );
@@ -253,14 +254,14 @@ namespace Petal {
 
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
             VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
-            m_renderer.CmdTransitionImage(
+            m_context.CmdTransitionImage(
                 commandBuffer,
                 m_images[swapchainIndex],
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_GENERAL
             );
 
-            glm::uvec2 windowSize = m_renderer.GetWindow().GetDimensions();
+            glm::uvec2 windowSize = m_context.GetWindow().GetDimensions();
 
             VkRenderingAttachmentInfo colorAttachment = {
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -310,7 +311,7 @@ namespace Petal {
             VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
             vkCmdEndRendering(commandBuffer);
 
-            m_renderer.CmdTransitionImage(
+            m_context.CmdTransitionImage(
                 commandBuffer,
                 m_images[swapchainIndex], VK_IMAGE_LAYOUT_GENERAL,
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
@@ -334,20 +335,24 @@ namespace Petal {
         }
     }
 
+    void VulkanSwapchain::ScheduleSwapchainFrames(const std::function<void()> &function) const {
+        m_engine.GetScheduler().ScheduleFrames(function, NumSwapchainImages());
+    }
+
     Result VulkanSwapchain::CreateSyncObjects() {
-        Optional<std::shared_ptr<VulkanFence> > blockingFenceOptional = m_renderer.CreateFence();
+        Optional<std::shared_ptr<VulkanFence> > blockingFenceOptional = m_context.CreateFence();
         PETAL_CHECK_OPTIONAL_SILENT(blockingFenceOptional);
         m_blockingCommandFence = *blockingFenceOptional.Value();
 
-        Optional<std::vector<std::shared_ptr<VulkanFence> > > fences = m_renderer.CreateFences(NumSwapchainImages(), VK_FENCE_CREATE_SIGNALED_BIT);
+        Optional<std::vector<std::shared_ptr<VulkanFence> > > fences = m_context.CreateFences(NumSwapchainImages(), VK_FENCE_CREATE_SIGNALED_BIT);
         PETAL_CHECK_OPTIONAL_SILENT(fences);
         m_frameCompleteFences = *fences.Value();
 
-        Optional<std::vector<std::shared_ptr<VulkanSemaphore> > > semaphores = m_renderer.CreateSemaphores(NumSwapchainImages(), 0);
+        Optional<std::vector<std::shared_ptr<VulkanSemaphore> > > semaphores = m_context.CreateSemaphores(NumSwapchainImages(), 0);
         PETAL_CHECK_OPTIONAL_SILENT(fences);
         m_frameCompleteSemaphores = *semaphores.Value();
 
-        semaphores = m_renderer.CreateSemaphores(NumSwapchainImages(), 0);
+        semaphores = m_context.CreateSemaphores(NumSwapchainImages(), 0);
         PETAL_CHECK_OPTIONAL_SILENT(fences);
         m_swapchainSemaphores = *semaphores.Value();
 
@@ -374,7 +379,7 @@ namespace Petal {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .pNext = nullptr,
             .flags = 0,
-            .surface = m_renderer.GetSurface(),
+            .surface = m_context.GetSurface(),
             .minImageCount = m_numSwapchainImages,
             .imageFormat = m_swapchainSurfaceFormat.surfaceFormat.format,
             .imageColorSpace = m_swapchainSurfaceFormat.surfaceFormat.colorSpace,
@@ -384,14 +389,14 @@ namespace Petal {
             .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
             .queueFamilyIndexCount = queueFamilies.size(),
             .pQueueFamilyIndices = queueFamilies.data(),
-            .preTransform = m_renderer.GetDevice()->GetSurfaceCapabilities().surfaceCapabilities.currentTransform,
+            .preTransform = m_context.GetDevice()->GetSurfaceCapabilities().surfaceCapabilities.currentTransform,
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode = *presentModeOptional.Value(),
             .clipped = VK_TRUE
         };
 
         VkResult res = vkCreateSwapchainKHR(
-            m_renderer.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetDevice(),
             &swapChainCreateInfo,
             nullptr,
             &m_handle
@@ -402,7 +407,7 @@ namespace Petal {
     }
 
     Result VulkanSwapchain::CreateSwapchainImages() {
-        const auto &device = m_renderer.GetDevice()->GetDevice();
+        const auto &device = m_context.GetDevice()->GetDevice();
         // Check the number of swapchain images, it may be more than what we requested
         glm::u32 requestedNumImages = m_numSwapchainImages;
         VkResult res = vkGetSwapchainImagesKHR(
@@ -455,13 +460,13 @@ namespace Petal {
     }
 
     Optional<glm::u32> VulkanSwapchain::CheckRequestedNumImagesSupported() {
-        const VkSurfaceCapabilitiesKHR &surfaceCapabilities = m_renderer.GetDevice()->GetSurfaceCapabilities().surfaceCapabilities;
-        glm::u32 numImages = m_renderer.GetGraphicsSettings().NumSwapchainImages;
+        const VkSurfaceCapabilitiesKHR &surfaceCapabilities = m_context.GetDevice()->GetSurfaceCapabilities().surfaceCapabilities;
+        glm::u32 numImages = m_context.GetGraphicsSettings().NumSwapchainImages;
 
         // Check maximum
         if (surfaceCapabilities.maxImageCount != VULKAN_SENTINEL_SURFACE_CAPABILITIES_UNLIMITED_SWAPCHAIN_IMAGES && numImages > surfaceCapabilities.maxImageCount) {
             PETAL_CHECK_COND(
-                m_renderer.GetGraphicsSettings().AllowDoubleBufferingFallback,
+                m_context.GetGraphicsSettings().AllowDoubleBufferingFallback,
                 Result::VULKAN_SWAPCHAIN_CREATION_FAILED,
                 m_logger,
                 "Requested {} swapchain images but {} was the maximum and falling back to double buffering was disabled",
@@ -474,7 +479,7 @@ namespace Petal {
 
         // Check minimum
         PETAL_CHECK_COND(
-            m_renderer.GetGraphicsSettings().NumSwapchainImages < surfaceCapabilities.minImageCount,
+            m_context.GetGraphicsSettings().NumSwapchainImages < surfaceCapabilities.minImageCount,
             Result::VULKAN_SWAPCHAIN_CREATION_FAILED,
             m_logger,
             "Requested (or fell back to) {} swapchain images but {} was the minimum",
@@ -486,8 +491,8 @@ namespace Petal {
     }
 
     Optional<VkPresentModeKHR> VulkanSwapchain::CheckRequestedPresentMode() const {
-        for (VkPresentModeKHR requested : m_renderer.GetGraphicsSettings().PreferredPresentMode) {
-            for (VkPresentModeKHR supported : m_renderer.GetDevice()->GetPresentModes()) {
+        for (VkPresentModeKHR requested : m_context.GetGraphicsSettings().PreferredPresentMode) {
+            for (VkPresentModeKHR supported : m_context.GetDevice()->GetPresentModes()) {
                 if (supported == requested) return requested;
             }
         }
@@ -496,7 +501,7 @@ namespace Petal {
     }
 
     Result VulkanSwapchain::ChooseSurfaceFormat() {
-        auto surfaceFormats = m_renderer.GetDevice()->GetSurfaceFormats();
+        auto surfaceFormats = m_context.GetDevice()->GetSurfaceFormats();
         PETAL_CHECK_COND(surfaceFormats.empty(), Result::VULKAN_SWAPCHAIN_CREATION_FAILED, m_logger, "No supported surface formats");
 
         for (const auto &surfaceFormat : surfaceFormats) {

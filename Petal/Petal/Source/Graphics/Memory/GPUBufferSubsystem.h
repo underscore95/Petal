@@ -32,7 +32,7 @@ namespace Petal {
         AllocatedOptional<GPUBuffer> CreateBackedBuffer(
             const std::string &name,
             glm::u32 size,
-            std::shared_ptr<VulkanBuffer> backingBuffer
+            const std::shared_ptr<VulkanBuffer>& backingBuffer
         );
 
         // Create a Vulkan buffer
@@ -57,7 +57,7 @@ namespace Petal {
         Result CreateCommandBuffer();
 
     private:
-        GraphicsContext &m_renderer;
+        GraphicsContext &m_context;
         std::shared_ptr<Logger> m_logger;
         std::unique_ptr<VulkanBuffer> m_transferBuffer;
         std::unique_ptr<CommandBuffer> m_commandBuffer;

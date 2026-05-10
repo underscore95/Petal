@@ -80,6 +80,10 @@ namespace Petal {
             glm::u32 firstInstance = 0
         );
 
+        // Schedule a function to run after <num swapchain images> frames
+        // Note this function will not run if the engine shuts down first however it will run if only the swapchain is destroyed
+        void ScheduleSwapchainFrames(const std::function<void()>& function) const;
+
     private:
         Result CreateSyncObjects();
 
@@ -94,7 +98,8 @@ namespace Petal {
         Result ChooseSurfaceFormat();
 
     private:
-        GraphicsContext &m_renderer;
+        Engine& m_engine;
+        GraphicsContext &m_context;
         std::shared_ptr<Logger> m_logger;
         VkSwapchainKHR m_handle;
         VkSurfaceFormat2KHR m_swapchainSurfaceFormat;

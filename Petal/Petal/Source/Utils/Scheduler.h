@@ -18,7 +18,9 @@ namespace Petal {
         };
 
     public:
-        explicit Scheduler(const Engine &engine);
+        explicit Scheduler(
+            const std::shared_ptr<Logger> &logger
+        );
 
         ~Scheduler();
 

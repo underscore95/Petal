@@ -9,7 +9,7 @@ namespace Petal {
         const std::shared_ptr<Logger> &logger,
         Result &resultOut
     )
-        : m_renderer(renderer),
+        : m_context(renderer),
           m_logger(logger) {
         resultOut = CreateTransferBuffer();
         if (resultOut != Result::SUCCESS) return;
@@ -33,14 +33,14 @@ namespace Petal {
         Optional<Allocation> allocationOpt = bufferOpt->GetAllocations().Allocate(size);
         PETAL_CHECK_OPTIONAL(allocationOpt, m_logger, "Failed to create independent buffer (this should never happen...)");
 
-        auto gpuBuffer = std::make_unique<GPUBuffer>(name, bufferOpt.Release(), *allocationOpt.Value());
+        auto gpuBuffer = std::make_unique<GPUBuffer>(m_context, name, bufferOpt.Release(), *allocationOpt.Value());
         return gpuBuffer;
     }
 
     AllocatedOptional<GPUBuffer> GPUBufferSubsystem::CreateBackedBuffer(
         const std::string &name,
         glm::u32 size,
-        std::shared_ptr<VulkanBuffer> backingBuffer
+        const std::shared_ptr<VulkanBuffer>& backingBuffer
     ) {
         PETAL_CHECK_COND(backingBuffer == nullptr, Result::PETAL_UNEXPECTED_NULLPTR, m_logger, "Backing buffer was nullptr");
         PETAL_CHECK_COND(size == 0, Result::PETAL_BUFFER_CREATION_FAILED, m_logger, "GPUBuffer size was 0");
@@ -48,7 +48,7 @@ namespace Petal {
         Optional<Allocation> allocationOpt = backingBuffer->GetAllocations().Allocate(size);
         PETAL_CHECK_OPTIONAL(allocationOpt, m_logger, "Failed to create backed buffer of size {}", size);
 
-        return std::make_unique<GPUBuffer>(name, backingBuffer, *allocationOpt.Value());
+        return std::make_unique<GPUBuffer>(m_context, name, backingBuffer, *allocationOpt.Value());
     }
 
     Result GPUBufferSubsystem::Write(
@@ -65,12 +65,13 @@ namespace Petal {
             bufferOffset + size > buffer.GetAllocation().Size,
             Result::VMA_BUFFER_WRITE_FAILED,
             m_logger,
-            "Attempted to write to buffer {} with size {} but offset ({}) + size ({}) was {}", buffer.GetName(), buffer.GetAllocation().Size, bufferOffset, size, bufferOffset + size
+            "Attempted to write to buffer {} with size {} but offset ({}) + size ({}) was {}", buffer.GetName(), buffer.GetAllocation().Size, bufferOffset, size,
+            bufferOffset + size
         );
 
 
         void *ptr = nullptr;
-        VkResult res = vmaMapMemory(m_renderer.GetAllocator()->GetAllocator(), m_transferBuffer->GetVMAAllocation(), &ptr);
+        VkResult res = vmaMapMemory(m_context.GetAllocator()->GetAllocator(), m_transferBuffer->GetVMAAllocation(), &ptr);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VMA_BUFFER_WRITE_FAILED, m_logger, "Failed to map transfer buffer: {}", res);
 
         // Write in blocks
@@ -103,7 +104,7 @@ namespace Petal {
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
             // todo better sync?
-            result = m_renderer.GetSwapchain().SubmitBlockingCommand(m_commandBuffer->GetHandle());
+            result = m_context.GetSwapchain().SubmitBlockingCommand(m_commandBuffer->GetHandle());
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
             bytesRemaining -= bytesToWrite;
@@ -113,7 +114,7 @@ namespace Petal {
 
         assert(bytesRemaining == 0);
 
-        vmaUnmapMemory(m_renderer.GetAllocator()->GetAllocator(), m_transferBuffer->GetVMAAllocation());
+        vmaUnmapMemory(m_context.GetAllocator()->GetAllocator(), m_transferBuffer->GetVMAAllocation());
 
         m_logger->Verbose("Finished writing to buffer in {} ms", timer.MillisSinceStart());
         return Result::SUCCESS;
@@ -140,8 +141,8 @@ namespace Petal {
     }
 
     Result GPUBufferSubsystem::CreateCommandBuffer() {
-        AllocatedOptional<CommandBuffer> commandBufferOptional = m_renderer.CreateCommandBuffer(
-            m_renderer.GetDevice()->GetGraphicsQueueFamily(), // todo transfer queue
+        AllocatedOptional<CommandBuffer> commandBufferOptional = m_context.CreateCommandBuffer(
+            m_context.GetDevice()->GetGraphicsQueueFamily(), // todo transfer queue
             VK_COMMAND_BUFFER_LEVEL_PRIMARY
         );
 
@@ -158,7 +159,7 @@ namespace Petal {
     ) {
         Result result;
         auto buffer = std::make_unique<VulkanBuffer>(
-            m_renderer,
+            m_context,
             m_logger,
             name,
             size,

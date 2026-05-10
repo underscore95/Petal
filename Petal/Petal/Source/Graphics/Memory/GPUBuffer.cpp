@@ -4,17 +4,27 @@
 
 namespace Petal {
     GPUBuffer::GPUBuffer(
+        GraphicsContext &context,
         const std::string &name,
         const std::shared_ptr<VulkanBuffer> &backingBuffer,
         Allocation allocation
-    ) : m_name(name),
+    ) : m_context(context),
+        m_name(name),
         m_backingBuffer(backingBuffer),
         m_allocation(allocation) {
         assert(backingBuffer);
     }
 
     GPUBuffer::~GPUBuffer() {
-        m_backingBuffer->GetAllocations().Free(m_allocation);
+        // todo during engine shutdown, this causes a warning to be output since the scheduled function never runs 
+        std::weak_ptr backingBufferWeak = m_backingBuffer;
+        Allocation allocation = m_allocation;
+
+        m_context.GetSwapchain().ScheduleSwapchainFrames([backingBufferWeak, allocation]() {
+            std::shared_ptr backingBufferStrong = backingBufferWeak.lock();
+            if (!backingBufferStrong)return;
+            backingBufferStrong->GetAllocations().Free(allocation);
+        });
     }
 
     VkDescriptorBufferInfo GPUBuffer::GetDescriptorInfo() const {
