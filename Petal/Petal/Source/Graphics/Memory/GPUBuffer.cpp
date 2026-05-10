@@ -5,34 +5,32 @@
 namespace Petal {
     GPUBuffer::GPUBuffer(
         const std::string &name,
-        std::shared_ptr<VulkanBuffer> backingBuffer,
-        glm::u32 size,
-        glm::u32 offset
+        const std::shared_ptr<VulkanBuffer> &backingBuffer,
+        Allocation allocation
     ) : m_name(name),
         m_backingBuffer(backingBuffer),
-        m_size(size),
-        m_offset(offset) {
+        m_allocation(allocation) {
         assert(backingBuffer);
+    }
+
+    GPUBuffer::~GPUBuffer() {
+        m_backingBuffer->GetAllocations().Free(m_allocation);
     }
 
     VkDescriptorBufferInfo GPUBuffer::GetDescriptorInfo() const {
         return {
             .buffer = m_backingBuffer->GetHandle(),
-            .offset = m_offset,
-            .range = m_size
+            .offset = m_allocation.Location,
+            .range = m_allocation.Size
         };
     }
 
-    std::string GPUBuffer::GetName() const {
+    const std::string &GPUBuffer::GetName() const {
         return m_name;
     }
 
-    glm::u32 GPUBuffer::GetSize() const {
-        return m_size;
-    }
-
-    glm::u32 GPUBuffer::GetOffset() const {
-        return m_offset;
+    Allocation GPUBuffer::GetAllocation() const {
+        return m_allocation;
     }
 
     const std::shared_ptr<VulkanBuffer> &GPUBuffer::GetBackingBuffer() const {

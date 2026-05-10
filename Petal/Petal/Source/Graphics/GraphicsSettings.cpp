@@ -1,20 +1,20 @@
 #include "GraphicsSettings.h"
 
-#define CHECK_RENDER_SETTINGS(cond, fmt, ...) \
+#define CHECK_SETTINGS(cond, fmt, ...) \
     PETAL_CHECK_COND( \
         cond, \
-        Result::PETAL_INVALID_GRAPHICS_SETTINGS, \
+        Result::PETAL_INVALID_SETTINGS, \
         logger, \
         "Invalid GraphicsSettings! {}", \
         std::format(fmt, ##__VA_ARGS__)                  \
     )
 
 Petal::Result Petal::GraphicsSettings::IsValid(std::shared_ptr<Logger> logger) const {
-    CHECK_RENDER_SETTINGS(NumSwapchainImages < 2, "Not enough swapchain images: {}", NumSwapchainImages);
-    CHECK_RENDER_SETTINGS(NumSwapchainImages > 3, "Too many swapchain images: {}", NumSwapchainImages);
+    CHECK_SETTINGS(NumSwapchainImages < 2, "Not enough swapchain images: {}", NumSwapchainImages);
+    CHECK_SETTINGS(NumSwapchainImages > 3, "Too many swapchain images: {}", NumSwapchainImages);
 
-    CHECK_RENDER_SETTINGS(PreferredPresentMode.empty(), "PreferredPresentMode is empty");
-    CHECK_RENDER_SETTINGS(
+    CHECK_SETTINGS(PreferredPresentMode.empty(), "PreferredPresentMode is empty");
+    CHECK_SETTINGS(
         PreferredPresentMode.size() != std::unordered_set(PreferredPresentMode.begin(), PreferredPresentMode.end()).size(),
         "PreferredPresentMode contains duplicate elements"
     );
@@ -23,7 +23,7 @@ Petal::Result Petal::GraphicsSettings::IsValid(std::shared_ptr<Logger> logger) c
         logger->Warn("GraphicsSettings push constant size was {}, some GPUs may not support more than 128 bytes.", PushConstantSize);
     }
 
-#undef CHECK_RENDER_SETTINGS
+#undef CHECK_SETTINGS
 
     return Result::SUCCESS;
 }

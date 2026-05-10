@@ -8,6 +8,7 @@
 #include "VulkanQueue.h"
 #include "VulkanSwapchain.h"
 #include "CommandBuffers/CommandBuffer.h"
+#include "Graphics/Memory/IBuffer.h"
 
 namespace Petal {
     struct SetInfo {
@@ -174,7 +175,7 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
-    Result VulkanShader::BindBuffer(const std::string &name, const GPUBuffer &buffer) {
+    Result VulkanShader::BindBuffer(const std::string &name, const IBuffer &buffer) {
         auto it = m_resources.find(name);
         PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find buffer {}. Note resource names are case sensitive.", name);
 

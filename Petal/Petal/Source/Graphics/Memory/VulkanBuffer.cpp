@@ -13,7 +13,8 @@ namespace Petal {
         : m_renderer(renderer),
           m_name(name),
           m_size(size),
-          m_createInfo(createInfo) {
+          m_createInfo(createInfo),
+          m_allocationTracker(logger, size) {
         resultOut = CreateBuffer(logger);
     }
 
@@ -25,12 +26,28 @@ namespace Petal {
         return m_buffer;
     }
 
-    VmaAllocation VulkanBuffer::GetAllocation() const {
+    VmaAllocation VulkanBuffer::GetVMAAllocation() const {
         return m_allocation;
     }
 
     glm::u32 VulkanBuffer::GetSize() const {
         return m_size;
+    }
+
+    AllocationTracker &VulkanBuffer::GetAllocations() {
+        return m_allocationTracker;
+    }
+
+    VkDescriptorBufferInfo VulkanBuffer::GetDescriptorInfo() const {
+        return {
+            .buffer = GetHandle(),
+            .offset = 0,
+            .range = m_size
+        };
+    }
+
+    const std::string &VulkanBuffer::GetName() const {
+        return m_name;
     }
 
     Result VulkanBuffer::CreateBuffer(std::shared_ptr<Logger> logger) {

@@ -4,6 +4,11 @@
 #include "Common.h"
 #include "GraphicsSettings.h"
 #include "Internal/DeviceRequirements.h"
+#include "Rendering/RendererSettings.h"
+
+namespace Petal {
+    class Renderer;
+}
 
 namespace Petal {
     class GPUBufferSubsystem;
@@ -92,6 +97,8 @@ namespace Petal {
         Optional<std::shared_ptr<VulkanSemaphore> > CreateSemaphore(VkSemaphoreCreateFlags flags = 0);
 
         Optional<std::vector<std::shared_ptr<VulkanSemaphore> > > CreateSemaphores(glm::u32 count, VkSemaphoreCreateFlags flags = 0);
+
+        AllocatedOptional<Renderer> CreateRenderer(const RendererSettings &settings);
 
         // Shorthand for transitioning an image layout
         // By default, an excessively blocking barrier for graphics queue images is used, but this can be overridden by passing a transition parameter

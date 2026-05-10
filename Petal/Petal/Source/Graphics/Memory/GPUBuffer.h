@@ -1,34 +1,36 @@
 #pragma once
 
+#include "AllocationTracker.h"
 #include "Common.h"
+#include "IBuffer.h"
 
 namespace Petal {
     class VulkanBuffer;
 
-    class GPUBuffer {
+    class GPUBuffer : public IBuffer {
     public:
+        // allocation - where in the backing buffer? use backingBuffer->GetAllocations().Allocate
         GPUBuffer(
             const std::string &name,
-            std::shared_ptr<VulkanBuffer> backingBuffer,
-            glm::u32 size,
-            glm::u32 offset = 0
+            const std::shared_ptr<VulkanBuffer> &backingBuffer,
+            Allocation allocation
         );
 
+        // Automatically removes the allocation from the backing buffer's allocation tracker
+        ~GPUBuffer();
+
     public:
-        VkDescriptorBufferInfo GetDescriptorInfo() const;
+        VkDescriptorBufferInfo GetDescriptorInfo() const override;
 
-        std::string GetName() const;
+        const std::string &GetName() const override;
 
-        glm::u32 GetSize() const;
-
-        glm::u32 GetOffset() const;
+        Allocation GetAllocation() const;
 
         const std::shared_ptr<VulkanBuffer> &GetBackingBuffer() const;
 
     private:
         std::string m_name;
         std::shared_ptr<VulkanBuffer> m_backingBuffer;
-        glm::u32 m_size;
-        glm::u32 m_offset;
+        Allocation m_allocation;
     };
 } // Petal

@@ -1,10 +1,55 @@
 #include "Petal.h"
-#include "Graphics/Memory/GPUBufferSubsystem.h"
 #include "../../Petal/Assets/Shaders/Common.h"
+#include "Rendering/Renderer.h"
+
+using namespace Petal;
+using namespace PetalShader;
+
+Petal::MeshBuilder CreateMesh() {
+    MeshBuilder mesh({sizeof(VertexData)}, IndexType::INDICES_32_BIT);
+
+    VertexData vertices[3] = {
+        {
+            .position = {-0.5f, -0.5f, 0.0f},
+            .padding = 0,
+            .normal = {0.0f, 0.0f, 1.0f},
+            .padding2 = 0,
+            .uv = {0.0f, 0.0f},
+            .padding3 = 0,
+            .padding4 = 0
+        },
+        {
+            .position = {0.0f, 0.5f, 0.0f},
+            .padding = 0,
+            .normal = {0.0f, 0.0f, 1.0f},
+            .padding2 = 0,
+            .uv = {0.5f, 1.0f},
+            .padding3 = 0,
+            .padding4 = 0
+        },
+        {
+            .position = {0.5f, -0.5f, 0.0f},
+            .padding = 0,
+            .normal = {0.0f, 0.0f, 1.0f},
+            .padding2 = 0,
+            .uv = {1.0f, 0.0f},
+            .padding3 = 0,
+            .padding4 = 0
+        }
+    };
+
+    mesh.PushVertex(&vertices[0]);
+    mesh.PushVertex(&vertices[1]);
+    mesh.PushVertex(&vertices[2]);
+
+    mesh.PushIndex<glm::u32>(0);
+    mesh.PushIndex<glm::u32>(1);
+    mesh.PushIndex<glm::u32>(2);
+
+    return mesh;
+}
 
 int main() {
-    using namespace Petal;
-
     glm::u32 frameNumber = 0;
 
     Engine engine;
@@ -32,60 +77,25 @@ int main() {
             {ShaderType::FRAGMENT, {"fragmentMain"}}
         }
     );
-    auto shaderOpt = graphicsContext.CompileShader(asset);
+    std::unique_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset).Release();
 
-    // Buffers
-    using namespace PetalShader;
-    std::array<VertexData, 3> vertexData = {
-        VertexData{{0.0f, 0.5f, 0.0f}, 0, {0.0f, 0.0f, 1.0f}, 0, {0.5f, 1.0f}, 0, 0},
-        VertexData{{0.5f, -0.5f, 0.0f}, 0, {0.0f, 0.0f, 1.0f}, 0, {1.0f, 0.0f}, 0, 0},
-        VertexData{{-0.5f, -0.5f, 0.0f}, 0, {0.0f, 0.0f, 1.0f}, 0, {0.0f, 0.0f}, 0, 0}
+    // Renderer
+    RendererSettings rendererSettings = {
+        .VertexBufferShaderName = "vertices",
+        .IndexBufferShaderName = "indices"
     };
+    auto renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
 
-    std::array<glm::u32, 3> indexData = {0, 1, 2};
+    std::unique_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
 
-    // Create buffers
-    auto vertexBufferOptional =
-            graphicsContext.GetBufferSubsystem().CreateIndependentBuffer(
-                "Vertex Buffer",
-                sizeof(VertexData) * vertexData.size()
-            );
-    assert(vertexBufferOptional.HasValue());
-    std::shared_ptr<GPUBuffer> vertexBuffer = vertexBufferOptional.Release();
-    shaderOpt->BindBuffer("vertices", *vertexBuffer);
-
-    auto indexBufferOptional =
-            graphicsContext.GetBufferSubsystem().CreateIndependentBuffer(
-                "Index Buffer",
-                sizeof(glm::u32) * indexData.size()
-            );
-    assert(indexBufferOptional.HasValue());
-    std::shared_ptr<GPUBuffer> indexBuffer = indexBufferOptional.Release();
-    shaderOpt->BindBuffer("indices", *indexBuffer);
-
-    // Upload buffer data
-    Result result;
-
-    result = graphicsContext.GetBufferSubsystem().Write(
-        *vertexBuffer,
-        vertexData.data(),
-        sizeof(vertexData[0]) * vertexData.size()
-    );
-    assert(result == Result::SUCCESS);
-
-    result = graphicsContext.GetBufferSubsystem().Write(
-        *indexBuffer,
-        indexData.data(),
-        sizeof(indexData[0]) * indexData.size()
-    );
-    assert(result == Result::SUCCESS);
+    renderer->Bind(*shader);
 
     commandBuffers->BeginAll(0);
 
     graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
 
     for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers->Size(); swapchainIndex++) {
-        shaderOpt->BindResources(*commandBuffers);
+        shader->BindResources(*commandBuffers);
         // renderer.GetSwapchain().CmdClear(
         //     commandBuffers->GetHandle(swapchainIndex),
         //     Color{0.0f, 0.0f, (frameNumber % 10000) / 10000.0f, 1.0f},
@@ -93,7 +103,7 @@ int main() {
         // );
     }
 
-    graphicsContext.GetSwapchain().CmdRender(*shaderOpt.Value(), *commandBuffers, indexData.size());
+    graphicsContext.GetSwapchain().CmdRender(*shader, *commandBuffers, mesh->GetNumIndices());
     graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
 
     commandBuffers->EndAll();

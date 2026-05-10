@@ -91,6 +91,19 @@ add_library(Petal SHARED
         Assets/Shaders/Common.h
         Source/Utils/Scheduler.cpp
         Source/Utils/Scheduler.h
+        Source/Rendering/MeshBuilder.cpp
+        Source/Rendering/MeshBuilder.h
+        Source/Graphics/Other/IndexType.cpp
+        Source/Graphics/Other/IndexType.h
+        Source/Rendering/MeshResource.cpp
+        Source/Rendering/MeshResource.h
+        Source/Rendering/Renderer.cpp
+        Source/Rendering/Renderer.h
+        Source/Graphics/Memory/AllocationTracker.cpp
+        Source/Graphics/Memory/AllocationTracker.h
+        Source/Rendering/RendererSettings.cpp
+        Source/Rendering/RendererSettings.h
+        Source/Graphics/Memory/IBuffer.h
 )
 
 # Macros

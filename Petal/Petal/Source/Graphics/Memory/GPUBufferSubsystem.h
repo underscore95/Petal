@@ -26,6 +26,23 @@ namespace Petal {
             const BufferCreateInfo &createInfo = {}
         );
 
+        // Create a GPUBuffer which is backed by all or a subsection of a VulkanBuffer
+        // size - size of the GPUBuffer
+        // offset - where in the backingBuffer this buffer is located
+        AllocatedOptional<GPUBuffer> CreateBackedBuffer(
+            const std::string &name,
+            glm::u32 size,
+            std::shared_ptr<VulkanBuffer> backingBuffer
+        );
+
+        // Create a Vulkan buffer
+        // You must create one (or more) GPUBuffer which use the VulkanBuffer as a backing buffer
+        AllocatedOptional<VulkanBuffer> CreateVulkanBuffer(
+            const std::string &name,
+            glm::u32 size,
+            const BufferCreateInfo &createInfo = {}
+        );
+
         // Write to a buffer
         Result Write(
             const GPUBuffer &buffer,
@@ -38,8 +55,6 @@ namespace Petal {
         Result CreateTransferBuffer();
 
         Result CreateCommandBuffer();
-
-        AllocatedOptional<VulkanBuffer> CreateVulkanBuffer(const std::string &name, glm::u32 size, const BufferCreateInfo &createInfo);
 
     private:
         GraphicsContext &m_renderer;

@@ -27,11 +27,28 @@ namespace Petal {
         glm::u32 size,
         const BufferCreateInfo &createInfo
     ) {
-        AllocatedOptional<VulkanBuffer> buffer = CreateVulkanBuffer(name, size, createInfo);
-        PETAL_CHECK_OPTIONAL_SILENT(buffer);
+        AllocatedOptional<VulkanBuffer> bufferOpt = CreateVulkanBuffer(name, size, createInfo);
+        PETAL_CHECK_OPTIONAL_SILENT(bufferOpt);
 
-        auto gpuBuffer = std::make_unique<GPUBuffer>(name, buffer.Release(), size, 0);
+        Optional<Allocation> allocationOpt = bufferOpt->GetAllocations().Allocate(size);
+        PETAL_CHECK_OPTIONAL(allocationOpt, m_logger, "Failed to create independent buffer (this should never happen...)");
+
+        auto gpuBuffer = std::make_unique<GPUBuffer>(name, bufferOpt.Release(), *allocationOpt.Value());
         return gpuBuffer;
+    }
+
+    AllocatedOptional<GPUBuffer> GPUBufferSubsystem::CreateBackedBuffer(
+        const std::string &name,
+        glm::u32 size,
+        std::shared_ptr<VulkanBuffer> backingBuffer
+    ) {
+        PETAL_CHECK_COND(backingBuffer == nullptr, Result::PETAL_UNEXPECTED_NULLPTR, m_logger, "Backing buffer was nullptr");
+        PETAL_CHECK_COND(size == 0, Result::PETAL_BUFFER_CREATION_FAILED, m_logger, "GPUBuffer size was 0");
+
+        Optional<Allocation> allocationOpt = backingBuffer->GetAllocations().Allocate(size);
+        PETAL_CHECK_OPTIONAL(allocationOpt, m_logger, "Failed to create backed buffer of size {}", size);
+
+        return std::make_unique<GPUBuffer>(name, backingBuffer, *allocationOpt.Value());
     }
 
     Result GPUBufferSubsystem::Write(
@@ -40,20 +57,20 @@ namespace Petal {
         glm::u32 size,
         glm::u32 bufferOffset
     ) {
-Timer timer;
+        Timer timer;
 
         PETAL_CHECK_COND(data == nullptr, Result::VMA_BUFFER_WRITE_FAILED, m_logger, "Attempted to write to buffer {} but data was nullptr", buffer.GetName());
         PETAL_CHECK_COND(size == 0, Result::VMA_BUFFER_WRITE_FAILED, m_logger, "Attempted to write to buffer {} but size was 0", buffer.GetName());
         PETAL_CHECK_COND(
-            bufferOffset + size > buffer.GetSize(),
+            bufferOffset + size > buffer.GetAllocation().Size,
             Result::VMA_BUFFER_WRITE_FAILED,
             m_logger,
-            "Attempted to write to buffer {} with size {} but offset ({}) + size ({}) was {}", buffer.GetName(), buffer.GetSize(), bufferOffset, size, bufferOffset + size
+            "Attempted to write to buffer {} with size {} but offset ({}) + size ({}) was {}", buffer.GetName(), buffer.GetAllocation().Size, bufferOffset, size, bufferOffset + size
         );
 
 
         void *ptr = nullptr;
-        VkResult res = vmaMapMemory(m_renderer.GetAllocator()->GetAllocator(), m_transferBuffer->GetAllocation(), &ptr);
+        VkResult res = vmaMapMemory(m_renderer.GetAllocator()->GetAllocator(), m_transferBuffer->GetVMAAllocation(), &ptr);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VMA_BUFFER_WRITE_FAILED, m_logger, "Failed to map transfer buffer: {}", res);
 
         // Write in blocks
@@ -64,7 +81,7 @@ Timer timer;
             glm::u32 blockOffset = blockIndex * blockSize;
             glm::u32 bytesToWrite = glm::min(blockSize, bytesRemaining);
             // ReSharper disable once CppDFANullDereference
-            memcpy(ptr, static_cast<const char*>(data) + blockOffset, bytesToWrite);
+            memcpy(ptr, static_cast<const char *>(data) + blockOffset, bytesToWrite);
 
             Result result = m_commandBuffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
@@ -96,7 +113,7 @@ Timer timer;
 
         assert(bytesRemaining == 0);
 
-        vmaUnmapMemory(m_renderer.GetAllocator()->GetAllocator(), m_transferBuffer->GetAllocation());
+        vmaUnmapMemory(m_renderer.GetAllocator()->GetAllocator(), m_transferBuffer->GetVMAAllocation());
 
         m_logger->Verbose("Finished writing to buffer in {} ms", timer.MillisSinceStart());
         return Result::SUCCESS;

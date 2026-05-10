@@ -1,7 +1,9 @@
 #pragma once
 
+#include "AllocationTracker.h"
 #include "Common.h"
 #include "BufferType.h"
+#include "IBuffer.h"
 #include "Graphics/Internal/VulkanAllocator.h"
 #include "vulkan/vulkan.h"
 
@@ -16,7 +18,7 @@ namespace Petal {
 
     class GraphicsContext;
 
-    class VulkanBuffer {
+    class VulkanBuffer : public IBuffer {
     public:
         explicit VulkanBuffer(
             GraphicsContext &renderer,
@@ -32,9 +34,16 @@ namespace Petal {
     public:
         VkBuffer GetHandle() const;
 
-        VmaAllocation GetAllocation() const;
+        VmaAllocation GetVMAAllocation() const;
 
         glm::u32 GetSize() const;
+
+        // All sub allocations inside this buffer
+        AllocationTracker &GetAllocations();
+
+        VkDescriptorBufferInfo GetDescriptorInfo() const override;
+
+        const std::string & GetName() const override;
 
     private:
         Result CreateBuffer(std::shared_ptr<Logger> logger);
@@ -46,5 +55,6 @@ namespace Petal {
         BufferCreateInfo m_createInfo;
         VkBuffer m_buffer;
         VmaAllocation m_allocation;
+        AllocationTracker m_allocationTracker;
     };
 } // Petal

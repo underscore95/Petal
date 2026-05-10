@@ -7,6 +7,10 @@
 #include "Graphics/Resources/ResourceType.h"
 
 namespace Petal {
+    class IBuffer;
+}
+
+namespace Petal {
     class VulkanGraphicsPipeline;
     struct ShaderResource;
     class GPUBuffer;
@@ -38,7 +42,7 @@ namespace Petal {
 
     public:
         // Bind a resource
-        Result BindBuffer(const std::string &name, const GPUBuffer &buffer);
+        Result BindBuffer(const std::string &name, const IBuffer &buffer);
 
         // Must be called once for each command buffer before this shader is used
         void BindResources(VkCommandBuffer commandBuffer) const;

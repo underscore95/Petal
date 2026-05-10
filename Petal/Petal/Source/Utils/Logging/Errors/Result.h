@@ -37,7 +37,7 @@ namespace Petal {
         PETAL_SHADER_DESCRIPTOR_ERROR,
 
         // Petal Render Errors
-        PETAL_INVALID_GRAPHICS_SETTINGS,
+        PETAL_INVALID_SETTINGS,
         PETAL_INVALID_QUEUE_FAMILY,
         PETAL_BEGIN_RENDER_FAILED,
         PETAL_END_RENDER_FAILED,
@@ -47,12 +47,14 @@ namespace Petal {
         PETAL_WINDOW_RESIZED, // Window was resized, the swapchain needs to be recreated
         PETAL_UNSUPPORTED_FORMAT,
         PETAL_NO_SWAPCHAIN_SHADER,
+        PETAL_BUFFER_CREATION_FAILED,
 
         // Petal Other Errors
         PETAL_OPTIONAL_MOVED_OUT, // Contents of this optional were moved into another optional
         PETAL_OPTIONAL_RELEASED, // Contents of this optional were moved into another variable
         PETAL_OPTIONAL_EMPTY, // Created with no value, may not be an error
-        PETAL_UNEXPECTED_NULLPTR
+        PETAL_UNEXPECTED_NULLPTR,
+        PETAL_ALLOCATION_FAILED,
     };
 
     template<typename T>

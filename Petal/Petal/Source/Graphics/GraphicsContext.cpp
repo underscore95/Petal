@@ -15,6 +15,7 @@
 #include "Shaders/IntermediateShaderResource.h"
 #include "Shaders/ShaderSubsystem.h"
 #include "Internal/VulkanShader.h"
+#include "Rendering/Renderer.h"
 
 namespace Petal {
     GraphicsContext::GraphicsContext(
@@ -253,6 +254,15 @@ namespace Petal {
         }
 
         return semaphores;
+    }
+
+    AllocatedOptional<Renderer> GraphicsContext::CreateRenderer(
+        const RendererSettings &settings
+    ) {
+        Result resultOut;
+        auto renderer = std::make_unique<Renderer>(*this, m_logger, settings, resultOut);
+        PETAL_CHECK_COND_SILENT(resultOut != Result::SUCCESS, resultOut);
+        return renderer;
     }
 
     void GraphicsContext::CmdTransitionImage(
