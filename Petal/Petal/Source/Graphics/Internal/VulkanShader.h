@@ -45,7 +45,7 @@ namespace Petal {
         // Bind a resource
         Result BindBuffer(const std::string &name, const IBuffer &buffer);
 
-        Result BindTexture(const std::string &name, const VulkanTexture &texture);
+        Result BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture>> &textures);
 
         // Must be called once for each command buffer before this shader is used
         void BindResources(VkCommandBuffer commandBuffer) const;
@@ -66,6 +66,9 @@ namespace Petal {
         Result CreateDescriptors(
             const IntermediateShaderResource &shader
         );
+
+        // Maximum size of a dynamic array, since we need to allocate space for descriptors during initialization
+        glm::u32 GetMaxDescriptors(glm::u32 set, glm::u32 binding) const;
 
     private:
         GraphicsContext &m_renderer;

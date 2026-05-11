@@ -14,6 +14,8 @@ namespace Petal {
     struct SetInfo {
         glm::u32 NumDescriptors = 0;
         std::vector<Petal::ShaderResource> Resources;
+        // BindingDescriptorCounts[bindingIndex] = number of descriptors
+        std::vector<glm::u32> BindingDescriptorCounts;
     };
 
     VulkanShader::VulkanShader(
@@ -71,9 +73,14 @@ namespace Petal {
         std::unordered_map<glm::u32, SetInfo> descriptorSets; // set index -> SetInfo
         std::unordered_map<VkDescriptorType, glm::u32> descriptorsRequired;
         for (const ShaderResource &resource : shader.Resources) {
-            descriptorsRequired[ResourceTypes::GetData(resource.Type).VulkanDescriptorType]++;
-            descriptorSets[resource.BindingSet].NumDescriptors++;
+            glm::u32 descriptorCount = 1;
+            if (resource.IsArray) {
+                descriptorCount = resource.IsStaticArray() ? resource.StaticArraySize : GetMaxDescriptors(resource.BindingSet, resource.BindingIndex);
+            }
+            descriptorsRequired[ResourceTypes::GetData(resource.Type).VulkanDescriptorType] += descriptorCount;
+            descriptorSets[resource.BindingSet].NumDescriptors += descriptorCount;
             descriptorSets[resource.BindingSet].Resources.push_back(resource);
+            descriptorSets[resource.BindingSet].BindingDescriptorCounts.push_back(descriptorCount);
         }
 
         // Validation
@@ -126,10 +133,11 @@ namespace Petal {
             std::vector<VkDescriptorSetLayoutBinding> bindings;
             for (glm::u32 bindingIndex = 0; bindingIndex < descriptorSets[setIndex].Resources.size(); bindingIndex++) {
                 const ShaderResource &resource = descriptorSets[setIndex].Resources[bindingIndex];
+
                 bindings.push_back(VkDescriptorSetLayoutBinding{
                     .binding = bindingIndex,
                     .descriptorType = ResourceTypes::GetData(resource.Type).VulkanDescriptorType,
-                    .descriptorCount = 1, // todo: support descriptor indexing
+                    .descriptorCount = descriptorSets[setIndex].BindingDescriptorCounts[bindingIndex],
                     .stageFlags = ShaderTypes::CombineVulkanFlags(resource.Stages),
                     .pImmutableSamplers = nullptr
                 });
@@ -175,6 +183,10 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
+    glm::u32 VulkanShader::GetMaxDescriptors(glm::u32 set, glm::u32 binding) const {
+        return 128; // todo configurable
+    }
+
     Result VulkanShader::BindBuffer(const std::string &name, const IBuffer &buffer) {
         auto it = m_resources.find(name);
         PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find buffer {}. Note resource names are case sensitive.", name);
@@ -217,7 +229,7 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
-    Result VulkanShader::BindTexture(const std::string &name, const VulkanTexture &texture) {
+    Result VulkanShader::BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture> > &textures) {
         auto it = m_resources.find(name);
         PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find texture {}. Note resource names are case sensitive.", name);
 
@@ -229,7 +241,10 @@ namespace Petal {
             "Failed to find texture {} (warning: found a {} with the same name)", name, shaderResource.Type
         );
 
-        VkDescriptorImageInfo imageInfo = texture.GetDescriptorInfo();
+        std::vector<VkDescriptorImageInfo> imageInfos(textures.size());
+        for (glm::u32 i = 0; i < textures.size(); i++) {
+            imageInfos[i] = textures[i]->GetDescriptorInfo();
+        }
 
         VkWriteDescriptorSet write = {
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -237,9 +252,9 @@ namespace Petal {
             .dstSet = m_descriptorSets[shaderResource.BindingSet],
             .dstBinding = shaderResource.BindingIndex,
             .dstArrayElement = 0,
-            .descriptorCount = 1,
+            .descriptorCount = static_cast<glm::u32>(imageInfos.size()),
             .descriptorType = ResourceTypes::GetData(shaderResource.Type).VulkanDescriptorType,
-            .pImageInfo = &imageInfo,
+            .pImageInfo = imageInfos.data(),
             .pBufferInfo = nullptr,
             .pTexelBufferView = nullptr
         };
@@ -254,7 +269,7 @@ namespace Petal {
             nullptr
         );
 
-        m_logger->Verbose("Bound texture {} to set {} index {} (resource name: {})", texture.GetName(), shaderResource.BindingSet, shaderResource.BindingIndex,
+        m_logger->Verbose("Bound {} textures to set {} index {} (resource name: {})", textures.size(), shaderResource.BindingSet, shaderResource.BindingIndex,
                           shaderResource.Name);
 
         return Result::SUCCESS;

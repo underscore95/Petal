@@ -109,7 +109,7 @@ namespace Petal {
             .image = m_handle,
             .viewType = m_textureCreateInfo.ViewType,
             .format = m_textureCreateInfo.Format,
-            .components = {.r = VK_COMPONENT_SWIZZLE_A, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A},
+            .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY, .g = VK_COMPONENT_SWIZZLE_IDENTITY, .b = VK_COMPONENT_SWIZZLE_IDENTITY, .a = VK_COMPONENT_SWIZZLE_IDENTITY},
             .subresourceRange = {
                 .aspectMask = m_aspectMask,
                 .baseMipLevel = 0,
@@ -131,9 +131,9 @@ namespace Petal {
             .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .magFilter = VK_FILTER_NEAREST, // todo configurable filter
-            .minFilter = VK_FILTER_NEAREST,
-            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+            .magFilter = VK_FILTER_LINEAR, // todo configurable filter
+            .minFilter = VK_FILTER_LINEAR,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
             .addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, // todo configurable address mode
             .addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
             .addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,

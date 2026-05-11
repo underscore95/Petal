@@ -92,12 +92,17 @@ int main() {
     std::unique_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset).Release();
 
     // textures
-    std::unique_ptr<VulkanTexture> texture = graphicsContext.GetMemorySubsystem().LoadTextureFromDisk(
+    std::shared_ptr<VulkanTexture> iconTexture = graphicsContext.GetMemorySubsystem().LoadTextureFromDisk(
         "C:/Coding/Projects/Petal/Petal/Petal/Assets/Textures/Icon.png",
         ImageLoaderSettings{},
         TextureCreateInfo{}
     ).Release();
-    shader->BindTexture("texture", *texture);
+    std::shared_ptr<VulkanTexture> testTexture = graphicsContext.GetMemorySubsystem().LoadTextureFromDisk(
+        "C:/Coding/Projects/Petal/Petal/Petal/Assets/Textures/Test.png",
+        ImageLoaderSettings{},
+        TextureCreateInfo{}
+    ).Release();
+    shader->BindTextures("textures", {iconTexture, testTexture});
 
     // Renderer
     RendererSettings rendererSettings = {
@@ -114,14 +119,7 @@ int main() {
 
     graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
 
-    for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers->Size(); swapchainIndex++) {
-        shader->BindResources(*commandBuffers);
-        // renderer.GetSwapchain().CmdClear(
-        //     commandBuffers->GetHandle(swapchainIndex),
-        //     Color{0.0f, 0.0f, (frameNumber % 10000) / 10000.0f, 1.0f},
-        //     swapchainIndex
-        // );
-    }
+    shader->BindResources(*commandBuffers);
 
     graphicsContext.GetSwapchain().CmdRender(*shader, *commandBuffers, mesh->GetNumIndices());
     graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);

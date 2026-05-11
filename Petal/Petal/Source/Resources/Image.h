@@ -33,6 +33,5 @@ namespace Petal {
         std::shared_ptr<Logger> m_logger;
         void *m_data;
         glm::ivec2 m_size;
-        glm::i32 m_numChannels;
     };
 } // Petal

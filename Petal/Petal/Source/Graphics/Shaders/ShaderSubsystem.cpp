@@ -228,6 +228,16 @@ namespace Petal {
         TypeReflection::Kind variableType = variableLayout->getTypeLayout()->getKind();
         SlangResourceShape shape = variableLayout->getType()->getResourceShape();
 
+        // If array, extract the wrapped type
+        const bool isArray = variableType == TypeReflection::Kind::Array;
+        glm::u32 staticArraySize = 0;
+        if (isArray) {
+            TypeLayoutReflection *element = variableLayout->getTypeLayout()->getElementTypeLayout();
+            variableType = element->getKind();
+            shape = element->getType()->getResourceShape();
+            staticArraySize = variableLayout->getTypeLayout()->getElementCount();
+        }
+
         // Recursively iterate fields in structs
         if (variableType == TypeReflection::Kind::Struct) {
             if (variableLayout->getTypeLayout()->getFieldCount() == 0) {
@@ -240,7 +250,9 @@ namespace Petal {
                 PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
             }
             return Result::SUCCESS;
-        } else if (variableType == TypeReflection::Kind::Resource) {
+        }
+
+        if (variableType == TypeReflection::Kind::Resource) {
             // Don't know the type...
             if (shape == SlangResourceShape::SLANG_STRUCTURED_BUFFER) {
                 resourceType = ResourceType::STORAGE_BUFFER;
@@ -262,7 +274,9 @@ namespace Petal {
             .Type = *resourceType.Value(),
             .BindingIndex = variableLayout->getBindingIndex(),
             .BindingSet = variableLayout->getBindingSpace(),
-            .Stages = {}
+            .Stages = {},
+            .IsArray = isArray,
+            .StaticArraySize = staticArraySize
         };
 
         // Check what stages use the parameter

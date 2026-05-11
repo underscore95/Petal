@@ -27,7 +27,7 @@ namespace Petal {
     }
 
     glm::u32 Image::GetSize() const {
-        return m_size.x * m_size.y * m_numChannels;
+        return m_size.x * m_size.y * STBI_rgb_alpha;
     }
 
     Result Image::LoadImage(
@@ -38,10 +38,11 @@ namespace Petal {
         PETAL_CHECK_COND(!std::filesystem::exists(path), Result::PETAL_FILE_DOES_NOT_EXIST, m_logger, "Image file {} does not exist", path);
 
         stbi_set_flip_vertically_on_load(settings.FlipVertically);
-       std::string file = path.string();
+        std::string file = path.string();
 
         glm::i32 width, height;
-        m_data = stbi_load(file.c_str(), &width, &height, &m_numChannels, STBI_rgb_alpha);
+        glm::i32 numChannels = 0; // number of channels originally in the image, but we pad to 4 since GPUs often do that
+        m_data = stbi_load(file.c_str(), &width, &height, &numChannels, STBI_rgb_alpha);
         m_size = {width, height};
 
         PETAL_CHECK_COND(!m_data, Result::PETAL_IMAGE_LOADING_FAILED, m_logger, "Failed to load {}", path);
