@@ -13,7 +13,7 @@ namespace Petal {
     }
 
     VulkanSemaphore::~VulkanSemaphore() {
-        if (m_handle) vkDestroySemaphore(m_renderer.GetDevice()->GetDevice(), m_handle, nullptr);
+        if (m_handle) vkDestroySemaphore(m_renderer.GetDevice()->GetHandle(), m_handle, nullptr);
     }
 
     VkSemaphore VulkanSemaphore::GetHandle() const {
@@ -27,7 +27,7 @@ namespace Petal {
             .flags = 0
         };
 
-        VkResult res = vkCreateSemaphore(m_renderer.GetDevice()->GetDevice(), &info, nullptr, &m_handle);
+        VkResult res = vkCreateSemaphore(m_renderer.GetDevice()->GetHandle(), &info, nullptr, &m_handle);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_SEMAPHORE_CREATION_FAILED, logger, "{}", res);
         return Result::SUCCESS;
     }

@@ -14,7 +14,7 @@ namespace Petal {
     }
 
     VulkanFence::~VulkanFence() {
-        if (m_handle != VK_NULL_HANDLE) vkDestroyFence(m_renderer.GetDevice()->GetDevice(), m_handle, nullptr);
+        if (m_handle != VK_NULL_HANDLE) vkDestroyFence(m_renderer.GetDevice()->GetHandle(), m_handle, nullptr);
     }
 
     VkFence VulkanFence::GetHandle() const {
@@ -28,7 +28,7 @@ namespace Petal {
             .flags = flags
         };
 
-        VkResult res = vkCreateFence(m_renderer.GetDevice()->GetDevice(), &info, nullptr, &m_handle);
+        VkResult res = vkCreateFence(m_renderer.GetDevice()->GetHandle(), &info, nullptr, &m_handle);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_FENCE_CREATION_FAILED, logger, "{}", res);
 
         return Result::SUCCESS;

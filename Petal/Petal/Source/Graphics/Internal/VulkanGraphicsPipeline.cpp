@@ -27,13 +27,13 @@ namespace Petal {
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
         vkDestroyPipeline(
-            m_renderer.GetDevice()->GetDevice(),
+            m_renderer.GetDevice()->GetHandle(),
             m_pipeline,
             nullptr
         );
 
         vkDestroyPipelineLayout(
-            m_renderer.GetDevice()->GetDevice(),
+            m_renderer.GetDevice()->GetHandle(),
             m_pipelineLayout,
             nullptr
         );
@@ -63,7 +63,7 @@ namespace Petal {
             .pPushConstantRanges = &pushConstantRange
         };
 
-        VkResult res = vkCreatePipelineLayout(m_renderer.GetDevice()->GetDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
+        VkResult res = vkCreatePipelineLayout(m_renderer.GetDevice()->GetHandle(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_PIPELINE_CREATION_FAILED, m_logger, "Failed to create pipeline layout: {}", res);
         return Result::SUCCESS;
     }
@@ -258,7 +258,7 @@ namespace Petal {
         };
 
         VkResult result = vkCreateGraphicsPipelines(
-            m_renderer.GetDevice()->GetDevice(),
+            m_renderer.GetDevice()->GetHandle(),
             nullptr, // todo
             1,
             &pipelineInfo,

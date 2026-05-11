@@ -1,13 +1,7 @@
 #include "GraphicsSettings.h"
 
-#define CHECK_SETTINGS(cond, fmt, ...) \
-    PETAL_CHECK_COND( \
-        cond, \
-        Result::PETAL_INVALID_SETTINGS, \
-        logger, \
-        "Invalid GraphicsSettings! {}", \
-        std::format(fmt, ##__VA_ARGS__)                  \
-    )
+#define SETTINGS_NAME "GraphicsSettings"
+#include "CheckSettingsMacro.h"
 
 Petal::Result Petal::GraphicsSettings::IsValid(std::shared_ptr<Logger> logger) const {
     CHECK_SETTINGS(NumSwapchainImages < 2, "Not enough swapchain images: {}", NumSwapchainImages);

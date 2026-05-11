@@ -16,7 +16,7 @@ namespace Petal {
     }
 
     GPUBuffer::~GPUBuffer() {
-        // todo during engine shutdown, this causes a warning to be output since the scheduled function never runs 
+        // todo during engine shutdown, this causes a warning to be output since the scheduled function never runs
         std::weak_ptr backingBufferWeak = m_backingBuffer;
         Allocation allocation = m_allocation;
 

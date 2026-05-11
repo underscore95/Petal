@@ -14,7 +14,12 @@
 #include "Graphics/GraphicsSystem.h"
 #include "Graphics/Shaders/ShaderSubsystem.h"
 #include "Graphics/Internal/VulkanShader.h"
-#include "Graphics/Memory/GPUBuffer.h"
-#include "Graphics/Memory/GPUBufferSubsystem.h"
+#include "Graphics/Memory/Buffers/GPUBuffer.h"
+#include "Graphics/Memory/GPUMemorySubsystem.h"
+#include "Graphics/Memory/Textures/VulkanTexture.h"
+#include "Graphics/Memory/Textures/TextureCreateInfo.h"
 
+#include "Rendering/Renderer.h"
 #include "Rendering/MeshBuilder.h"
+
+#include "Resources/ImageLoaderSettings.h"

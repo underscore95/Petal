@@ -28,7 +28,7 @@ namespace Petal {
         ~RenderingDevice();
 
     public:
-        VkDevice GetDevice() const;
+        VkDevice GetHandle() const;
 
         VkPhysicalDevice GetPhysicalDevice() const;
 

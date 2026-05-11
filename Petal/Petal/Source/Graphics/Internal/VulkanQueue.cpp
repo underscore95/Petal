@@ -11,7 +11,7 @@ namespace Petal {
     ) : m_renderer(renderer),
         m_logger(logger),
         m_queueFamily(queueFamily) {
-        vkGetDeviceQueue(m_renderer.GetDevice()->GetDevice(), queueFamily, 0, &m_handle);
+        vkGetDeviceQueue(m_renderer.GetDevice()->GetHandle(), queueFamily, 0, &m_handle);
 
         logger->Verbose("VulkanQueue initialized");
     }

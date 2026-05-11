@@ -17,7 +17,7 @@ namespace Petal {
         ~VulkanAllocator();
 
     public:
-        VmaAllocator GetAllocator() const;
+        VmaAllocator GetHandle() const;
 
     private:
         Result CreateAllocator(const Engine &engine, const GraphicsContext &renderer);

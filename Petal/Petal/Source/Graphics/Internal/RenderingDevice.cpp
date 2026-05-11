@@ -39,7 +39,7 @@ namespace Petal {
         }
     }
 
-    VkDevice RenderingDevice::GetDevice() const {
+    VkDevice RenderingDevice::GetHandle() const {
         return m_device;
     }
 

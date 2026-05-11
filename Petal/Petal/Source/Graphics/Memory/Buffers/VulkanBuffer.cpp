@@ -19,7 +19,7 @@ namespace Petal {
     }
 
     VulkanBuffer::~VulkanBuffer() {
-        vmaDestroyBuffer(m_renderer.GetAllocator()->GetAllocator(), m_buffer, m_allocation);
+        vmaDestroyBuffer(m_renderer.GetAllocator()->GetHandle(), m_buffer, m_allocation);
     }
 
     VkBuffer VulkanBuffer::GetHandle() const {
@@ -75,7 +75,7 @@ namespace Petal {
         };
 
         VkResult result = vmaCreateBuffer(
-            m_renderer.GetAllocator()->GetAllocator(),
+            m_renderer.GetAllocator()->GetHandle(),
             &info,
             &allocInfo,
             &m_buffer,

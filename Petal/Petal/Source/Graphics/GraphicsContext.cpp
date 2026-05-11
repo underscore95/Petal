@@ -11,7 +11,7 @@
 #include "Internal/VulkanSwapchain.h"
 #include "Internal/Sync/VulkanFence.h"
 #include "Internal/Sync/VulkanSemaphore.h"
-#include "Memory/GPUBufferSubsystem.h"
+#include "Memory/GPUMemorySubsystem.h"
 #include "Shaders/IntermediateShaderResource.h"
 #include "Shaders/ShaderSubsystem.h"
 #include "Internal/VulkanShader.h"
@@ -63,7 +63,7 @@ namespace Petal {
         result = CreateSwapchain();
         if (result != Result::SUCCESS) return;
 
-        m_bufferSubsystem = std::make_unique<GPUBufferSubsystem>(*this, m_logger, result);
+        m_memorySubsystem = std::make_unique<GPUMemorySubsystem>(*this, m_logger, result);
         if (result != Result::SUCCESS) return;
 
         result = Result::SUCCESS;
@@ -71,7 +71,7 @@ namespace Petal {
     }
 
     GraphicsContext::~GraphicsContext() {
-        m_bufferSubsystem.reset();
+        m_memorySubsystem.reset();
 
         Result result = DeviceWaitIdle();
         if (result != Result::SUCCESS) {
@@ -81,7 +81,7 @@ namespace Petal {
         m_swapchain.reset();
 
         for (const auto &[_, commandPool] : m_commandPools) {
-            vkDestroyCommandPool(m_device->GetDevice(), commandPool, nullptr);
+            vkDestroyCommandPool(m_device->GetHandle(), commandPool, nullptr);
         }
         m_commandPools.clear();
 
@@ -124,8 +124,8 @@ namespace Petal {
         return m_graphicsSettings;
     }
 
-    GPUBufferSubsystem &GraphicsContext::GetBufferSubsystem() const {
-        return *m_bufferSubsystem;
+    GPUMemorySubsystem &GraphicsContext::GetMemorySubsystem() const {
+        return *m_memorySubsystem;
     }
 
     AllocatedOptional<VulkanShader> GraphicsContext::CompileShader(const ShaderAsset &asset) {
@@ -159,7 +159,7 @@ namespace Petal {
         VkCommandPool commandPool = it->second;
 
         Result result;
-        auto commandBuffer = AllocatedOptional<CommandBuffer>::Emplace(m_logger, m_device->GetDevice(), commandPool, level, result);
+        auto commandBuffer = AllocatedOptional<CommandBuffer>::Emplace(m_logger, m_device->GetHandle(), commandPool, level, result);
         PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
         return commandBuffer;
@@ -278,7 +278,7 @@ namespace Petal {
             .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
             .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-            .dstAccessMask = newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR ? 0 : VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+            .dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
             .oldLayout = oldLayout,
             .newLayout = newLayout,
             .srcQueueFamilyIndex = GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
@@ -286,6 +286,7 @@ namespace Petal {
             .image = image,
             .subresourceRange = DEFAULT_IMAGE_SUBRESOURCE_RANGE
         };
+        if (newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) imageBarrier.dstAccessMask = 0;
 
         VkDependencyInfo depInfo{
             .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -303,7 +304,7 @@ namespace Petal {
     }
 
     Result GraphicsContext::DeviceWaitIdle() {
-        VkResult result = vkDeviceWaitIdle(m_device->GetDevice());
+        VkResult result = vkDeviceWaitIdle(m_device->GetHandle());
         PETAL_CHECK_COND(result != VK_SUCCESS, Result::VULKAN_DEVICE_WAIT_IDLE_FAILED, m_logger, "{}", result);
         return Result::SUCCESS;
     }
@@ -328,7 +329,7 @@ namespace Petal {
             };
 
             VkCommandPool commandPool = VK_NULL_HANDLE;
-            VkResult res = vkCreateCommandPool(m_device->GetDevice(), &cmdPoolCreateInfo, nullptr, &commandPool);
+            VkResult res = vkCreateCommandPool(m_device->GetHandle(), &cmdPoolCreateInfo, nullptr, &commandPool);
             PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_COMMAND_POOL_CREATION_FAILED, m_logger, "Failed to create command pool: {}", res);
 
             m_commandPools[queue.GetQueueFamilyIndex()] = commandPool;

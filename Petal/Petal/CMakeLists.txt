@@ -76,14 +76,14 @@ add_library(Petal SHARED
         Source/Graphics/Resources/ResourceType.h
         Source/Graphics/Resources/ShaderResource.h
         Source/Graphics/Resources/ResourceType.cpp
-        Source/Graphics/Memory/GPUBuffer.cpp
-        Source/Graphics/Memory/GPUBuffer.h
-        Source/Graphics/Memory/GPUBufferSubsystem.cpp
-        Source/Graphics/Memory/GPUBufferSubsystem.h
-        Source/Graphics/Memory/VulkanBuffer.cpp
-        Source/Graphics/Memory/VulkanBuffer.h
-        Source/Graphics/Memory/BufferType.cpp
-        Source/Graphics/Memory/BufferType.h
+        Source/Graphics/Memory/Buffers/GPUBuffer.cpp
+        Source/Graphics/Memory/Buffers/GPUBuffer.h
+        Source/Graphics/Memory/GPUMemorySubsystem.cpp
+        Source/Graphics/Memory/GPUMemorySubsystem.h
+        Source/Graphics/Memory/Buffers/VulkanBuffer.cpp
+        Source/Graphics/Memory/Buffers/VulkanBuffer.h
+        Source/Graphics/Memory/Buffers/BufferType.cpp
+        Source/Graphics/Memory/Buffers/BufferType.h
         Source/Utils/Hash.h
         Source/Graphics/Resources/ShaderResource.cpp
         Source/Graphics/Internal/VulkanGraphicsPipeline.cpp
@@ -103,7 +103,16 @@ add_library(Petal SHARED
         Source/Graphics/Memory/AllocationTracker.h
         Source/Rendering/RendererSettings.cpp
         Source/Rendering/RendererSettings.h
-        Source/Graphics/Memory/IBuffer.h
+        Source/Graphics/Memory/Buffers/IBuffer.h
+        Source/Resources/ImageLoaderSettings.cpp
+        Source/Resources/ImageLoaderSettings.h
+        Source/Utils/CheckSettingsMacro.h
+        Source/Resources/Image.cpp
+        Source/Resources/Image.h
+        Source/Graphics/Memory/Textures/VulkanTexture.cpp
+        Source/Graphics/Memory/Textures/VulkanTexture.h
+        Source/Graphics/Memory/Textures/TextureCreateInfo.cpp
+        Source/Graphics/Memory/Textures/TextureCreateInfo.h
 )
 
 # Macros
@@ -158,3 +167,7 @@ target_link_libraries(Petal PRIVATE slang::slang)
 # magic-enum
 find_package(magic_enum CONFIG REQUIRED)
 target_link_libraries(Petal PRIVATE magic_enum::magic_enum)
+
+# stb-image
+target_link_libraries(Petal PRIVATE stb)
+

@@ -12,8 +12,8 @@ namespace Petal {
         const bool& __conditionStored = condition; \
         if (__conditionStored) [[unlikely]] { \
             std::string errorMessageFormatted = std::format(message __VA_OPT__(,) __VA_ARGS__);\
-            loggerRef->Error("[Error Code: {}] {}", (int)errorCode, errorMessageFormatted); \
-            assert(errorCode != Result::SUCCESS); \
+            loggerRef->Error("[Error Code: {}] {}", errorCode, errorMessageFormatted); \
+            assert(errorCode != Result::SUCCESS && "Why is the error code SUCCESS?"); \
             return errorCode; \
         } \
     } while (0)
@@ -24,7 +24,7 @@ namespace Petal {
         static_assert(typeid(errorCode) == typeid(Result)); \
         const bool& __conditionStored = condition; \
         if (__conditionStored) [[unlikely]] { \
-            assert(errorCode != Result::SUCCESS); \
+            assert(errorCode != Result::SUCCESS && "Why is the error code SUCCESS?"); \
             return errorCode; \
         } \
 } while (0)

@@ -75,7 +75,7 @@ namespace Petal {
         std::vector<EntryPointInfo> entryPoints;
         entryPoints.reserve(asset.Shaders.size());
 
-        glm::u32 entryPointIndex=0;
+        glm::u32 entryPointIndex = 0;
         for (const std::pair<const ShaderType, ShaderInfo> &shader : asset.Shaders) {
             ShaderType type = shader.first;
             const std::string &entryPointFunctionName = shader.second.EntryPoint;
@@ -244,6 +244,8 @@ namespace Petal {
             // Don't know the type...
             if (shape == SlangResourceShape::SLANG_STRUCTURED_BUFFER) {
                 resourceType = ResourceType::STORAGE_BUFFER;
+            } else if (shape == (SLANG_TEXTURE_2D | SLANG_TEXTURE_COMBINED_FLAG)) {
+                resourceType = ResourceType::COMBINED_SAMPLER;
             }
         } else if (variableType == TypeReflection::Kind::ConstantBuffer) {
             // todo support constant buffer / ubo

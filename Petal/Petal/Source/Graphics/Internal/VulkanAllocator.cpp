@@ -36,7 +36,7 @@ namespace Petal {
         m_logger->Verbose("Destroyed VulkanAllocator");
     }
 
-    VmaAllocator VulkanAllocator::GetAllocator() const {
+    VmaAllocator VulkanAllocator::GetHandle() const {
         return m_allocator;
     }
 
@@ -46,7 +46,7 @@ namespace Petal {
     ) {
         VmaAllocatorCreateInfo createInfo = {};
         createInfo.vulkanApiVersion = renderer.GetRenderingSystem().GetAPIVersion().ToVulkanVersion();
-        createInfo.device = renderer.GetDevice()->GetDevice();
+        createInfo.device = renderer.GetDevice()->GetHandle();
         createInfo.physicalDevice = renderer.GetDevice()->GetPhysicalDevice();
         createInfo.instance = renderer.GetRenderingSystem().GetInstance();
 

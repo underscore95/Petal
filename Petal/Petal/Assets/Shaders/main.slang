@@ -8,6 +8,7 @@
 //StructuredBuffer<Camera> camera;
 StructuredBuffer<VertexData> vertices;
 StructuredBuffer<uint> indices;
+Sampler2D texture;
 
 struct VOut
 {
@@ -33,5 +34,8 @@ VOut vertexMain(uint vertexID : SV_VertexID)
 [shader("fragment")]
 float4 fragmentMain(VOut input) : SV_Target
 {
-    return float4(1,1,1,1);
+    float4 col = texture.Sample(input.uv);
+    if (col.a < 0.9) discard;
+    col.a = 1;
+    return col;
 }

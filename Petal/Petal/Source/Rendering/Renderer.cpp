@@ -2,7 +2,7 @@
 
 #include "MeshBuilder.h"
 #include "Graphics/Internal/VulkanShader.h"
-#include "Graphics/Memory/GPUBufferSubsystem.h"
+#include "Graphics/Memory/GPUMemorySubsystem.h"
 
 namespace Petal {
     Renderer::Renderer(
@@ -26,21 +26,21 @@ namespace Petal {
         std::string name = std::format("Mesh {}", m_numUploadedMeshes);
         m_numUploadedMeshes++;
 
-        AllocatedOptional<GPUBuffer> vertexBuffer = m_context.GetBufferSubsystem().CreateBackedBuffer(
+        AllocatedOptional<GPUBuffer> vertexBuffer = m_context.GetMemorySubsystem().CreateBackedBuffer(
             name + " Vertex Buffer",
             mesh.GetVertexBufferSize(),
             m_vertexBuffer
         );
         PETAL_CHECK_OPTIONAL_SILENT(vertexBuffer);
-        m_context.GetBufferSubsystem().Write(*vertexBuffer.Value(), mesh.GetVertices(), mesh.GetVertexBufferSize());
+        m_context.GetMemorySubsystem().Write(*vertexBuffer.Value(), mesh.GetVertices(), mesh.GetVertexBufferSize());
 
-        AllocatedOptional<GPUBuffer> indexBuffer = m_context.GetBufferSubsystem().CreateBackedBuffer(
+        AllocatedOptional<GPUBuffer> indexBuffer = m_context.GetMemorySubsystem().CreateBackedBuffer(
             name + " Index Buffer",
             mesh.GetIndexBufferSize(),
             m_indexBuffer
         );
         PETAL_CHECK_OPTIONAL_SILENT(indexBuffer);
-        m_context.GetBufferSubsystem().Write(*indexBuffer.Value(), mesh.GetIndices(), mesh.GetIndexBufferSize());
+        m_context.GetMemorySubsystem().Write(*indexBuffer.Value(), mesh.GetIndices(), mesh.GetIndexBufferSize());
 
         auto meshResource = std::make_unique<MeshResource>(m_context, m_logger, vertexBuffer.Release(), indexBuffer.Release(), mesh.GetNumIndices());
         return meshResource;
@@ -56,7 +56,7 @@ namespace Petal {
 
     Result Renderer::CreateBuffers() {
         constexpr glm::u32 VERTEX_BUFFER_SIZE = 1024 * 1024 * 512;
-        AllocatedOptional<VulkanBuffer> bufferOpt = m_context.GetBufferSubsystem().CreateVulkanBuffer(
+        AllocatedOptional<VulkanBuffer> bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Vertex Buffer",
             VERTEX_BUFFER_SIZE
         );
@@ -64,7 +64,7 @@ namespace Petal {
         m_vertexBuffer = bufferOpt.Release();
 
         constexpr glm::u32 INDEX_BUFFER_SIZE = 1024 * 1024 * 64;
-        bufferOpt = m_context.GetBufferSubsystem().CreateVulkanBuffer(
+        bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Index Buffer",
             INDEX_BUFFER_SIZE
         );

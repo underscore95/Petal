@@ -35,13 +35,13 @@ namespace Petal {
 
     VulkanSwapchain::~VulkanSwapchain() {
         for (auto &imageView : m_imageViews) {
-            vkDestroyImageView(m_context.GetDevice()->GetDevice(), imageView, nullptr);
+            vkDestroyImageView(m_context.GetDevice()->GetHandle(), imageView, nullptr);
         }
         m_imageViews.clear();
 
         // Destroying the swapchain destroys the images
         vkDestroySwapchainKHR(
-            m_context.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetHandle(),
             m_handle,
             nullptr
         );
@@ -60,15 +60,15 @@ namespace Petal {
     Result VulkanSwapchain::BeginRendering() {
         // Wait for previous frame to complete
         VkFence frameCompleteFence = m_frameCompleteFences[m_swapchainIndex]->GetHandle();
-        VkResult res = vkWaitForFences(m_context.GetDevice()->GetDevice(), 1, &frameCompleteFence, true, PETAL_U64_MAX);
+        VkResult res = vkWaitForFences(m_context.GetDevice()->GetHandle(), 1, &frameCompleteFence, true, PETAL_U64_MAX);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::PETAL_BEGIN_RENDER_FAILED, m_logger, "Failed to wait for fence: {}", res);
 
-        res = vkResetFences(m_context.GetDevice()->GetDevice(), 1, &frameCompleteFence);
+        res = vkResetFences(m_context.GetDevice()->GetHandle(), 1, &frameCompleteFence);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::PETAL_BEGIN_RENDER_FAILED, m_logger, "Failed to reset fence: {}", res);
 
         // Request new frame
         res = vkAcquireNextImageKHR(
-            m_context.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetHandle(),
             m_handle,
             PETAL_U64_MAX,
             m_swapchainSemaphores[m_swapchainIndex]->GetHandle(),
@@ -217,7 +217,7 @@ namespace Petal {
         );
 
         result = vkWaitForFences(
-            m_context.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetHandle(),
             1,
             &fence,
             true,
@@ -231,7 +231,7 @@ namespace Petal {
         );
 
         result = vkResetFences(
-            m_context.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetHandle(),
             1,
             &fence
         );
@@ -396,7 +396,7 @@ namespace Petal {
         };
 
         VkResult res = vkCreateSwapchainKHR(
-            m_context.GetDevice()->GetDevice(),
+            m_context.GetDevice()->GetHandle(),
             &swapChainCreateInfo,
             nullptr,
             &m_handle
@@ -407,7 +407,7 @@ namespace Petal {
     }
 
     Result VulkanSwapchain::CreateSwapchainImages() {
-        const auto &device = m_context.GetDevice()->GetDevice();
+        const auto &device = m_context.GetDevice()->GetHandle();
         // Check the number of swapchain images, it may be more than what we requested
         glm::u32 requestedNumImages = m_numSwapchainImages;
         VkResult res = vkGetSwapchainImagesKHR(

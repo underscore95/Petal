@@ -21,7 +21,7 @@ namespace Petal {
     CommandBufferVector::~CommandBufferVector() {
         if (!m_handles.empty()) {
             vkFreeCommandBuffers(
-                m_context.GetDevice()->GetDevice(),
+                m_context.GetDevice()->GetHandle(),
                 m_commandPool,
                 static_cast<glm::u32>(m_handles.size()),
                 m_handles.data()
@@ -99,7 +99,7 @@ namespace Petal {
             .commandBufferCount = count
         };
 
-        VkResult res = vkAllocateCommandBuffers(m_context.GetDevice()->GetDevice(), &allocInfo, m_handles.data());
+        VkResult res = vkAllocateCommandBuffers(m_context.GetDevice()->GetHandle(), &allocInfo, m_handles.data());
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_COMMAND_BUFFER_CREATION_FAILED, m_logger, "Failed to create command buffers because: {}", res);
         return Result::SUCCESS;
     }

@@ -23,6 +23,8 @@ namespace Petal {
 
         // VMA Errors
         VMA_CREATION_FAILED,
+        VMA_TEXTURE_CREATION_FAILED,
+        VMA_TEXTURE_WRITE_FAILED,
         VMA_BUFFER_CREATION_FAILED,
         VMA_BUFFER_WRITE_FAILED,
 
@@ -48,6 +50,11 @@ namespace Petal {
         PETAL_UNSUPPORTED_FORMAT,
         PETAL_NO_SWAPCHAIN_SHADER,
         PETAL_BUFFER_CREATION_FAILED,
+
+        // Petal Resource Errors
+        PETAL_FILE_DOES_NOT_EXIST,
+        PETAL_DIRECTORY_DOES_NOT_EXIST,
+        PETAL_IMAGE_LOADING_FAILED,
 
         // Petal Other Errors
         PETAL_OPTIONAL_MOVED_OUT, // Contents of this optional were moved into another optional

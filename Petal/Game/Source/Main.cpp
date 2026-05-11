@@ -1,14 +1,12 @@
 #include "Petal.h"
 #include "../../Petal/Assets/Shaders/Common.h"
-#include "Rendering/Renderer.h"
-
 using namespace Petal;
 using namespace PetalShader;
 
 Petal::MeshBuilder CreateMesh() {
     MeshBuilder mesh({sizeof(VertexData)}, IndexType::INDICES_32_BIT);
 
-    VertexData vertices[3] = {
+    VertexData vertices[4] = {
         {
             .position = {-0.5f, -0.5f, 0.0f},
             .padding = 0,
@@ -19,11 +17,20 @@ Petal::MeshBuilder CreateMesh() {
             .padding4 = 0
         },
         {
-            .position = {0.0f, 0.5f, 0.0f},
+            .position = {-0.5f, 0.5f, 0.0f},
             .padding = 0,
             .normal = {0.0f, 0.0f, 1.0f},
             .padding2 = 0,
-            .uv = {0.5f, 1.0f},
+            .uv = {0.0f, 1.0f},
+            .padding3 = 0,
+            .padding4 = 0
+        },
+        {
+            .position = {0.5f, 0.5f, 0.0f},
+            .padding = 0,
+            .normal = {0.0f, 0.0f, 1.0f},
+            .padding2 = 0,
+            .uv = {1.0f, 1.0f},
             .padding3 = 0,
             .padding4 = 0
         },
@@ -41,10 +48,15 @@ Petal::MeshBuilder CreateMesh() {
     mesh.PushVertex(&vertices[0]);
     mesh.PushVertex(&vertices[1]);
     mesh.PushVertex(&vertices[2]);
+    mesh.PushVertex(&vertices[3]);
 
     mesh.PushIndex<glm::u32>(0);
     mesh.PushIndex<glm::u32>(1);
     mesh.PushIndex<glm::u32>(2);
+
+    mesh.PushIndex<glm::u32>(0);
+    mesh.PushIndex<glm::u32>(2);
+    mesh.PushIndex<glm::u32>(3);
 
     return mesh;
 }
@@ -78,6 +90,14 @@ int main() {
         }
     );
     std::unique_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset).Release();
+
+    // textures
+    std::unique_ptr<VulkanTexture> texture = graphicsContext.GetMemorySubsystem().LoadTextureFromDisk(
+        "C:/Coding/Projects/Petal/Petal/Petal/Assets/Textures/Icon.png",
+        ImageLoaderSettings{},
+        TextureCreateInfo{}
+    ).Release();
+    shader->BindTexture("texture", *texture);
 
     // Renderer
     RendererSettings rendererSettings = {

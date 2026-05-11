@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common.h"
-#include "Graphics/Memory/GPUBuffer.h"
+#include "../Graphics/Memory/Buffers/GPUBuffer.h"
 
 namespace Petal {
     class Renderer;

@@ -8,13 +8,7 @@
 
 namespace Petal {
     class Renderer;
-}
-
-namespace Petal {
-    class GPUBufferSubsystem;
-}
-
-namespace Petal {
+    class GPUMemorySubsystem;
     class VulkanShader;
     struct ShaderAsset;
     class VulkanQueue;
@@ -60,7 +54,7 @@ namespace Petal {
 
         const GraphicsSettings &GetGraphicsSettings() const;
 
-        GPUBufferSubsystem &GetBufferSubsystem() const;
+        GPUMemorySubsystem &GetMemorySubsystem() const;
 
         AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset);
 
@@ -142,6 +136,6 @@ namespace Petal {
         // Queue family -> command pool
         std::unordered_map<glm::u32, VkCommandPool> m_commandPools;
         std::shared_ptr<VulkanSwapchain> m_swapchain;
-        std::unique_ptr<GPUBufferSubsystem> m_bufferSubsystem;
+        std::unique_ptr<GPUMemorySubsystem> m_memorySubsystem;
     };
 } // Petal

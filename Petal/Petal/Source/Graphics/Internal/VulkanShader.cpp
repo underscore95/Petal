@@ -2,13 +2,13 @@
 
 #include "Graphics/Shaders/IntermediateShaderResource.h"
 #include "Graphics/Internal/RenderingDevice.h"
-#include "Graphics/Memory/GPUBuffer.h"
+#include "../Memory/Buffers/GPUBuffer.h"
 #include "FormatContainers.h"
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanQueue.h"
 #include "VulkanSwapchain.h"
 #include "CommandBuffers/CommandBuffer.h"
-#include "Graphics/Memory/IBuffer.h"
+#include "../Memory/Buffers/IBuffer.h"
 
 namespace Petal {
     struct SetInfo {
@@ -50,18 +50,18 @@ namespace Petal {
 
         for (const Stage &stage : m_shaderStages) {
             if (stage.ShaderModule == VK_NULL_HANDLE) continue;
-            vkDestroyShaderModule(m_renderer.GetDevice()->GetDevice(), stage.ShaderModule, nullptr);
+            vkDestroyShaderModule(m_renderer.GetDevice()->GetHandle(), stage.ShaderModule, nullptr);
         }
         m_shaderStages.clear();
 
         m_descriptorSets.clear(); // Destroying the pool destroys these
 
         for (VkDescriptorSetLayout setLayout : m_descriptorSetLayouts) {
-            vkDestroyDescriptorSetLayout(m_renderer.GetDevice()->GetDevice(), setLayout, nullptr);
+            vkDestroyDescriptorSetLayout(m_renderer.GetDevice()->GetHandle(), setLayout, nullptr);
         }
         m_descriptorSetLayouts.clear();
 
-        if (m_descriptorPool) vkDestroyDescriptorPool(m_renderer.GetDevice()->GetDevice(), m_descriptorPool, nullptr);
+        if (m_descriptorPool) vkDestroyDescriptorPool(m_renderer.GetDevice()->GetHandle(), m_descriptorPool, nullptr);
     }
 
     Result VulkanShader::CreateDescriptors(
@@ -105,7 +105,7 @@ namespace Petal {
             .pPoolSizes = poolSizes.data()
         };
         VkResult res = vkCreateDescriptorPool(
-            m_renderer.GetDevice()->GetDevice(),
+            m_renderer.GetDevice()->GetHandle(),
             &poolCreateInfo,
             nullptr,
             &m_descriptorPool
@@ -147,7 +147,7 @@ namespace Petal {
 
             VkDescriptorSetLayout setLayout;
             res = vkCreateDescriptorSetLayout(
-                m_renderer.GetDevice()->GetDevice(),
+                m_renderer.GetDevice()->GetHandle(),
                 &createInfo,
                 nullptr,
                 &setLayout
@@ -167,7 +167,7 @@ namespace Petal {
         };
 
         m_descriptorSets.resize(allocateInfo.descriptorSetCount);
-        res = vkAllocateDescriptorSets(m_renderer.GetDevice()->GetDevice(), &allocateInfo, m_descriptorSets.data());
+        res = vkAllocateDescriptorSets(m_renderer.GetDevice()->GetHandle(), &allocateInfo, m_descriptorSets.data());
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::PETAL_SHADER_DESCRIPTOR_ERROR, m_logger, "Failed to allocate descriptor sets: {}", res);
 
         m_logger->Verbose("Allocated {} descriptor sets with {} total bindings and {} total descriptors.", m_descriptorSets.size(), numBindings, numDescriptors);
@@ -181,7 +181,7 @@ namespace Petal {
 
         const ShaderResource &shaderResource = it->second;
         PETAL_CHECK_COND(
-            !ResourceTypes::GetData(shaderResource.Type).IsBuffer,
+            ResourceTypes::GetData(shaderResource.Type).ResourceCategory != ResourceTypes::Category::BUFFER,
             Result::PETAL_SHADER_RESOURCE_NOT_FOUND,
             m_logger,
             "Failed to find buffer {} (warning: found a {} with the same name)", name, shaderResource.Type
@@ -205,7 +205,7 @@ namespace Petal {
         std::vector writes = {write};
 
         vkUpdateDescriptorSets(
-            m_renderer.GetDevice()->GetDevice(),
+            m_renderer.GetDevice()->GetHandle(),
             static_cast<glm::u32>(writes.size()),
             writes.data(),
             0,
@@ -213,6 +213,49 @@ namespace Petal {
         );
 
         m_logger->Verbose("Bound buffer {} to set {} index {} (resource name: {})", buffer.GetName(), shaderResource.BindingSet, shaderResource.BindingIndex, shaderResource.Name);
+
+        return Result::SUCCESS;
+    }
+
+    Result VulkanShader::BindTexture(const std::string &name, const VulkanTexture &texture) {
+        auto it = m_resources.find(name);
+        PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find texture {}. Note resource names are case sensitive.", name);
+
+        const ShaderResource &shaderResource = it->second;
+        PETAL_CHECK_COND(
+            ResourceTypes::GetData(shaderResource.Type).ResourceCategory != ResourceTypes::Category::TEXTURE,
+            Result::PETAL_SHADER_RESOURCE_NOT_FOUND,
+            m_logger,
+            "Failed to find texture {} (warning: found a {} with the same name)", name, shaderResource.Type
+        );
+
+        VkDescriptorImageInfo imageInfo = texture.GetDescriptorInfo();
+
+        VkWriteDescriptorSet write = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = m_descriptorSets[shaderResource.BindingSet],
+            .dstBinding = shaderResource.BindingIndex,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = ResourceTypes::GetData(shaderResource.Type).VulkanDescriptorType,
+            .pImageInfo = &imageInfo,
+            .pBufferInfo = nullptr,
+            .pTexelBufferView = nullptr
+        };
+
+        std::vector writes = {write};
+
+        vkUpdateDescriptorSets(
+            m_renderer.GetDevice()->GetHandle(),
+            static_cast<glm::u32>(writes.size()),
+            writes.data(),
+            0,
+            nullptr
+        );
+
+        m_logger->Verbose("Bound texture {} to set {} index {} (resource name: {})", texture.GetName(), shaderResource.BindingSet, shaderResource.BindingIndex,
+                          shaderResource.Name);
 
         return Result::SUCCESS;
     }
@@ -270,7 +313,7 @@ namespace Petal {
             };
 
             VkResult result = vkCreateShaderModule(
-                m_renderer.GetDevice()->GetDevice(),
+                m_renderer.GetDevice()->GetHandle(),
                 &info,
                 nullptr,
                 &vulkanStage.ShaderModule

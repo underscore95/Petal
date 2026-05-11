@@ -4,6 +4,7 @@
 #include <vulkan/vulkan_core.h>
 #include "Graphics/Shaders/ShaderType.h"
 #include "Graphics/GraphicsContext.h"
+#include "Graphics/Memory/Textures/VulkanTexture.h"
 #include "Graphics/Resources/ResourceType.h"
 
 namespace Petal {
@@ -44,9 +45,12 @@ namespace Petal {
         // Bind a resource
         Result BindBuffer(const std::string &name, const IBuffer &buffer);
 
+        Result BindTexture(const std::string &name, const VulkanTexture &texture);
+
         // Must be called once for each command buffer before this shader is used
         void BindResources(VkCommandBuffer commandBuffer) const;
-        void BindResources(const CommandBufferVector& commandBuffer) const;
+
+        void BindResources(const CommandBufferVector &commandBuffer) const;
 
         const std::vector<Stage> &GetShaderStages() const;
 
