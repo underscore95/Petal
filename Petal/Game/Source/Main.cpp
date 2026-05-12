@@ -61,6 +61,20 @@ Petal::MeshBuilder CreateMesh() {
     return mesh;
 }
 
+void RecordCommandBuffers(GraphicsContext &graphicsContext, std::shared_ptr<CommandBufferVector> commandBuffers, std::shared_ptr<VulkanShader> shader,
+                          std::shared_ptr<MeshResource> mesh) {
+    commandBuffers->BeginAll(0);
+
+    graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
+
+    shader->BindResources(*commandBuffers);
+
+    graphicsContext.GetSwapchain().CmdRender(*shader, *commandBuffers, mesh->GetNumIndices());
+    graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
+
+    commandBuffers->EndAll();
+}
+
 int main() {
     glm::u32 frameNumber = 0;
 
@@ -89,7 +103,7 @@ int main() {
             {ShaderType::FRAGMENT, {"fragmentMain"}}
         }
     );
-    std::unique_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset).Release();
+    std::shared_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset).Release();
 
     // textures
     std::shared_ptr<VulkanTexture> iconTexture = graphicsContext.GetMemorySubsystem().LoadTextureFromDisk(
@@ -111,20 +125,11 @@ int main() {
     };
     auto renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
 
-    std::unique_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
+    std::shared_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
 
     renderer->Bind(*shader);
 
-    commandBuffers->BeginAll(0);
-
-    graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
-
-    shader->BindResources(*commandBuffers);
-
-    graphicsContext.GetSwapchain().CmdRender(*shader, *commandBuffers, mesh->GetNumIndices());
-    graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
-
-    commandBuffers->EndAll();
+    RecordCommandBuffers(graphicsContext, commandBuffers, shader, mesh);
 
     while (!window->WantsToClose()) {
         frameNumber++;
@@ -134,6 +139,7 @@ int main() {
         Result result = graphicsContext.GetSwapchain().BeginRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
+            RecordCommandBuffers(graphicsContext, commandBuffers, shader, mesh);
             continue;
         }
 
@@ -142,6 +148,7 @@ int main() {
         graphicsContext.GetSwapchain().EndRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
+            RecordCommandBuffers(graphicsContext, commandBuffers, shader, mesh);
             continue;
         }
 

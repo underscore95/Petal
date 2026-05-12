@@ -315,6 +315,7 @@ namespace Petal {
 
         m_swapchain.reset();
 
+        m_device->QueryDeviceSurfaceCapabilities();
         result = CreateSwapchain();
         return result;
     }
