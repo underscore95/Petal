@@ -8,6 +8,7 @@
 #include "Internal/CommandBuffers/CommandBuffer.h"
 #include "Internal/CommandBuffers/CommandBufferVector.h"
 #include "Internal/RenderingDevice.h"
+#include "Internal/VulkanGraphicsPipeline.h"
 #include "Internal/VulkanSwapchain.h"
 #include "Internal/Sync/VulkanFence.h"
 #include "Internal/Sync/VulkanSemaphore.h"
@@ -318,6 +319,25 @@ namespace Petal {
         m_device->QueryDeviceSurfaceCapabilities();
         result = CreateSwapchain();
         return result;
+    }
+
+    void GraphicsContext::CmdWritePushConstants(
+        const CommandBufferVector &commandBuffers,
+        const VulkanShader &shader,
+        const void *data,
+        glm::u32 size
+    ) {
+        assert(commandBuffers.IsSwapchainSize());
+        for (glm::u32 i = 0; i < commandBuffers.Size(); i++) {
+            vkCmdPushConstants(
+                commandBuffers.GetHandle(i),
+                shader.GetPipeline().GetLayout(),
+                VK_SHADER_STAGE_ALL,
+                0,
+                size,
+                data
+            );
+        }
     }
 
     Result GraphicsContext::CreateCommandPools() {

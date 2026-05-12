@@ -6,6 +6,13 @@
 #include "Window/Window.h"
 
 namespace Petal {
+    Result VulkanGraphicsPipeline::PipelineSettings::Validate(std::shared_ptr<Logger> logger) {
+        if (PushConstantsSize > 128) {
+            logger->Warn("PipelineSettings PushConstantsSize was {}, some GPUs may not support more than 128 bytes.", PushConstantsSize);
+        }
+        return Result::SUCCESS;
+    }
+
     VulkanGraphicsPipeline::VulkanGraphicsPipeline(
         GraphicsContext &renderer,
         const VulkanShader &shader,
@@ -16,6 +23,9 @@ namespace Petal {
        m_shader(shader),
        m_logger(logger),
        m_settings(settings) {
+resultOut=m_settings.Validate(m_logger);
+        if (resultOut != Result::SUCCESS) return;
+
         resultOut = CreatePipelineLayout();
         if (resultOut != Result::SUCCESS) return;
 
@@ -51,7 +61,7 @@ namespace Petal {
         VkPushConstantRange pushConstantRange = {
             .stageFlags = VK_SHADER_STAGE_ALL,
             .offset = 0,
-            .size = m_renderer.GetGraphicsSettings().PushConstantSize
+            .size = m_settings.PushConstantsSize
         };
 
         const std::vector<VkDescriptorSetLayout> &layouts = m_shader.GetDescriptorSetLayouts();
@@ -59,7 +69,7 @@ namespace Petal {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = static_cast<glm::u32>(layouts.size()),
             .pSetLayouts = layouts.data(),
-            .pushConstantRangeCount = m_renderer.GetGraphicsSettings().PushConstantSize > 0 ? 1u : 0u, // no need for a range if we don't have any
+            .pushConstantRangeCount = pushConstantRange.size > 0 ? 1u : 0u, // no need for a range if we don't have any
             .pPushConstantRanges = &pushConstantRange
         };
 

@@ -13,10 +13,6 @@ Petal::Result Petal::GraphicsSettings::IsValid(std::shared_ptr<Logger> logger) c
         "PreferredPresentMode contains duplicate elements"
     );
 
-    if (PushConstantSize > 128) {
-        logger->Warn("GraphicsSettings push constant size was {}, some GPUs may not support more than 128 bytes.", PushConstantSize);
-    }
-
 #undef CHECK_SETTINGS
 
     return Result::SUCCESS;

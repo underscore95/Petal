@@ -32,9 +32,9 @@ VOut vertexMain(uint vertexID : SV_VertexID)
 }
 
 [shader("fragment")]
-float4 fragmentMain(VOut input) : SV_Target
+float4 fragmentMain(VOut input, uniform Params params) : SV_Target
 {
-    float4 col = textures[1].Sample(input.uv);
+    float4 col = textures[params.DiffuseMapIndex].Sample(input.uv);
     if (col.a < 0.1) discard;
     col.a = 1;
     return col;

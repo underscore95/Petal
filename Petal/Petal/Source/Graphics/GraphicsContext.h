@@ -110,6 +110,13 @@ namespace Petal {
         // This is required if the window is resized.
         Result RecreateSwapchain();
 
+        void CmdWritePushConstants(
+            const CommandBufferVector &commandBuffers,
+            const VulkanShader &shader,
+            const void *data,
+            glm::u32 size
+        );
+
         static constexpr VkImageSubresourceRange DEFAULT_IMAGE_SUBRESOURCE_RANGE = {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .baseMipLevel = 0,

@@ -61,15 +61,17 @@ Petal::MeshBuilder CreateMesh() {
     return mesh;
 }
 
-void RecordCommandBuffers(GraphicsContext &graphicsContext, std::shared_ptr<CommandBufferVector> commandBuffers, std::shared_ptr<VulkanShader> shader,
+void RecordCommandBuffers(Renderer &renderer, GraphicsContext &graphicsContext, std::shared_ptr<CommandBufferVector> commandBuffers, std::shared_ptr<VulkanShader> shader,
                           std::shared_ptr<MeshResource> mesh) {
     commandBuffers->BeginAll(0);
 
     graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
 
-    shader->BindResources(*commandBuffers);
+    Params params = {
+        .DiffuseMapIndex = 1
+    };
+    renderer.CmdRender(*commandBuffers, *shader, params, *mesh);
 
-    graphicsContext.GetSwapchain().CmdRender(*shader, *commandBuffers, mesh->GetNumIndices());
     graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
 
     commandBuffers->EndAll();
@@ -129,7 +131,7 @@ int main() {
 
     renderer->Bind(*shader);
 
-    RecordCommandBuffers(graphicsContext, commandBuffers, shader, mesh);
+    RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, mesh);
 
     while (!window->WantsToClose()) {
         frameNumber++;
@@ -139,7 +141,7 @@ int main() {
         Result result = graphicsContext.GetSwapchain().BeginRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(graphicsContext, commandBuffers, shader, mesh);
+            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, mesh);
             continue;
         }
 
@@ -148,7 +150,7 @@ int main() {
         graphicsContext.GetSwapchain().EndRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(graphicsContext, commandBuffers, shader, mesh);
+            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, mesh);
             continue;
         }
 

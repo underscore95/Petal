@@ -7,6 +7,9 @@ namespace Petal {
         struct PipelineSettings {
             bool RenderWireframe = false;
             bool CullBackFaces = true;
+            glm::u32 PushConstantsSize = 128;
+
+            Result Validate(std::shared_ptr<Logger> logger);
         };
 
     public:

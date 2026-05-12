@@ -7,6 +7,7 @@
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanQueue.h"
 #include "VulkanSwapchain.h"
+#include "../../../Assets/Shaders/Common.h"
 #include "CommandBuffers/CommandBuffer.h"
 #include "../Memory/Buffers/IBuffer.h"
 
@@ -39,7 +40,7 @@ namespace Petal {
             m_renderer,
             *this,
             m_logger,
-            VulkanGraphicsPipeline::PipelineSettings{},
+            VulkanGraphicsPipeline::PipelineSettings{.PushConstantsSize = sizeof(PetalShader::Params)},
             resultOut
         );
         if (resultOut != Result::SUCCESS) return;

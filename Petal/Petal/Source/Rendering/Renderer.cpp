@@ -3,6 +3,7 @@
 #include "MeshBuilder.h"
 #include "Graphics/Internal/VulkanShader.h"
 #include "Graphics/Memory/GPUMemorySubsystem.h"
+#include "../Assets/Shaders/Common.h"
 
 namespace Petal {
     Renderer::Renderer(
@@ -44,6 +45,21 @@ namespace Petal {
 
         auto meshResource = std::make_unique<MeshResource>(m_context, m_logger, vertexBuffer.Release(), indexBuffer.Release(), mesh.GetNumIndices());
         return meshResource;
+    }
+
+    void Renderer::CmdRender(
+        const CommandBufferVector &commandBuffers,
+        VulkanShader &shader,
+        const PetalShader::Params &params,
+        const MeshResource &mesh,
+        glm::u32 instances
+    ) {
+        shader.BindResources(commandBuffers);
+
+        m_context.CmdWritePushConstants(commandBuffers, shader, &params, sizeof(params));
+
+        // todo need to tell the shader what mesh is being rendered
+        m_context.GetSwapchain().CmdRender(shader, commandBuffers, mesh.GetNumIndices(), instances);
     }
 
     Result Renderer::Bind(VulkanShader &shader) const {
