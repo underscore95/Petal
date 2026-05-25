@@ -58,6 +58,14 @@ namespace Petal {
 
         AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset);
 
+        // Set the debug name of a vulkan object
+        // In release mode, this is a no op
+        void SetObjectDebugName(glm::u64 handle, VkObjectType objectType, const std::string &objectName) const {
+#ifndef NDEBUG
+            SetObjectDebugNameImpl(handle, objectType, objectName);
+#endif
+        }
+
         // Create a command buffer.
         // It is recommended to move the command buffer into a shared ptr after creation so it can be converted into a CommandBufferRef
         AllocatedOptional<CommandBuffer> CreateCommandBuffer(
@@ -130,9 +138,13 @@ namespace Petal {
 
         Result CreateSwapchain();
 
+#ifndef NDEBUG
+        void SetObjectDebugNameImpl(glm::u64 handle, VkObjectType objectType, const std::string &objectName) const;
+#endif
+
     private:
         Engine &m_engine;
-        GraphicsSystem &m_renderingSystem;
+        GraphicsSystem &m_graphicsSystem;
         std::shared_ptr<Window> m_window;
 
         VkSurfaceKHR m_surface;

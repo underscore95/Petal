@@ -1,5 +1,7 @@
 #pragma once
 
+#include <assimp/mesh.h>
+
 #include "Common.h"
 #include "Graphics/Other/IndexType.h"
 
@@ -17,20 +19,17 @@ namespace Petal {
         );
 
     public:
-        // Push a vertex
-        // It is recommended to upload a vector of vertices instead as this is slow.
-        void PushVertex(const void *data);
+        // Push vertices
+        void PushVertices(glm::u32 numVertices, const void *data);
 
-        // Push an index.
-        // It is recommended to upload a vector of indices instead as this is slow.
+        // Push indices
         template<typename IndexType>
-        void PushIndex(IndexType index) {
+        void PushIndices(glm::u32 numIndices, const IndexType *indices) {
             assert(IndexTypes::GetData(m_indexType).Type == typeid(IndexType) && "Attempted to push index of wrong size to mesh");
-            for (glm::u32 i = 0; i < sizeof(index); i++) {
-                const char *byte = reinterpret_cast<const char *>(&index) + i;
-                m_indices.push_back(*byte);
-            }
-            m_numIndices++;
+            m_indices.resize(m_indices.size() + numIndices * sizeof(IndexType));
+            void *indicesEnd = m_indices.data() + m_numIndices;
+            memcpy(indicesEnd, indices, numIndices * sizeof(IndexType));
+            m_numIndices += numIndices;
         }
 
         const VertexType &GetVertexType() const;

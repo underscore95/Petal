@@ -19,7 +19,9 @@ namespace Petal {
         if (CreateInstance() != Result::SUCCESS) return;
 
 #ifndef NDEBUG
-        if (CreateDebugCallback() != Result::SUCCESS)return;
+        if (CreateDebugCallback() != Result::SUCCESS) return;
+
+        if (FindSetObjectDebugNameFunction() != Result::SUCCESS) return;
 #endif
 
         Result result;
@@ -64,6 +66,10 @@ namespace Petal {
 
     ShaderSubsystem &GraphicsSystem::GetShaderSubsystem() const {
         return *m_shaderSubsystem;
+    }
+
+    const PFN_vkSetDebugUtilsObjectNameEXT &GraphicsSystem::VulkanSetDebugObjectNameFunction() const {
+        return m_vkSetDebugUtilsObjectNameEXT;
     }
 
     Result GraphicsSystem::CreateInstance() {
@@ -291,4 +297,17 @@ namespace Petal {
             m_logger->Verbose("Destroyed Debug Callback");
         }
     }
+
+#ifndef NDEBUG
+    Result GraphicsSystem::FindSetObjectDebugNameFunction() {
+        m_vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+            vkGetInstanceProcAddr(GetInstance(), "vkSetDebugUtilsObjectNameEXT")
+        );
+        PETAL_CHECK_COND(m_vkSetDebugUtilsObjectNameEXT == nullptr, Result::VULKAN_FIND_SET_OBJECT_DEBUG_NAME_FUNCTION_FAILED, m_logger, "");
+        return Result::SUCCESS;
+    }
+
+    void GraphicsSystem::SetObjectDebugNameImpl() {
+    }
+#endif
 } // Petal

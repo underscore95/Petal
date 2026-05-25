@@ -21,6 +21,10 @@ namespace Petal {
 
         resultOut = CreateSampler();
         if (resultOut != Result::SUCCESS) return;
+
+        m_context.SetObjectDebugName(reinterpret_cast<glm::u64>(m_sampler), VK_OBJECT_TYPE_SAMPLER, std::format("{} Sampler", m_name));
+        m_context.SetObjectDebugName(reinterpret_cast<glm::u64>(m_handle), VK_OBJECT_TYPE_IMAGE, std::format("{} Sampler", m_name));
+        m_context.SetObjectDebugName(reinterpret_cast<glm::u64>(m_view), VK_OBJECT_TYPE_IMAGE_VIEW, std::format("{} Sampler", m_name));
     }
 
     VulkanTexture::~VulkanTexture() {

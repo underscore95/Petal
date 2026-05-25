@@ -15,17 +15,35 @@ struct VOut
     float4 position : SV_Position;
     float3 normal;
     float2 uv;
+    int index;
 }
 
+// todo using vertex pulling is probably not worth it here
 [shader("vertex")]
-VOut vertexMain(uint vertexID : SV_VertexID)
+VOut vertexMain(
+    uint vertexID : SV_VulkanVertexID,
+    uniform Params params
+)
 {
-    uint index = indices[vertexID];
+    uint index = indices[vertexID] + params.MeshVertexBufferStart;
     VertexData v = vertices[index];
 
     VOut output;
+    output.index = index;
     output.position = float4(v.position, 1.0);
-    //output.position = mul(camera[0].mvp, float4(v.position, 1.0));
+    // cam at 0,0,0, +y is up, looking at 0,0,1, perspective projection
+    float4x4 camera =
+    {
+        0.9742786, 0,         0,          0,
+        0,         1.7320508, 0,          0,
+        0,         0,         1.0001000,  1,
+        0,         0,        -0.1000100,  0
+    };
+    output.position = mul(camera, output.position);
+    output.position.xyz *= 0.01;
+    output.position.z += 3;
+    //output.position.x += 6;
+    //output.position.y -= 3;
     output.normal = v.normal;
     output.uv = v.uv;
     return output;

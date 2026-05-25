@@ -29,6 +29,8 @@ namespace PetalShader {
 
     struct Params {
         uint DiffuseMapIndex;
+        // what index in the vertex buffer does this meshes vertices start
+        uint MeshVertexBufferStart;
     };
 
 #ifdef __cplusplus

@@ -28,7 +28,7 @@ namespace Petal {
         Result &result
     )
         : m_engine(engine),
-          m_renderingSystem(renderingSystem),
+          m_graphicsSystem(renderingSystem),
           m_window(window),
           m_graphicsSettings(graphicsSettings) {
         m_logger = engine.GetLoggerSystem().GetLogger(LoggerSystem::GRAPHICS_LOGGER);
@@ -90,7 +90,7 @@ namespace Petal {
         m_device.reset();
 
         if (m_surface) {
-            vkDestroySurfaceKHR(m_renderingSystem.GetInstance(), m_surface, nullptr);
+            vkDestroySurfaceKHR(m_graphicsSystem.GetInstance(), m_surface, nullptr);
             m_surface = VK_NULL_HANDLE;
         }
 
@@ -118,7 +118,7 @@ namespace Petal {
     }
 
     GraphicsSystem &GraphicsContext::GetRenderingSystem() const {
-        return m_renderingSystem;
+        return m_graphicsSystem;
     }
 
     const GraphicsSettings &GraphicsContext::GetGraphicsSettings() const {
@@ -132,7 +132,7 @@ namespace Petal {
     AllocatedOptional<VulkanShader> GraphicsContext::CompileShader(const ShaderAsset &asset) {
         // TODO cache the SPIRV and reflection info
 
-        Optional<IntermediateShaderResource> intermediateShader = m_renderingSystem.GetShaderSubsystem().CompileSlangShader(asset);
+        Optional<IntermediateShaderResource> intermediateShader = m_graphicsSystem.GetShaderSubsystem().CompileSlangShader(asset);
         PETAL_CHECK_OPTIONAL_SILENT(intermediateShader);
 
         Result result;
@@ -145,6 +145,19 @@ namespace Petal {
         if (result != Result::SUCCESS) return result;
         return shader;
     }
+
+#ifndef NDEBUG
+    void GraphicsContext::SetObjectDebugNameImpl(glm::u64 handle, VkObjectType objectType, const std::string &objectName) const {
+        VkDebugUtilsObjectNameInfoEXT info = {
+            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+            .pNext = nullptr,
+            .objectType = objectType,
+            .objectHandle = handle,
+            .pObjectName = objectName.c_str()
+        };
+        m_graphicsSystem.VulkanSetDebugObjectNameFunction()(m_device->GetHandle(), &info);
+    }
+#endif
 
     AllocatedOptional<CommandBuffer> GraphicsContext::CreateCommandBuffer(
         const VulkanQueue &queue, VkCommandBufferLevel level

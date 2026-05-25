@@ -6,8 +6,8 @@ using namespace PetalShader;
 Petal::MeshBuilder CreateMesh() {
     MeshBuilder mesh({sizeof(VertexData)}, IndexType::INDICES_32_BIT);
 
-    VertexData vertices[4] = {
-        {
+    std::array<VertexData, 4> vertices = {
+        VertexData{
             .position = {-0.5f, -0.5f, 0.0f},
             .padding = 0,
             .normal = {0.0f, 0.0f, 1.0f},
@@ -16,7 +16,7 @@ Petal::MeshBuilder CreateMesh() {
             .padding3 = 0,
             .padding4 = 0
         },
-        {
+        VertexData{
             .position = {-0.5f, 0.5f, 0.0f},
             .padding = 0,
             .normal = {0.0f, 0.0f, 1.0f},
@@ -25,7 +25,7 @@ Petal::MeshBuilder CreateMesh() {
             .padding3 = 0,
             .padding4 = 0
         },
-        {
+        VertexData{
             .position = {0.5f, 0.5f, 0.0f},
             .padding = 0,
             .normal = {0.0f, 0.0f, 1.0f},
@@ -34,7 +34,7 @@ Petal::MeshBuilder CreateMesh() {
             .padding3 = 0,
             .padding4 = 0
         },
-        {
+        VertexData{
             .position = {0.5f, -0.5f, 0.0f},
             .padding = 0,
             .normal = {0.0f, 0.0f, 1.0f},
@@ -45,32 +45,30 @@ Petal::MeshBuilder CreateMesh() {
         }
     };
 
-    mesh.PushVertex(&vertices[0]);
-    mesh.PushVertex(&vertices[1]);
-    mesh.PushVertex(&vertices[2]);
-    mesh.PushVertex(&vertices[3]);
+    mesh.PushVertices(vertices.size(), vertices.data());
 
-    mesh.PushIndex<glm::u32>(0);
-    mesh.PushIndex<glm::u32>(1);
-    mesh.PushIndex<glm::u32>(2);
-
-    mesh.PushIndex<glm::u32>(0);
-    mesh.PushIndex<glm::u32>(2);
-    mesh.PushIndex<glm::u32>(3);
+    std::array<glm::u32, 6> indices = {0, 1, 2, 0, 2, 3};
+    mesh.PushIndices<glm::u32>(indices.size(), indices.data());
 
     return mesh;
 }
 
+Model LoadSpider(const std::shared_ptr<Logger> &logger) {
+    Result resultOut;
+    Model model(logger, "C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", {}, resultOut);
+    assert(resultOut==Result::SUCCESS);
+
+    logger->Info("Loaded spider model with {} meshes", model.GetSections().size());
+    return model;
+}
+
 void RecordCommandBuffers(Renderer &renderer, GraphicsContext &graphicsContext, std::shared_ptr<CommandBufferVector> commandBuffers, std::shared_ptr<VulkanShader> shader,
-                          std::shared_ptr<MeshResource> mesh) {
+                          std::shared_ptr<ModelResource> model) {
     commandBuffers->BeginAll(0);
 
     graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
 
-    Params params = {
-        .DiffuseMapIndex = 1
-    };
-    renderer.CmdRender(*commandBuffers, *shader, params, *mesh);
+    renderer.CmdRender(*commandBuffers, *shader, *model);
 
     graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
 
@@ -127,11 +125,13 @@ int main() {
     };
     auto renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
 
-    std::shared_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
+    // std::shared_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
+    Model spiderModel = LoadSpider(logger);
+    std::shared_ptr<ModelResource> model = renderer->UploadModel(spiderModel, "Spider").Release();
 
     renderer->Bind(*shader);
 
-    RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, mesh);
+    RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model);
 
     while (!window->WantsToClose()) {
         frameNumber++;
@@ -141,7 +141,7 @@ int main() {
         Result result = graphicsContext.GetSwapchain().BeginRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, mesh);
+            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model);
             continue;
         }
 
@@ -150,7 +150,7 @@ int main() {
         graphicsContext.GetSwapchain().EndRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, mesh);
+            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model);
             continue;
         }
 

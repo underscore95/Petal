@@ -91,12 +91,12 @@ add_library(Petal SHARED
         Assets/Shaders/Common.h
         Source/Utils/Scheduler.cpp
         Source/Utils/Scheduler.h
-        Source/Rendering/MeshBuilder.cpp
-        Source/Rendering/MeshBuilder.h
+        Source/Resources/MeshBuilder.cpp
+        Source/Resources/MeshBuilder.h
         Source/Graphics/Other/IndexType.cpp
         Source/Graphics/Other/IndexType.h
-        Source/Rendering/MeshResource.cpp
-        Source/Rendering/MeshResource.h
+        Source/Rendering/Resources/MeshResource.cpp
+        Source/Rendering/Resources/MeshResource.h
         Source/Rendering/Renderer.cpp
         Source/Rendering/Renderer.h
         Source/Graphics/Memory/AllocationTracker.cpp
@@ -113,6 +113,10 @@ add_library(Petal SHARED
         Source/Graphics/Memory/Textures/VulkanTexture.h
         Source/Graphics/Memory/Textures/TextureCreateInfo.cpp
         Source/Graphics/Memory/Textures/TextureCreateInfo.h
+        Source/Resources/Model.cpp
+        Source/Resources/Model.h
+        Source/Rendering/Resources/ModelResource.cpp
+        Source/Rendering/Resources/ModelResource.h
 )
 
 # Macros
@@ -171,3 +175,6 @@ target_link_libraries(Petal PRIVATE magic_enum::magic_enum)
 # stb-image
 target_link_libraries(Petal PRIVATE stb)
 
+# assimp
+find_package(assimp CONFIG REQUIRED)
+target_link_libraries(Petal PRIVATE assimp::assimp)

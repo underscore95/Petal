@@ -80,7 +80,9 @@ namespace Petal {
 
         Optional<Allocation> allocationOpt = backingBuffer->GetAllocations().Allocate(size);
         PETAL_CHECK_OPTIONAL(allocationOpt, m_logger, "Failed to create backed buffer of size {}", size);
+        assert(allocationOpt->Size == size);
 
+        m_logger->Info("Created backed buffer of size {} at location {} (name {})", size, allocationOpt->Location, name);
         return std::make_unique<GPUBuffer>(m_context, name, backingBuffer, *allocationOpt.Value());
     }
 
@@ -105,21 +107,21 @@ namespace Petal {
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VMA_BUFFER_WRITE_FAILED, m_logger, "Failed to map transfer buffer: {}", res);
 
         // Write in blocks
-        glm::u32 blockSize = m_transferBuffer->GetSize();
+        const glm::u32 blockSize = m_transferBuffer->GetSize();
         glm::u32 bytesRemaining = size;
-        m_logger->Verbose("Writing to buffer, {} bytes remaining", bytesRemaining);
+        const glm::u32 bufferOffset = buffer.GetAllocation().Location;
+        m_logger->Verbose("Writing to buffer at location {}, {} bytes remaining", bufferOffset, bytesRemaining);
         for (glm::u32 blockIndex = 0; blockIndex <= size / blockSize; blockIndex++) {
             glm::u32 blockOffset = blockIndex * blockSize;
             glm::u32 bytesToWrite = glm::min(blockSize, bytesRemaining);
-            // ReSharper disable once CppDFANullDereference
-            memcpy(dest, static_cast<const char *>(data) + blockOffset, bytesToWrite);
+            memcpy(static_cast<char *>(dest) + blockOffset , static_cast<const char *>(data) + blockOffset, bytesToWrite);
 
             Result result = m_commandBuffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
             VkBufferCopy copy = {
                 .srcOffset = 0,
-                .dstOffset = blockOffset,
+                .dstOffset = blockOffset + bufferOffset,
                 .size = bytesToWrite
             };
             vkCmdCopyBuffer(

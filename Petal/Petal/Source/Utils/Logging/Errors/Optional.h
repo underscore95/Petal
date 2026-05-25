@@ -63,7 +63,7 @@ namespace Petal {
 
         T *operator->() {
             assert(HasValue());
-            return m_value.get();
+            return &m_value;
         }
 
     private:

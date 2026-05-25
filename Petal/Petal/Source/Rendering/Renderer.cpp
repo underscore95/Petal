@@ -1,9 +1,10 @@
 #include "Renderer.h"
 
-#include "MeshBuilder.h"
+#include "../Resources/MeshBuilder.h"
 #include "Graphics/Internal/VulkanShader.h"
 #include "Graphics/Memory/GPUMemorySubsystem.h"
 #include "../Assets/Shaders/Common.h"
+#include "Resources/Model.h"
 
 namespace Petal {
     Renderer::Renderer(
@@ -22,9 +23,12 @@ namespace Petal {
     }
 
     AllocatedOptional<MeshResource> Renderer::UploadMesh(
-        const MeshBuilder &mesh
+        const MeshBuilder &mesh,
+        std::string name
     ) {
-        std::string name = std::format("Mesh {}", m_numUploadedMeshes);
+        if (name.empty()) {
+            name = std::format("Mesh {}", m_numUploadedMeshes);
+        }
         m_numUploadedMeshes++;
 
         AllocatedOptional<GPUBuffer> vertexBuffer = m_context.GetMemorySubsystem().CreateBackedBuffer(
@@ -43,8 +47,32 @@ namespace Petal {
         PETAL_CHECK_OPTIONAL_SILENT(indexBuffer);
         m_context.GetMemorySubsystem().Write(*indexBuffer.Value(), mesh.GetIndices(), mesh.GetIndexBufferSize());
 
-        auto meshResource = std::make_unique<MeshResource>(m_context, m_logger, vertexBuffer.Release(), indexBuffer.Release(), mesh.GetNumIndices());
+        auto meshResource = std::make_unique<MeshResource>(m_context, m_logger, vertexBuffer.Release(), indexBuffer.Release(), mesh.GetNumIndices(), mesh.GetVertexType().Size);
         return meshResource;
+    }
+
+    AllocatedOptional<ModelResource> Renderer::UploadModel(
+        const Model &model,
+        std::string name
+    ) {
+        if (name.empty()) {
+            name = std::format("Model {}", m_numUploadedModels);
+        }
+
+        std::vector<std::unique_ptr<MeshResource> > meshes;
+        meshes.reserve(model.GetSections().size());
+
+        glm::u32 meshIndex = 0;
+        for (const Model::Section &section : model.GetSections()) {
+            AllocatedOptional<MeshResource> mesh = UploadMesh(*section.Mesh, std::format("{} (Mesh {})", name, meshIndex));
+            PETAL_CHECK_OPTIONAL(mesh, m_logger, "Failed to upload mesh {} of model {}", meshIndex, name);
+
+            meshIndex++;
+            meshes.push_back(mesh.Release());
+        }
+
+        m_logger->Info("Uploaded model {}", name);
+        return std::make_unique<ModelResource>(m_logger, model, std::move(meshes));
     }
 
     void Renderer::CmdRender(
@@ -58,8 +86,21 @@ namespace Petal {
 
         m_context.CmdWritePushConstants(commandBuffers, shader, &params, sizeof(params));
 
-        // todo need to tell the shader what mesh is being rendered
-        m_context.GetSwapchain().CmdRender(shader, commandBuffers, mesh.GetNumIndices(), instances);
+        m_context.GetSwapchain().CmdRender(shader, commandBuffers, mesh.GetNumIndices(), instances, mesh.GetFirstIndex());
+    }
+
+    void Renderer::CmdRender(
+        const CommandBufferVector &commandBuffers,
+        VulkanShader &shader,
+        const ModelResource &model
+        ) {
+        for (const std::unique_ptr<MeshResource>& mesh : model.GetMeshes()) {
+            PetalShader::Params params = {
+                .DiffuseMapIndex = 1 ,// todo
+                .MeshVertexBufferStart = mesh->GetFirstVertex()
+            };
+            CmdRender(commandBuffers, shader, params, *mesh);
+        }
     }
 
     Result Renderer::Bind(VulkanShader &shader) const {

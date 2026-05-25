@@ -20,6 +20,7 @@ namespace Petal {
         VULKAN_DEVICE_WAIT_IDLE_FAILED,
         VULKAN_PIPELINE_CREATION_FAILED,
         VULKAN_SHADER_CREATION_FAILED,
+        VULKAN_FIND_SET_OBJECT_DEBUG_NAME_FUNCTION_FAILED,
 
         // VMA Errors
         VMA_CREATION_FAILED,
@@ -55,6 +56,10 @@ namespace Petal {
         PETAL_FILE_DOES_NOT_EXIST,
         PETAL_DIRECTORY_DOES_NOT_EXIST,
         PETAL_IMAGE_LOADING_FAILED,
+        PETAL_MODEL_LOADING_FAILED,
+
+        // Assimp Errors
+        ASSIMP_MODEL_LOADING_FAILED,
 
         // Petal Other Errors
         PETAL_OPTIONAL_MOVED_OUT, // Contents of this optional were moved into another optional

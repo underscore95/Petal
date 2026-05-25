@@ -3,23 +3,26 @@
 
 namespace Petal {
     VulkanBuffer::VulkanBuffer(
-        GraphicsContext &renderer,
+        GraphicsContext &context,
         const std::shared_ptr<Logger> &logger,
         const std::string &name,
         glm::u32 size,
         const BufferCreateInfo &createInfo,
         Result &resultOut
     )
-        : m_renderer(renderer),
+        : m_context(context),
           m_name(name),
           m_size(size),
           m_createInfo(createInfo),
           m_allocationTracker(logger, size) {
         resultOut = CreateBuffer(logger);
+        if (resultOut != Result::SUCCESS) return;
+
+        m_context.SetObjectDebugName(reinterpret_cast<glm::u64>(m_buffer), VK_OBJECT_TYPE_BUFFER, m_name);
     }
 
     VulkanBuffer::~VulkanBuffer() {
-        vmaDestroyBuffer(m_renderer.GetAllocator()->GetHandle(), m_buffer, m_allocation);
+        vmaDestroyBuffer(m_context.GetAllocator()->GetHandle(), m_buffer, m_allocation);
     }
 
     VkBuffer VulkanBuffer::GetHandle() const {
@@ -75,7 +78,7 @@ namespace Petal {
         };
 
         VkResult result = vmaCreateBuffer(
-            m_renderer.GetAllocator()->GetHandle(),
+            m_context.GetAllocator()->GetHandle(),
             &info,
             &allocInfo,
             &m_buffer,

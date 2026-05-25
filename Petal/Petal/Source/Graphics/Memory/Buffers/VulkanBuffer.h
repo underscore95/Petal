@@ -21,7 +21,7 @@ namespace Petal {
     class VulkanBuffer : public IBuffer {
     public:
         explicit VulkanBuffer(
-            GraphicsContext &renderer,
+            GraphicsContext &context,
             const std::shared_ptr<Logger> &logger,
             const std::string &name,
             glm::u32 size,
@@ -49,7 +49,7 @@ namespace Petal {
         Result CreateBuffer(std::shared_ptr<Logger> logger);
 
     private:
-        GraphicsContext &m_renderer;
+        GraphicsContext &m_context;
         std::string m_name;
         glm::u32 m_size;
         BufferCreateInfo m_createInfo;
