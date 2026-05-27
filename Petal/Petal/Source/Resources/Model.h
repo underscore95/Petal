@@ -1,4 +1,5 @@
 #pragma once
+#include "Graphics/VertexType.h"
 
 namespace Petal {
     class MeshBuilder;
@@ -11,7 +12,7 @@ namespace Petal {
         };
 
         struct Settings {
-
+            VertexType VertexType;
         };
 
     public:

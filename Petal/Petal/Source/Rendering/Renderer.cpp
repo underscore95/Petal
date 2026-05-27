@@ -84,46 +84,46 @@ namespace Petal {
     ) {
         shader.BindResources(commandBuffers);
 
+        m_context.CmdBindVertexBuffer(commandBuffers, 0, {std::cref(mesh.GetVertexBuffer())});
+        m_context.CmdBindIndexBuffer(commandBuffers, mesh.GetIndexBuffer(), IndexType::INDICES_32_BIT); // todo don't hardcode
+
         m_context.CmdWritePushConstants(commandBuffers, shader, &params, sizeof(params));
 
-        m_context.GetSwapchain().CmdRender(shader, commandBuffers, mesh.GetNumIndices(), instances, mesh.GetFirstIndex());
+        m_context.GetSwapchain().CmdRenderIndexed(shader, commandBuffers, mesh.GetNumIndices(), instances);
     }
 
     void Renderer::CmdRender(
         const CommandBufferVector &commandBuffers,
         VulkanShader &shader,
         const ModelResource &model
-        ) {
-        for (const std::unique_ptr<MeshResource>& mesh : model.GetMeshes()) {
+    ) {
+        for (const std::unique_ptr<MeshResource> &mesh : model.GetMeshes()) {
             PetalShader::Params params = {
-                .DiffuseMapIndex = 1 ,// todo
-                .MeshVertexBufferStart = mesh->GetFirstVertex()
+                .DiffuseMapIndex = 1 // todo
             };
             CmdRender(commandBuffers, shader, params, *mesh);
         }
     }
 
-    Result Renderer::Bind(VulkanShader &shader) const {
-        Result result = shader.BindBuffer(m_rendererSettings.VertexBufferShaderName, *m_vertexBuffer);
-        PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
-        result = shader.BindBuffer(m_rendererSettings.IndexBufferShaderName, *m_indexBuffer);
-        PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
-        return Result::SUCCESS;
-    }
-
     Result Renderer::CreateBuffers() {
         constexpr glm::u32 VERTEX_BUFFER_SIZE = 1024 * 1024 * 512;
+        BufferCreateInfo vertexBufferCreateInfo = {};
+        vertexBufferCreateInfo.IsVertexBuffer = true;
         AllocatedOptional<VulkanBuffer> bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Vertex Buffer",
-            VERTEX_BUFFER_SIZE
+            VERTEX_BUFFER_SIZE,
+            vertexBufferCreateInfo
         );
         PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create vertex buffer");
         m_vertexBuffer = bufferOpt.Release();
 
         constexpr glm::u32 INDEX_BUFFER_SIZE = 1024 * 1024 * 64;
+        BufferCreateInfo indexBufferCreateInfo = {};
+        indexBufferCreateInfo.IsIndexBuffer = true;
         bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Index Buffer",
-            INDEX_BUFFER_SIZE
+            INDEX_BUFFER_SIZE,
+            indexBufferCreateInfo
         );
         PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create index buffer");
         m_indexBuffer = bufferOpt.Release();

@@ -53,8 +53,6 @@ namespace Petal {
             const ModelResource &model
         );
 
-        Result Bind(VulkanShader &shader) const;
-
     private:
         Result CreateBuffers();
 

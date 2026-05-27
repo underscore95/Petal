@@ -71,13 +71,11 @@ namespace Petal {
 
         // Instanced rendering using a specific shader
         // Bind the vertex buffer and index buffer (if using) to the shader before submitting the command buffer.
-        void CmdRender(
+        void CmdRenderIndexed(
             const VulkanShader &shader,
             const CommandBufferVector &commandBuffers,
-            glm::u32 numVertices,
-            glm::u32 numInstances = 1,
-            glm::u32 firstVertex = 0,
-            glm::u32 firstInstance = 0
+            glm::u32 numIndices,
+            glm::u32 numInstances = 1
         );
 
         // Schedule a function to run after <num swapchain images> frames

@@ -36,4 +36,8 @@ namespace Petal {
             return errorCode; \
         } \
 } while (0)
+
+    // Return an error, this is equivalent to PETAL_CHECK_COND(true, ...)
+#define PETAL_ERROR(errorCode, loggerRef, message, ...) \
+    PETAL_CHECK_COND(true, errorCode, loggerRef, message __VA_OPT__(,) __VA_ARGS__)
 } // Petal

@@ -76,6 +76,7 @@ namespace Petal {
         entryPoints.reserve(asset.Shaders.size());
 
         glm::u32 entryPointIndex = 0;
+        Optional<glm::u32> vertexEntryPointIndex = Result::PETAL_OPTIONAL_EMPTY;
         for (const std::pair<const ShaderType, ShaderInfo> &shader : asset.Shaders) {
             ShaderType type = shader.first;
             const std::string &entryPointFunctionName = shader.second.EntryPoint;
@@ -91,6 +92,11 @@ namespace Petal {
                 m_logger,
                 "Failed to find entry point {} in {}", entryPointFunctionName, modulePath
             );
+
+            if (type == ShaderType::VERTEX) {
+                assert(vertexEntryPointIndex.IsEmpty());
+                vertexEntryPointIndex = entryPointIndex;
+            }
 
             components.push_back(entryPoint);
             entryPoints.emplace_back(entryPoint, type);
@@ -172,6 +178,16 @@ namespace Petal {
             m_logger,
             "Failed to reflect resource types for shader: {}", modulePath
         );
+
+        if (vertexEntryPointIndex.HasValue()) {
+            petalResult = ReflectVertexInput(out, programLayout, *vertexEntryPointIndex.Value());
+            PETAL_CHECK_COND(
+                petalResult != Result::SUCCESS,
+                petalResult,
+                m_logger,
+                "Failed to reflect vertex input for shader: {}", modulePath
+            );
+        }
 
         m_logger->Verbose("Compiled shader in {} ms", timer.MillisSinceStart());
         return out;
@@ -307,5 +323,95 @@ namespace Petal {
         resources.push_back(resource);
 
         return Result::SUCCESS;
+    }
+
+    Result ShaderSubsystem::ReflectVertexInput(
+        IntermediateShaderResource &shader,
+        ProgramLayout *programLayout,
+        glm::u32 vertexEntryPointIndex
+    ) {
+        EntryPointReflection *entryPointReflection = programLayout->getEntryPointByIndex(vertexEntryPointIndex);
+        glm::u32 numParams = entryPointReflection->getParameterCount();
+
+        // find all input params that are vertex varying input
+        std::vector<VariableLayoutReflection *> inputs;
+        for (glm::u32 i = 0; i < numParams; i++) {
+            VariableLayoutReflection *paramLayout = entryPointReflection->getParameterByIndex(i);
+
+            std::string name = paramLayout->getName();
+            ParameterCategory category = paramLayout->getCategory();
+            if (category != ParameterCategory::VaryingInput) continue;
+
+            ReflectGetAllFieldsRecursive(paramLayout, inputs);
+        }
+
+        // store types
+        VertexType info = {};
+        for (VariableLayoutReflection *variableLayout : inputs) {
+            constexpr glm::u32 SCALAR_SIZE = 4;
+            TypeReflection::Kind kind = variableLayout->getType()->getKind();
+            if (kind == TypeReflection::Kind::Vector) {
+                std::array<VkFormat, 3> FLOAT_VECTOR_FORMATS = {VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT};
+                constexpr std::array<VkFormat, 3> INT_VECTOR_FORMATS = {
+                    VK_FORMAT_R32G32_SINT,
+                    VK_FORMAT_R32G32B32_SINT,
+                    VK_FORMAT_R32G32B32A32_SINT
+                };
+                constexpr std::array<VkFormat, 3> UINT_VECTOR_FORMATS = {
+                    VK_FORMAT_R32G32_UINT,
+                    VK_FORMAT_R32G32B32_UINT,
+                    VK_FORMAT_R32G32B32A32_UINT
+                };
+                glm::u32 elementCount = variableLayout->getType()->getElementCount();
+                assert(elementCount >= 2 && elementCount <= 4);
+                TypeReflection::ScalarType scalarType = variableLayout->getType()->getElementType()->getScalarType();
+                VkFormat format;
+                if (scalarType == TypeReflection::Float32) format = FLOAT_VECTOR_FORMATS[elementCount - 2];
+                else if (scalarType == TypeReflection::UInt32) format = UINT_VECTOR_FORMATS[elementCount - 2];
+                else if (scalarType == TypeReflection::Int32) format = INT_VECTOR_FORMATS[elementCount - 2];
+                else {
+                    PETAL_ERROR(Result::PETAL_SHADER_REFLECTION_INVALID_TYPE, m_logger, "Unsupported vector with scalar type {} as vertex input", scalarType);
+                }
+                info.Attributes.push_back({SCALAR_SIZE * elementCount, format});
+            } else if (kind == TypeReflection::Kind::Scalar) {
+                TypeReflection::ScalarType scalarType = variableLayout->getType()->getScalarType();
+                VkFormat format;
+                if (scalarType == TypeReflection::Float32) format = VK_FORMAT_R32_SFLOAT;
+                else if (scalarType == TypeReflection::UInt32) format = VK_FORMAT_R32_UINT;
+                else if (scalarType == TypeReflection::Int32) format = VK_FORMAT_R32_SINT;
+                else {
+                    PETAL_ERROR(Result::PETAL_SHADER_REFLECTION_INVALID_TYPE, m_logger, "Unsupported scalar type {} as vertex input", scalarType);
+                }
+                info.Attributes.push_back({SCALAR_SIZE, format});
+            } else {
+                PETAL_ERROR(Result::PETAL_SHADER_REFLECTION_INVALID_TYPE, m_logger, "Unsupported type {} as vertex input", variableLayout->getType()->getName());
+            }
+            info.Size += info.Attributes.back().Size;
+        }
+
+        shader.VertexType = info;
+
+        return Result::SUCCESS;
+    }
+
+    void ShaderSubsystem::ReflectGetAllFieldsRecursive(
+        VariableLayoutReflection *variableLayout,
+        std::vector<VariableLayoutReflection *> &fieldsOut
+    ) {
+        TypeReflection::Kind kind = variableLayout->getTypeLayout()->getKind();
+        if (kind == TypeReflection::Kind::Struct) {
+            // struct - recursively iterate
+            if (variableLayout->getTypeLayout()->getFieldCount() == 0) {
+                m_logger->Warn("Struct {} with no fields in shader", variableLayout->getName());
+            }
+
+            for (glm::u32 fieldIndex = 0; fieldIndex < variableLayout->getTypeLayout()->getFieldCount(); fieldIndex++) {
+                VariableLayoutReflection *field = variableLayout->getTypeLayout()->getFieldByIndex(fieldIndex);
+                ReflectGetAllFieldsRecursive(field, fieldsOut);
+            }
+        } else {
+            // regular field - push
+            fieldsOut.push_back(variableLayout);
+        }
     }
 } // Petal

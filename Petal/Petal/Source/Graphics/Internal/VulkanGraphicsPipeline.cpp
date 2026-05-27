@@ -23,7 +23,7 @@ namespace Petal {
        m_shader(shader),
        m_logger(logger),
        m_settings(settings) {
-resultOut=m_settings.Validate(m_logger);
+        resultOut = m_settings.Validate(m_logger);
         if (resultOut != Result::SUCCESS) return;
 
         resultOut = CreatePipelineLayout();
@@ -164,9 +164,43 @@ resultOut=m_settings.Validate(m_logger);
         }
 
         // Vertex input state
-        VkPipelineVertexInputStateCreateInfo vertexInputState = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
+        VkVertexInputBindingDescription vertexInputBindingDescription = {
+            .binding = 0,
+            .stride = 0,
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
         };
+
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+        if (m_shader.GetVertexType().HasValue()) {
+            for (glm::u32 i = 0; i < m_shader.GetVertexType()->Attributes.size(); i++) {
+                const VertexType::Attribute &attribute = m_shader.GetVertexType()->Attributes[i];
+                VkVertexInputAttributeDescription attributeDescription = {
+                    .location = i,
+                    .binding = 0,
+                    .format = attribute.Format,
+                    .offset = attribute.Size
+                };
+                attributeDescriptions.push_back(attributeDescription);
+            }
+        }
+
+        VkPipelineVertexInputStateCreateInfo vertexInputState = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .vertexBindingDescriptionCount = 0,
+            .pVertexBindingDescriptions = nullptr,
+            .vertexAttributeDescriptionCount = 0,
+            .pVertexAttributeDescriptions = nullptr
+        };
+
+        if (!attributeDescriptions.empty()) {
+            vertexInputBindingDescription.stride = m_shader.GetVertexType()->Size;
+            vertexInputState.vertexBindingDescriptionCount = 1;
+            vertexInputState.pVertexBindingDescriptions = &vertexInputBindingDescription;
+            vertexInputState.vertexAttributeDescriptionCount = static_cast<glm::u32>(attributeDescriptions.size());
+            vertexInputState.pVertexAttributeDescriptions = attributeDescriptions.data();
+        }
 
         // Input assembly state
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {

@@ -4,7 +4,12 @@
 #include "Common.h"
 #include "GraphicsSettings.h"
 #include "Internal/DeviceRequirements.h"
+#include "Other/IndexType.h"
 #include "Rendering/RendererSettings.h"
+
+namespace Petal {
+    class GPUBuffer;
+}
 
 namespace Petal {
     class Renderer;
@@ -124,6 +129,20 @@ namespace Petal {
             const void *data,
             glm::u32 size
         );
+
+        // Bind one or more vertex buffers
+        void CmdBindVertexBuffer(
+            const CommandBufferVector &commandBuffers,
+            glm::u32 firstBinding,
+            const std::vector<std::reference_wrapper<const GPUBuffer>> &buffers
+        ) const;
+
+        // Bind an index buffer
+        void CmdBindIndexBuffer(
+            const CommandBufferVector &commandBuffers,
+            const GPUBuffer &buffer,
+            IndexType indexType
+        ) const;
 
         static constexpr VkImageSubresourceRange DEFAULT_IMAGE_SUBRESOURCE_RANGE = {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,

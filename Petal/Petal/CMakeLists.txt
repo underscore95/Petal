@@ -63,8 +63,6 @@ add_library(Petal SHARED
         Source/Graphics/Shaders/ShaderType.h
         Source/Graphics/Shaders/ShaderType.cpp
         Source/Graphics/Shaders/ShaderAsset.h
-        Source/Graphics/Shaders/VulkanShaderResource.cpp
-        Source/Graphics/Shaders/VulkanShaderResource.h
         Source/Graphics/Shaders/IntermediateShaderResource.h
         Source/Utils/File/FileUtils.cpp
         Source/Utils/File/FileUtils.h
@@ -117,6 +115,7 @@ add_library(Petal SHARED
         Source/Resources/Model.h
         Source/Rendering/Resources/ModelResource.cpp
         Source/Rendering/Resources/ModelResource.h
+        Source/Graphics/VertexType.h
 )
 
 # Macros

@@ -4,8 +4,13 @@
 #include <vulkan/vulkan_core.h>
 #include "Graphics/Shaders/ShaderType.h"
 #include "Graphics/GraphicsContext.h"
+#include "Graphics/VertexType.h"
 #include "Graphics/Memory/Textures/VulkanTexture.h"
 #include "Graphics/Resources/ResourceType.h"
+
+namespace Petal {
+    struct VertexType;
+}
 
 namespace Petal {
     class IBuffer;
@@ -45,7 +50,7 @@ namespace Petal {
         // Bind a resource
         Result BindBuffer(const std::string &name, const IBuffer &buffer);
 
-        Result BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture>> &textures);
+        Result BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture> > &textures);
 
         // Must be called once for each command buffer before this shader is used
         void BindResources(VkCommandBuffer commandBuffer) const;
@@ -57,6 +62,8 @@ namespace Petal {
         const std::vector<VkDescriptorSetLayout> &GetDescriptorSetLayouts() const;
 
         const VulkanGraphicsPipeline &GetPipeline() const;
+
+        const Optional<VertexType> &GetVertexType() const;
 
     private:
         Result CreateShaderModule(
@@ -80,5 +87,6 @@ namespace Petal {
         std::unordered_map<std::string, ShaderResource> m_resources;
         std::vector<Stage> m_shaderStages;
         std::unique_ptr<VulkanGraphicsPipeline> m_pipeline;
+       Optional< VertexType> m_vertexType;
     };
 } // Petal

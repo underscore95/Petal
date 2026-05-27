@@ -319,19 +319,17 @@ namespace Petal {
         }
     }
 
-    void VulkanSwapchain::CmdRender(
+    void VulkanSwapchain::CmdRenderIndexed(
         const VulkanShader &shader,
         const CommandBufferVector &commandBuffers,
-        glm::u32 numVertices,
-        glm::u32 numInstances,
-        glm::u32 firstVertex,
-        glm::u32 firstInstance
+        glm::u32 numIndices,
+        glm::u32 numInstances
     ) {
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
             VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
 
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.GetPipeline().GetHandle());
-            vkCmdDraw(commandBuffer, numVertices, numInstances, firstVertex, firstInstance);
+            vkCmdDrawIndexed(commandBuffer, numIndices, numInstances, 0, 0, 0);
         }
     }
 

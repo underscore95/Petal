@@ -1,5 +1,6 @@
 #pragma once
 #include "Graphics/GraphicsContext.h"
+#include "Graphics/VertexType.h"
 
 namespace Petal {
     class VulkanGraphicsPipeline {

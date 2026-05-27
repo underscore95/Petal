@@ -17,7 +17,7 @@ namespace Petal {
         m_numVertices += numVertices;
     }
 
-    const MeshBuilder::VertexType &MeshBuilder::GetVertexType() const {
+    const VertexType &MeshBuilder::GetVertexType() const {
         return m_vertexType;
     }
 

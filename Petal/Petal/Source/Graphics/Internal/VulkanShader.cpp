@@ -25,7 +25,8 @@ namespace Petal {
         std::shared_ptr<Logger> logger,
         Result &resultOut
     ) : m_renderer(renderer),
-        m_logger(logger) {
+        m_logger(logger),
+        m_vertexType(shader.VertexType) {
         for (const ShaderResource &resource : shader.Resources) {
             m_resources[resource.Name] = resource;
         }
@@ -305,6 +306,10 @@ namespace Petal {
 
     const VulkanGraphicsPipeline &VulkanShader::GetPipeline() const {
         return *m_pipeline;
+    }
+
+    const Optional<VertexType> &VulkanShader::GetVertexType() const {
+        return m_vertexType;
     }
 
     Result VulkanShader::CreateShaderModule(

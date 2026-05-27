@@ -3,15 +3,11 @@
 #include <assimp/mesh.h>
 
 #include "Common.h"
+#include "Graphics/VertexType.h"
 #include "Graphics/Other/IndexType.h"
 
 namespace Petal {
     class MeshBuilder {
-    public:
-        struct VertexType {
-            glm::u32 Size;
-        };
-
     public:
         MeshBuilder(
             const VertexType &vertexType,

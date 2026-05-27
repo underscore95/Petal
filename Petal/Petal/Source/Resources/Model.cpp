@@ -25,7 +25,7 @@ namespace Petal {
     Result Model::LoadModel(
         const std::shared_ptr<Logger> &logger,
         const std::filesystem::path &path,
-        const Settings &settings
+        const Settings &settings // todo actually use vertex type (like don't push normals if the vertex type doesn't want them etc)
     ) {
         glm::u32 flags = aiProcess_Triangulate;
 
@@ -79,29 +79,19 @@ namespace Petal {
                 vertices.push_back(mesh->mVertices[vertexIndex].y);
                 vertices.push_back(mesh->mVertices[vertexIndex].z);
 
-                // Padding
-                vertices.push_back(0);
-
                 // Normal
                 vertices.push_back(mesh->mNormals[vertexIndex].x);
                 vertices.push_back(mesh->mNormals[vertexIndex].y);
                 vertices.push_back(mesh->mNormals[vertexIndex].z);
 
-                // Padding
-                vertices.push_back(0);
-
                 // Texture coordinates
                 vertices.push_back(mesh->mTextureCoords[0][vertexIndex].x);
                 vertices.push_back(mesh->mTextureCoords[0][vertexIndex].y);
-
-                // Padding
-                vertices.push_back(0);
-                vertices.push_back(0);
             }
 
             // Create mesh
             Section section = {
-                .Mesh = std::make_unique<MeshBuilder>(MeshBuilder::VertexType{12 * sizeof(float)}, INDEX_TYPE), // todo don't hardcode vertex type
+                .Mesh = std::make_unique<MeshBuilder>(settings.VertexType, INDEX_TYPE),
                 .DiffuseTexture = diffuseTexture.C_Str()
             };
 

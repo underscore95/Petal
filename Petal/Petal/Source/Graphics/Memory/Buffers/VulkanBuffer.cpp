@@ -55,10 +55,18 @@ namespace Petal {
 
     Result VulkanBuffer::CreateBuffer(std::shared_ptr<Logger> logger) {
         PETAL_CHECK_COND(m_size == 0, Result::VMA_BUFFER_CREATION_FAILED, logger, "Attempted to create buffer {} with size 0", m_name);
+        PETAL_CHECK_COND(
+            m_createInfo.IsIndexBuffer && m_createInfo.IsVertexBuffer,
+            Result::VMA_BUFFER_CREATION_FAILED,
+            logger,
+            "Attempted to create index and vertex buffer {}", m_name
+        );
 
         VkBufferUsageFlags usage = BufferTypes::GetData(m_createInfo.BufferType).VulkanUsage;
         if (m_createInfo.IsTransferDest) usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         if (m_createInfo.IsTransferSource) usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        if (m_createInfo.IsVertexBuffer) usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        if (m_createInfo.IsIndexBuffer) usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;;
 #
         VkMemoryPropertyFlags properties = 0;
         if (m_createInfo.DeviceLocal) properties |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;

@@ -2,6 +2,7 @@
 #include "ShaderType.h"
 #include "slang.h"
 #include "Common.h"
+#include "Graphics/VertexType.h"
 #include "Graphics/Resources/ShaderResource.h"
 
 namespace Petal {
@@ -15,5 +16,10 @@ namespace Petal {
 
         std::vector<ShaderResource> Resources;
         std::unordered_map<ShaderType, ShaderStage> ShaderTypes;
+
+        // This will be set unless no vertex shader exists in the shader
+        // it contains information on vertex size and attributes
+        // The vertex is assumed to be the sum of all VARYING_INPUT parameters to the vertex shader
+        Optional<VertexType> VertexType = Result::PETAL_OPTIONAL_EMPTY;
     };
 } // Petal

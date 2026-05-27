@@ -14,6 +14,8 @@ namespace Petal {
         bool HostVisible = false;
         bool IsTransferDest = true;
         bool IsTransferSource = false;
+        bool IsVertexBuffer = false;
+        bool IsIndexBuffer = false;
     };
 
     class GraphicsContext;

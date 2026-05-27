@@ -24,11 +24,9 @@ namespace Petal {
     public:
         glm::u32 GetNumIndices() const;
 
-        // Index of the first index in the index buffer... indices[GetFirstIndex()] is the first index to render
-        glm::u32 GetFirstIndex() const;
+        const GPUBuffer &GetVertexBuffer() const;
 
-        // Index of the first vertex in the vertex buffer... vertices[GetFirstVertex()] is the first vertex to render
-        glm::u32 GetFirstVertex() const;
+        const GPUBuffer &GetIndexBuffer() const;
 
     private:
         GraphicsContext &m_context;

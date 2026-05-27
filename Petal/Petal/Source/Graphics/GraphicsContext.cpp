@@ -353,6 +353,53 @@ namespace Petal {
         }
     }
 
+    void GraphicsContext::CmdBindVertexBuffer(
+        const CommandBufferVector &commandBuffers,
+        glm::u32 firstBinding,
+        const std::vector<std::reference_wrapper<const GPUBuffer> > &buffers
+    ) const {
+        assert(commandBuffers.IsSwapchainSize());
+        if (buffers.empty()) {
+            m_logger->Warn("Binding 0 vertex buffers");
+        }
+
+        std::vector<VkBuffer> bufferHandles;
+        bufferHandles.reserve(buffers.size());
+        std::vector<VkDeviceSize> bufferOffsets;
+        bufferOffsets.reserve(buffers.size());
+        for (std::reference_wrapper<const GPUBuffer> buffer : buffers) {
+            bufferHandles.push_back(buffer.get().GetBackingBuffer()->GetHandle());
+            bufferOffsets.push_back(buffer.get().GetAllocation().Location);
+        }
+
+        for (glm::u32 i = 0; i < commandBuffers.Size(); i++) {
+            vkCmdBindVertexBuffers(
+                commandBuffers.GetHandle(i),
+                firstBinding,
+                buffers.size(),
+                bufferHandles.data(),
+                bufferOffsets.data()
+            );
+        }
+    }
+
+    void GraphicsContext::CmdBindIndexBuffer(
+        const CommandBufferVector &commandBuffers,
+        const GPUBuffer &buffer,
+        IndexType indexType
+    ) const {
+        assert(indexType == IndexType::INDICES_32_BIT); // for now only 32 bit supported
+
+        for (glm::u32 i = 0; i < commandBuffers.Size(); i++) {
+            vkCmdBindIndexBuffer(
+                commandBuffers.GetHandle(i),
+                buffer.GetBackingBuffer()->GetHandle(),
+                buffer.GetAllocation().Location,
+                IndexTypes::GetData(indexType).VulkanIndexType
+            );
+        }
+    }
+
     Result GraphicsContext::CreateCommandPools() {
         for (VulkanQueue &queue : m_device->GetQueueFamilies()) {
             VkCommandPoolCreateInfo cmdPoolCreateInfo = {

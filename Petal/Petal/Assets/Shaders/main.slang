@@ -6,8 +6,6 @@
 #include "Common.h"
 
 //StructuredBuffer<Camera> camera;
-StructuredBuffer<VertexData> vertices;
-StructuredBuffer<uint> indices;
 Sampler2D textures[];
 
 struct VOut
@@ -15,21 +13,16 @@ struct VOut
     float4 position : SV_Position;
     float3 normal;
     float2 uv;
-    int index;
 }
 
 // todo using vertex pulling is probably not worth it here
 [shader("vertex")]
 VOut vertexMain(
-    uint vertexID : SV_VulkanVertexID,
+    VertexData v,
     uniform Params params
 )
 {
-    uint index = indices[vertexID] + params.MeshVertexBufferStart;
-    VertexData v = vertices[index];
-
     VOut output;
-    output.index = index;
     output.position = float4(v.position, 1.0);
     // cam at 0,0,0, +y is up, looking at 0,0,1, perspective projection
     float4x4 camera =
@@ -40,8 +33,8 @@ VOut vertexMain(
         0,         0,        -0.1000100,  0
     };
     output.position = mul(camera, output.position);
-    output.position.xyz *= 0.01;
-    output.position.z += 3;
+    output.position.xyz *= 0.1;
+    //output.position.z += 0.1;
     //output.position.x += 6;
     //output.position.y -= 3;
     output.normal = v.normal;

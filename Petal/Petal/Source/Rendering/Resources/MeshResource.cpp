@@ -26,13 +26,11 @@ namespace Petal {
         return m_numIndices;
     }
 
-    glm::u32 MeshResource::GetFirstIndex() const {
-        // todo only 32 bit indices can be used
-        // additionally we can't mix and match either...
-        return m_indexBuffer->GetAllocation().Location / IndexTypes::GetData(IndexType::INDICES_32_BIT).SizeInBytes;
+    const GPUBuffer &MeshResource::GetVertexBuffer() const {
+        return *m_vertexBuffer;
     }
 
-    glm::u32 MeshResource::GetFirstVertex() const {
-        return m_vertexBuffer->GetAllocation().Location / m_vertexSize;
+    const GPUBuffer &MeshResource::GetIndexBuffer() const {
+        return *m_indexBuffer;
     }
 } // Petal

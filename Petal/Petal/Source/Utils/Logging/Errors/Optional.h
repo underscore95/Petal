@@ -25,7 +25,7 @@ namespace Petal {
             }
         }
 
-        Optional(const Optional &other) = delete;
+        Optional(const Optional &other) = default;
 
         Optional(Optional &&other) noexcept
             : m_value(std::move(other.m_value)),
@@ -33,7 +33,7 @@ namespace Petal {
               m_result(other.m_result) {
         }
 
-        Optional &operator=(const Optional &other) = delete;
+        Optional &operator=(const Optional &other) = default;
 
         Optional &operator=(Optional &&other) noexcept {
             if (this == &other)
@@ -58,10 +58,16 @@ namespace Petal {
     public:
         Result GetResult() const { return m_result; }
         T *Value() { return m_present ? &m_value : nullptr; }
+        const T *Value() const { return m_present ? &m_value : nullptr; }
         bool HasValue() const { return m_present; }
         bool IsEmpty() const { return !HasValue(); }
 
         T *operator->() {
+            assert(HasValue());
+            return &m_value;
+        }
+
+        const T *operator->() const {
             assert(HasValue());
             return &m_value;
         }
