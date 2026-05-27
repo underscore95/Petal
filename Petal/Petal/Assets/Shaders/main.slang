@@ -5,7 +5,6 @@
 
 #include "Common.h"
 
-//StructuredBuffer<Camera> camera;
 Sampler2D textures[];
 
 struct VOut
@@ -23,20 +22,9 @@ VOut vertexMain(
 )
 {
     VOut output;
-    output.position = float4(v.position, 1.0);
-    // cam at 0,0,0, +y is up, looking at 0,0,1, perspective projection
-    float4x4 camera =
-    {
-        0.9742786, 0,         0,          0,
-        0,         1.7320508, 0,          0,
-        0,         0,         1.0001000,  1,
-        0,         0,        -0.1000100,  0
-    };
-    output.position = mul(camera, output.position);
-    output.position.xyz *= 0.1;
-    //output.position.z += 0.1;
-    //output.position.x += 6;
-    //output.position.y -= 3;
+
+    float4x4 camera = mul(params.ViewMatrix, params.ProjMatrix);
+    output.position = mul(camera, float4(v.position, 1.0));
     output.normal = v.normal;
     output.uv = v.uv;
     return output;

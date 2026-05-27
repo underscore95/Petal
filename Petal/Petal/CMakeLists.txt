@@ -116,6 +116,10 @@ add_library(Petal SHARED
         Source/Rendering/Resources/ModelResource.cpp
         Source/Rendering/Resources/ModelResource.h
         Source/Graphics/VertexType.h
+        Source/Rendering/Camera/Camera.cpp
+        Source/Rendering/Camera/Camera.h
+        Source/Window/MouseButton.h
+        Source/Window/Key.h
 )
 
 # Macros

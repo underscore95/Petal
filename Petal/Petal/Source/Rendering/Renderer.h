@@ -1,6 +1,7 @@
 #pragma once
 #include "Resources/MeshResource.h"
 #include "RendererSettings.h"
+#include "Camera/Camera.h"
 #include "Graphics/GraphicsContext.h"
 #include "Resources/ModelResource.h"
 
@@ -50,6 +51,7 @@ namespace Petal {
         void CmdRender(
             const CommandBufferVector &commandBuffers,
             VulkanShader &shader,
+            const Camera& camera,
             const ModelResource &model
         );
 

@@ -10,6 +10,7 @@ namespace PetalShader {
     using float2 = glm::vec2;
     using float4x4 = glm::mat4x4;
     using uint = glm::u32;
+    using float4x4 = glm::mat4x4;
 
 #endif
 
@@ -19,12 +20,13 @@ namespace PetalShader {
         float2 uv;
     };
 
-    struct Camera {
-        float4x4 mvp;
-    };
-
     struct Params {
+        float4x4 ViewMatrix;
+        float4x4 ProjMatrix;
         uint DiffuseMapIndex;
+        uint Padding;
+        uint Padding2;
+        uint Padding3;
     };
 
 #ifdef __cplusplus

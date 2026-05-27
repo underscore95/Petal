@@ -27,6 +27,12 @@ namespace Petal {
         }
     }
 
+    void WindowSystem::LateUpdate() {
+        for (auto &window : m_windows) {
+            window->LateUpdate();
+        }
+    }
+
     void WindowSystem::Render() {
         for (auto &window : m_windows) {
             window->Render();

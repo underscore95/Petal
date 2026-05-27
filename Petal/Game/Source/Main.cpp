@@ -1,5 +1,7 @@
+#include "GameCamera.h"
 #include "Petal.h"
 #include "../../Petal/Assets/Shaders/Common.h"
+#include "Timing/Timer.h"
 using namespace Petal;
 using namespace PetalShader;
 
@@ -56,27 +58,33 @@ using namespace PetalShader;
 Model LoadSpider(const std::shared_ptr<Logger> &logger, const VertexType &vertexType) {
     Result resultOut;
     Model model(logger, "C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", {vertexType}, resultOut);
-     VertexData v = *static_cast<const VertexData *>(model.GetSections().at(0).Mesh->GetVertices());
+    VertexData v = *static_cast<const VertexData *>(model.GetSections().at(0).Mesh->GetVertices());
     assert(resultOut==Result::SUCCESS);
 
     logger->Info("Loaded spider model with {} meshes", model.GetSections().size());
     return model;
 }
 
-void RecordCommandBuffers(Renderer &renderer, GraphicsContext &graphicsContext, std::shared_ptr<CommandBufferVector> commandBuffers, std::shared_ptr<VulkanShader> shader,
-                          std::shared_ptr<ModelResource> model) {
+void RecordCommandBuffers(
+    Renderer &renderer,
+    GraphicsContext &graphicsContext,
+    std::shared_ptr<CommandBufferVector> commandBuffers,
+    std::shared_ptr<VulkanShader> shader,
+    std::shared_ptr<ModelResource> model,
+    const Camera &camera
+) {
     commandBuffers->BeginAll(0);
 
     graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
 
-    renderer.CmdRender(*commandBuffers, *shader, *model);
+    renderer.CmdRender(*commandBuffers, *shader, camera, *model);
 
     graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
 
     commandBuffers->EndAll();
 }
 
-int main() {
+int run(Timer &engineShutdownTime) {
     glm::u32 frameNumber = 0;
 
     Engine engine;
@@ -88,6 +96,10 @@ int main() {
         DeviceRequirements::DEFAULT()
     );
     if (rendererOptional.IsEmpty()) return -1;
+
+    GameCamera camera(window);
+    logger->Info("view: \n{}", camera.GetCamera().GetViewMatrix());
+    logger->Info("proj: \n{}", camera.GetCamera().GetProjMatrix());
 
     GraphicsContext &graphicsContext = *rendererOptional.Value();
     std::shared_ptr<CommandBufferVector> commandBuffers = graphicsContext.CreateCommandBuffers(
@@ -127,17 +139,22 @@ int main() {
     Model spiderModel = LoadSpider(logger, *shader->GetVertexType().Value());
     std::shared_ptr<ModelResource> model = renderer->UploadModel(spiderModel, "Spider").Release();
 
-    RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model);
+    RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, camera.GetCamera());
 
+    float dt = FLT_EPSILON;
     while (!window->WantsToClose()) {
+        Timer timer;
         frameNumber++;
         glm::u32 swapchainIndex = graphicsContext.GetSwapchain().GetSwapchainIndex();
 
         engine.Update();
+        camera.Update(dt);
+        engine.LateUpdate();
+
         Result result = graphicsContext.GetSwapchain().BeginRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model);
+            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, camera.GetCamera());
             continue;
         }
 
@@ -146,14 +163,25 @@ int main() {
         graphicsContext.GetSwapchain().EndRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model);
+            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, camera.GetCamera());
             continue;
         }
 
         engine.Render();
+        dt = timer.SecondsSinceStart();
     }
     graphicsContext.DeviceWaitIdle();
     commandBuffers.reset();
     engine.GetWindowSystem().CloseWindow(window);
+
+    engineShutdownTime.Restart();
     return 0;
+}
+
+
+int main() {
+    Timer timer;
+    int code = run(timer);
+    std::cout << "Shut down engine in " << timer.MillisSinceStart() << " ms." << std::endl;
+    return code;
 }

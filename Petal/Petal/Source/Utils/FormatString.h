@@ -52,7 +52,33 @@ struct std::formatter<type> : std::formatter<std::string> { \
 };
 
 // Common types
+// std::filesystem::path
 PETAL_MAKE_FORMATTABLE(
     std::filesystem::path, path,
     std::format("{}", path.string())
 );
+
+// glm::mat4x4
+template<>
+struct std::formatter<glm::mat4>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::mat4& m, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{{{:.5f}, {:.5f}, {:.5f}, {:.5f}}},\n"
+            " {{{:.5f}, {:.5f}, {:.5f}, {:.5f}}},\n"
+            " {{{:.5f}, {:.5f}, {:.5f}, {:.5f}}},\n"
+            " {{{:.5f}, {:.5f}, {:.5f}, {:.5f}}}}}",
+            m[0][0], m[1][0], m[2][0], m[3][0],
+            m[0][1], m[1][1], m[2][1], m[3][1],
+            m[0][2], m[1][2], m[2][2], m[3][2],
+            m[0][3], m[1][3], m[2][3], m[3][3]);
+    }
+};

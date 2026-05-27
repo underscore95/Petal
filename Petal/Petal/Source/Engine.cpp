@@ -61,6 +61,10 @@ namespace Petal {
         m_windowSystem->Update();
     }
 
+    void Engine::LateUpdate() {
+        m_windowSystem->LateUpdate();
+    }
+
     void Engine::Render() {
         m_scheduler->Render();
         m_windowSystem->Render();

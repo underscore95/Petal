@@ -95,11 +95,14 @@ namespace Petal {
     void Renderer::CmdRender(
         const CommandBufferVector &commandBuffers,
         VulkanShader &shader,
+        const Camera &camera,
         const ModelResource &model
     ) {
         for (const std::unique_ptr<MeshResource> &mesh : model.GetMeshes()) {
             PetalShader::Params params = {
-                .DiffuseMapIndex = 1 // todo
+                .ViewMatrix = camera.GetViewMatrix(),
+                .ProjMatrix = camera.GetProjMatrix(),
+                .DiffuseMapIndex = 1, // todo
             };
             CmdRender(commandBuffers, shader, params, *mesh);
         }
