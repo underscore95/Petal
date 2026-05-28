@@ -133,8 +133,7 @@ namespace Petal {
     Result Renderer::CreateBuffers() {
         // Vertex
         constexpr glm::u32 VERTEX_BUFFER_SIZE = 1024 * 1024 * 512;
-        BufferCreateInfo vertexBufferCreateInfo = {};
-        vertexBufferCreateInfo.IsVertexBuffer = true;
+        BufferCreateInfo vertexBufferCreateInfo = { .BufferType = BufferType::VERTEX_BUFFER };
         AllocatedOptional<VulkanBuffer> bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Vertex Buffer",
             VERTEX_BUFFER_SIZE,
@@ -145,8 +144,7 @@ namespace Petal {
 
         // Index
         constexpr glm::u32 INDEX_BUFFER_SIZE = 1024 * 1024 * 64;
-        BufferCreateInfo indexBufferCreateInfo = {};
-        indexBufferCreateInfo.IsIndexBuffer = true;
+        BufferCreateInfo indexBufferCreateInfo = { .BufferType = BufferType::INDEX_BUFFER };
         bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Index Buffer",
             INDEX_BUFFER_SIZE,

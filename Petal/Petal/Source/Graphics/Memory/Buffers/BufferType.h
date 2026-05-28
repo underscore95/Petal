@@ -5,6 +5,8 @@
 namespace Petal {
     enum class BufferType {
         STORAGE_BUFFER,
+        VERTEX_BUFFER,
+        INDEX_BUFFER,
         COUNT
     };
 

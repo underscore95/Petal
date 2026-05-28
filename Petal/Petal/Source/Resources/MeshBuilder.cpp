@@ -12,7 +12,7 @@ namespace Petal {
 
     void MeshBuilder::PushVertices(glm::u32 numVertices, const void *data) {
         m_vertices.resize(m_vertices.size() + numVertices * m_vertexType.Size);
-        void *verticesEnd = m_vertices.data() + m_numVertices * m_vertexType.Size;
+        char *verticesEnd = m_vertices.data() + m_numVertices * m_vertexType.Size;
         memcpy(verticesEnd, data, numVertices * m_vertexType.Size);
         m_numVertices += numVertices;
     }

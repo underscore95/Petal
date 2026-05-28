@@ -2,7 +2,9 @@
 
 namespace Petal {
     const std::array<BufferTypes::EnumData, static_cast<size_t>(BufferType::COUNT)> BufferTypes::Data = {
-        EnumData{"STORAGE_BUFFER", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}
+        EnumData{"STORAGE_BUFFER", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT},
+        EnumData{"VERTEX_BUFFER", VK_BUFFER_USAGE_VERTEX_BUFFER_BIT},
+        EnumData{"INDEX_BUFFER", VK_BUFFER_USAGE_INDEX_BUFFER_BIT},
     };
 
     VkBufferUsageFlags BufferTypes::CombineVulkanFlags(const std::vector<BufferType>& bufferTypes) {
