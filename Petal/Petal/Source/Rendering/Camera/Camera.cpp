@@ -1,5 +1,7 @@
 #include "Camera.h"
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 namespace Petal {
     Camera::Projection::Projection(const glm::mat4x4 &matrix)
         : Matrix(matrix) {
@@ -12,26 +14,20 @@ namespace Petal {
         float far
     ) {
         assert(screenSize.y != 0);
-        return Projection{glm::perspective(fov, screenSize.x / screenSize.y, near, far)};
+        Projection proj = Projection{glm::perspective(fov, screenSize.x / screenSize.y, near, far)};
+        proj.Matrix[1][1] *= -1.0f; // flip for vulkan
+        return proj;
     }
 
     Camera::Camera(
         Projection projection,
         glm::vec3 position,
-        glm::vec3 forward,
         glm::vec3 up
     )
         : m_position(position),
-          m_projMatrix(projection.Matrix) {
-        m_forward = glm::normalize(forward);
-        m_right = glm::normalize(glm::cross(m_forward, up));
-        m_up = glm::normalize(glm::cross(m_right, m_forward));
-
-        m_pitchYawRoll.x = std::asin(glm::clamp(m_forward.y, -1.0f, 1.0f));
-        m_pitchYawRoll.y = std::atan2(m_forward.x, -m_forward.z);
-        m_pitchYawRoll.z = 0.0f;
-
-        UpdateViewMatrix();
+          m_projMatrix(projection.Matrix),
+          m_worldUp(up) {
+        SetRotation(glm::vec2{0.0f, glm::pi<float>() / 2.0f});
     }
 
     glm::vec3 Camera::GetPosition() const {
@@ -50,39 +46,23 @@ namespace Petal {
         UpdateViewMatrix();
     }
 
-    glm::vec3 Camera::GetRotation() const {
-        return m_pitchYawRoll;
+    glm::vec2 Camera::GetRotation() const {
+        return m_pitchYaw;
     }
 
-    void Camera::SetRotation(glm::vec3 pitchYawRoll) {
-        m_pitchYawRoll = pitchYawRoll;
+    void Camera::SetRotation(glm::vec2 pitchYaw) {
+        m_pitchYaw = pitchYaw;
 
-        glm::vec3 forward;
-        forward.x = std::cos(m_pitchYawRoll.x) * std::sin(m_pitchYawRoll.y);
-        forward.y = std::sin(m_pitchYawRoll.x);
-        forward.z = -std::cos(m_pitchYawRoll.x) * std::cos(m_pitchYawRoll.y);
+        float pitch = pitchYaw.x;
+        float yaw = pitchYaw.y;
 
-        m_forward = glm::normalize(forward);
+        glm::vec3 forward = {
+            glm::cos(pitch) * glm::cos(yaw),
+            glm::sin(pitch),
+            glm::cos(pitch) * glm::sin(yaw)
+        };
 
-        glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
-
-        m_right = glm::normalize(glm::cross(m_forward, worldUp));
-        m_up = glm::normalize(glm::cross(m_right, m_forward));
-
-        if (m_pitchYawRoll.z != 0.0f) {
-            glm::mat4 rollMatrix =
-                    glm::rotate(glm::mat4(1.0f), m_pitchYawRoll.z, m_forward);
-
-            m_right = glm::normalize(
-                glm::vec3(rollMatrix * glm::vec4(m_right, 0.0f))
-            );
-
-            m_up = glm::normalize(
-                glm::vec3(rollMatrix * glm::vec4(m_up, 0.0f))
-            );
-        }
-
-        UpdateViewMatrix();
+        UpdateDirection(forward);
     }
 
     void Camera::SetProject(const Projection &projection) {
@@ -97,11 +77,31 @@ namespace Petal {
         return m_projMatrix;
     }
 
+    glm::vec3 Camera::GetUp() const {
+        return m_up;
+    }
+
+    glm::vec3 Camera::GetLeft() const {
+        return m_left;
+    }
+
+    glm::vec3 Camera::GetForward() const {
+        return m_forward;
+    }
+
     void Camera::UpdateViewMatrix() {
         m_viewMatrix = glm::lookAt(
             m_position,
             m_position + m_forward,
             m_up
         );
+    }
+
+    void Camera::UpdateDirection(const glm::vec3 &forward) {
+        m_forward = glm::normalize(forward);
+        m_left = glm::normalize(glm::cross(m_worldUp, m_forward));
+        m_up = glm::normalize(glm::cross(m_forward, m_left));
+
+        UpdateViewMatrix();
     }
 } // Petal

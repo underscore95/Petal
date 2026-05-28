@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Buffers/VulkanBuffer.h"
 
 namespace Petal {
@@ -66,7 +67,7 @@ namespace Petal {
 
         // Write to a buffer
         Result Write(
-            const GPUBuffer &buffer,
+            const IBuffer &buffer,
             const void *data,
             glm::u32 size
         );

@@ -20,6 +20,7 @@ namespace Petal {
         static constexpr const char* OTHER_LOGGER = "Other";
         static constexpr const char* WINDOW_LOGGER = "Window";
         static constexpr const char* GRAPHICS_LOGGER = "Graphics";
+        static constexpr const char* GPU_MEMORY_LOGGER = "GPUMemory";
         static constexpr const char* GRAPHICS_API_LOGGER = "GraphicsAPI";
         static constexpr const char* SCHEDULER_LOGGER = "Scheduler";
         static constexpr std::array ENGINE_LOGGERS = {
@@ -27,7 +28,8 @@ namespace Petal {
             WINDOW_LOGGER,
             GRAPHICS_LOGGER,
             GRAPHICS_API_LOGGER,
-            SCHEDULER_LOGGER
+            SCHEDULER_LOGGER,
+            GPU_MEMORY_LOGGER
         };
 
     private:

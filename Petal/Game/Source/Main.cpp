@@ -77,7 +77,7 @@ void RecordCommandBuffers(
 
     graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
 
-    renderer.CmdRender(*commandBuffers, *shader, camera, *model);
+    renderer.CmdRender(*commandBuffers, *shader, *model);
 
     graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
 
@@ -96,10 +96,6 @@ int run(Timer &engineShutdownTime) {
         DeviceRequirements::DEFAULT()
     );
     if (rendererOptional.IsEmpty()) return -1;
-
-    GameCamera camera(window);
-    logger->Info("view: \n{}", camera.GetCamera().GetViewMatrix());
-    logger->Info("proj: \n{}", camera.GetCamera().GetProjMatrix());
 
     GraphicsContext &graphicsContext = *rendererOptional.Value();
     std::shared_ptr<CommandBufferVector> commandBuffers = graphicsContext.CreateCommandBuffers(
@@ -132,13 +128,19 @@ int run(Timer &engineShutdownTime) {
     shader->BindTextures("textures", {iconTexture, testTexture});
 
     // Renderer
-    RendererSettings rendererSettings = {};
-    auto renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
+    RendererSettings rendererSettings = {
+        .CameraBufferName = "camera"
+    };
+    std::shared_ptr<Renderer> renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
 
     // std::shared_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
     Model spiderModel = LoadSpider(logger, *shader->GetVertexType().Value());
     std::shared_ptr<ModelResource> model = renderer->UploadModel(spiderModel, "Spider").Release();
 
+    Result result = renderer->Bind(*shader);
+    assert(result == Result::SUCCESS);
+
+    GameCamera camera(window, renderer, logger);
     RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, camera.GetCamera());
 
     float dt = FLT_EPSILON;

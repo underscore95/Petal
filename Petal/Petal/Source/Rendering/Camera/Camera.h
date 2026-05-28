@@ -17,7 +17,6 @@ namespace Petal {
         Camera(
             Projection projection,
             glm::vec3 position,
-            glm::vec3 forward,
             glm::vec3 up = {0, 1, 0}
         );
 
@@ -28,9 +27,9 @@ namespace Petal {
 
         void Move(glm::vec3 delta);
 
-        glm::vec3 GetRotation() const;
+        glm::vec2 GetRotation() const;
 
-        void SetRotation(glm::vec3 pitchYawRoll);
+        void SetRotation(glm::vec2 pitchYaw);
 
         void SetProject(const Projection &projection);
 
@@ -38,15 +37,24 @@ namespace Petal {
 
         glm::mat4x4 GetProjMatrix() const;
 
+        glm::vec3 GetUp() const;
+
+        glm::vec3 GetLeft() const;
+
+        glm::vec3 GetForward() const;
+
     private:
         void UpdateViewMatrix();
 
+        void UpdateDirection(const glm::vec3 &forward);
+
     private:
+        const glm::vec3 m_worldUp;
         glm::vec3 m_up;
         glm::vec3 m_forward;
-        glm::vec3 m_right;
+        glm::vec3 m_left;
         glm::vec3 m_position;
-        glm::vec3 m_pitchYawRoll;
+        glm::vec2 m_pitchYaw;
         glm::mat4x4 m_projMatrix;
         glm::mat4x4 m_viewMatrix;
     };

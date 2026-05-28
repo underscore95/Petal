@@ -15,6 +15,9 @@ namespace Petal {
     ) : m_context(context),
         m_logger(logger),
         m_rendererSettings(rendererSettings) {
+        outResult = m_rendererSettings.Validate(m_logger);
+        if (outResult != Result::SUCCESS) return;
+
         outResult = CreateBuffers();
         if (outResult != Result::SUCCESS) return;
     }
@@ -77,11 +80,15 @@ namespace Petal {
 
     void Renderer::CmdRender(
         const CommandBufferVector &commandBuffers,
-        VulkanShader &shader,
+        const VulkanShader &shader,
         const PetalShader::Params &params,
         const MeshResource &mesh,
         glm::u32 instances
-    ) {
+    ) const {
+        if (!m_hasUploadedCamera) [[unlikely]] {
+            m_logger->Error("You must call SetCamera before rendering a mesh.");
+        }
+
         shader.BindResources(commandBuffers);
 
         m_context.CmdBindVertexBuffer(commandBuffers, 0, {std::cref(mesh.GetVertexBuffer())});
@@ -94,21 +101,37 @@ namespace Petal {
 
     void Renderer::CmdRender(
         const CommandBufferVector &commandBuffers,
-        VulkanShader &shader,
-        const Camera &camera,
+        const VulkanShader &shader,
         const ModelResource &model
-    ) {
+    ) const {
         for (const std::unique_ptr<MeshResource> &mesh : model.GetMeshes()) {
             PetalShader::Params params = {
-                .ViewMatrix = camera.GetViewMatrix(),
-                .ProjMatrix = camera.GetProjMatrix(),
                 .DiffuseMapIndex = 1, // todo
             };
             CmdRender(commandBuffers, shader, params, *mesh);
         }
     }
 
+    void Renderer::SetCamera(const Camera &camera) {
+        m_hasUploadedCamera = true;
+
+        PetalShader::CameraMatrices matrices = {
+            .ViewMatrix = camera.GetViewMatrix(),
+            .ProjMatrix = camera.GetProjMatrix()
+        };
+
+        m_context.GetMemorySubsystem().Write(*m_cameraBuffer, &matrices, sizeof(matrices));
+    }
+
+    Result Renderer::Bind(const VulkanShader &shader) const {
+        Result result = shader.BindBuffer(m_rendererSettings.CameraBufferName, *m_cameraBuffer);
+        if (result != Result::SUCCESS) return result;
+
+        return result;
+    }
+
     Result Renderer::CreateBuffers() {
+        // Vertex
         constexpr glm::u32 VERTEX_BUFFER_SIZE = 1024 * 1024 * 512;
         BufferCreateInfo vertexBufferCreateInfo = {};
         vertexBufferCreateInfo.IsVertexBuffer = true;
@@ -120,6 +143,7 @@ namespace Petal {
         PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create vertex buffer");
         m_vertexBuffer = bufferOpt.Release();
 
+        // Index
         constexpr glm::u32 INDEX_BUFFER_SIZE = 1024 * 1024 * 64;
         BufferCreateInfo indexBufferCreateInfo = {};
         indexBufferCreateInfo.IsIndexBuffer = true;
@@ -130,6 +154,14 @@ namespace Petal {
         );
         PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create index buffer");
         m_indexBuffer = bufferOpt.Release();
+
+        // Camera
+        bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
+            "Camera Buffer",
+            sizeof(PetalShader::CameraMatrices)
+        );
+        PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create camera buffer");
+        m_cameraBuffer = bufferOpt.Release();
 
         return Result::SUCCESS;
     }

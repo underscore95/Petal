@@ -48,9 +48,9 @@ namespace Petal {
 
     public:
         // Bind a resource
-        Result BindBuffer(const std::string &name, const IBuffer &buffer);
+        Result BindBuffer(const std::string &name, const IBuffer &buffer) const;
 
-        Result BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture> > &textures);
+        Result BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture> > &textures) const;
 
         // Must be called once for each command buffer before this shader is used
         void BindResources(VkCommandBuffer commandBuffer) const;

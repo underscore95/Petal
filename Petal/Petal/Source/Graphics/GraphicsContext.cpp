@@ -64,7 +64,7 @@ namespace Petal {
         result = CreateSwapchain();
         if (result != Result::SUCCESS) return;
 
-        m_memorySubsystem = std::make_unique<GPUMemorySubsystem>(*this, m_logger, result);
+        m_memorySubsystem = std::make_unique<GPUMemorySubsystem>(*this, m_engine.GetLoggerSystem().GetLogger(LoggerSystem::GPU_MEMORY_LOGGER), result);
         if (result != Result::SUCCESS) return;
 
         result = Result::SUCCESS;

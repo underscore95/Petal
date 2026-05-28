@@ -46,4 +46,16 @@ namespace Petal {
     const std::shared_ptr<VulkanBuffer> &GPUBuffer::GetBackingBuffer() const {
         return m_backingBuffer;
     }
+
+    glm::u32 GPUBuffer::GetOffset() const {
+        return m_allocation.Location;
+    }
+
+    glm::u32 GPUBuffer::GetSize() const {
+        return m_allocation.Size;
+    }
+
+    VkBuffer GPUBuffer::GetHandle() const {
+        return m_backingBuffer->GetHandle();
+    }
 } // Petal

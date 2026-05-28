@@ -14,6 +14,8 @@ namespace Petal {
     )
         : m_context(renderer),
           m_logger(logger) {
+        logger->SetMuted(true); // todo configurable
+
         resultOut = CreateTransferBuffer();
         if (resultOut != Result::SUCCESS) return;
 
@@ -87,7 +89,7 @@ namespace Petal {
     }
 
     Result GPUMemorySubsystem::Write(
-        const GPUBuffer &buffer,
+        const IBuffer &buffer,
         const void *data,
         glm::u32 size
     ) {
@@ -96,10 +98,10 @@ namespace Petal {
         PETAL_CHECK_COND(data == nullptr, Result::VMA_BUFFER_WRITE_FAILED, m_logger, "Attempted to write to buffer {} but data was nullptr", buffer.GetName());
         PETAL_CHECK_COND(size == 0, Result::VMA_BUFFER_WRITE_FAILED, m_logger, "Attempted to write to buffer {} but size was 0", buffer.GetName());
         PETAL_CHECK_COND(
-            size > buffer.GetAllocation().Size,
+            size > buffer.GetSize(),
             Result::VMA_BUFFER_WRITE_FAILED,
             m_logger,
-            "Attempted to write to buffer {} with size {} but amount of data to copy was {}", buffer.GetName(), buffer.GetAllocation().Size, size
+            "Attempted to write to buffer {} with size {} but amount of data to copy was {}", buffer.GetName(), buffer.GetSize(), size
         );
 
         void *dest = nullptr;
@@ -109,12 +111,12 @@ namespace Petal {
         // Write in blocks
         const glm::u32 blockSize = m_transferBuffer->GetSize();
         glm::u32 bytesRemaining = size;
-        const glm::u32 bufferOffset = buffer.GetAllocation().Location;
+        const glm::u32 bufferOffset = buffer.GetOffset();
         m_logger->Verbose("Writing to buffer at location {}, {} bytes remaining", bufferOffset, bytesRemaining);
         for (glm::u32 blockIndex = 0; blockIndex <= size / blockSize; blockIndex++) {
             glm::u32 blockOffset = blockIndex * blockSize;
             glm::u32 bytesToWrite = glm::min(blockSize, bytesRemaining);
-            memcpy(static_cast<char *>(dest) + blockOffset , static_cast<const char *>(data) + blockOffset, bytesToWrite);
+            memcpy(static_cast<char *>(dest) + blockOffset, static_cast<const char *>(data) + blockOffset, bytesToWrite);
 
             Result result = m_commandBuffer->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
@@ -127,7 +129,7 @@ namespace Petal {
             vkCmdCopyBuffer(
                 m_commandBuffer->GetHandle(),
                 m_transferBuffer->GetHandle(),
-                buffer.GetBackingBuffer()->GetHandle(),
+                buffer.GetHandle(),
                 1,
                 &copy
             );

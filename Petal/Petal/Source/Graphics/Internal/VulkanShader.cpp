@@ -189,8 +189,8 @@ namespace Petal {
         return 128; // todo configurable
     }
 
-    Result VulkanShader::BindBuffer(const std::string &name, const IBuffer &buffer) {
-        auto it = m_resources.find(name);
+    Result VulkanShader::BindBuffer(const std::string &name, const IBuffer &buffer) const {
+        const auto it = m_resources.find(name);
         PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find buffer {}. Note resource names are case sensitive.", name);
 
         const ShaderResource &shaderResource = it->second;
@@ -231,8 +231,8 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
-    Result VulkanShader::BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture> > &textures) {
-        auto it = m_resources.find(name);
+    Result VulkanShader::BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture> > &textures) const {
+        const auto it = m_resources.find(name);
         PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find texture {}. Note resource names are case sensitive.", name);
 
         const ShaderResource &shaderResource = it->second;

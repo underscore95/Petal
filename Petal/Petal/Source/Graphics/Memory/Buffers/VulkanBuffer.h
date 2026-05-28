@@ -34,18 +34,22 @@ namespace Petal {
         ~VulkanBuffer();
 
     public:
-        VkBuffer GetHandle() const;
+        VkBuffer GetHandle() const override;
 
         VmaAllocation GetVMAAllocation() const;
 
-        glm::u32 GetSize() const;
+        glm::u32 GetSize() const override;
 
         // All sub allocations inside this buffer
         AllocationTracker &GetAllocations();
 
         VkDescriptorBufferInfo GetDescriptorInfo() const override;
 
-        const std::string & GetName() const override;
+        const std::string &GetName() const override;
+
+    private:
+        // Required for IBuffer, but offset is always 0 since a VulkanBuffer is a whole buffer
+        glm::u32 GetOffset() const override { return 0; }
 
     private:
         Result CreateBuffer(std::shared_ptr<Logger> logger);

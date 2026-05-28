@@ -31,6 +31,13 @@ namespace Petal {
         const std::shared_ptr<VulkanBuffer> &GetBackingBuffer() const;
 
     private:
+        glm::u32 GetOffset() const override;
+
+        glm::u32 GetSize() const override;
+
+        VkBuffer GetHandle() const override;
+
+    private:
         GraphicsContext &m_context;
         std::string m_name;
         std::shared_ptr<VulkanBuffer> m_backingBuffer;

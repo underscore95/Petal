@@ -21,12 +21,12 @@ namespace PetalShader {
     };
 
     struct Params {
+        uint DiffuseMapIndex;
+    };
+
+    struct CameraMatrices {
         float4x4 ViewMatrix;
         float4x4 ProjMatrix;
-        uint DiffuseMapIndex;
-        uint Padding;
-        uint Padding2;
-        uint Padding3;
     };
 
 #ifdef __cplusplus

@@ -43,17 +43,20 @@ namespace Petal {
 
         void CmdRender(
             const CommandBufferVector &commandBuffers,
-            VulkanShader &shader,
+            const VulkanShader &shader,
             const PetalShader::Params &params, // todo something about this
             const MeshResource &mesh, glm::u32 instances = 1
-        );
+        ) const;
 
         void CmdRender(
             const CommandBufferVector &commandBuffers,
-            VulkanShader &shader,
-            const Camera& camera,
+            const VulkanShader &shader,
             const ModelResource &model
-        );
+        ) const;
+
+        void SetCamera(const Camera& camera);
+
+        Result Bind(const VulkanShader &shader) const;
 
     private:
         Result CreateBuffers();
@@ -63,8 +66,10 @@ namespace Petal {
         std::shared_ptr<Logger> m_logger;
         std::shared_ptr<VulkanBuffer> m_vertexBuffer;
         std::shared_ptr<VulkanBuffer> m_indexBuffer;
+        std::shared_ptr<VulkanBuffer> m_cameraBuffer;
         glm::u32 m_numUploadedMeshes = 0;
         glm::u32 m_numUploadedModels = 0;
         RendererSettings m_rendererSettings;
+        bool m_hasUploadedCamera = false;
     };
 } // Petal

@@ -6,6 +6,8 @@
 #include "Common.h"
 
 Sampler2D textures[];
+//uniform CameraMatrices camera;
+StructuredBuffer<CameraMatrices> camera;
 
 struct VOut
 {
@@ -14,7 +16,6 @@ struct VOut
     float2 uv;
 }
 
-// todo using vertex pulling is probably not worth it here
 [shader("vertex")]
 VOut vertexMain(
     VertexData v,
@@ -23,8 +24,9 @@ VOut vertexMain(
 {
     VOut output;
 
-    float4x4 camera = mul(params.ViewMatrix, params.ProjMatrix);
-    output.position = mul(camera, float4(v.position, 1.0));
+    float4 worldPos = float4(v.position, 1.0);
+    float4 viewPos = mul(worldPos, camera[0].ViewMatrix);
+    output.position = mul(viewPos, camera[0].ProjMatrix);
     output.normal = v.normal;
     output.uv = v.uv;
     return output;

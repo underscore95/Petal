@@ -82,3 +82,174 @@ struct std::formatter<glm::mat4>
             m[0][3], m[1][3], m[2][3], m[3][3]);
     }
 };
+
+// glm::vec2
+template<>
+struct std::formatter<glm::vec2>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::vec2& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{:.5f}, {:.5f}}}",
+            v.x, v.y);
+    }
+};
+
+// glm::vec3
+template<>
+struct std::formatter<glm::vec3>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::vec3& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{:.5f}, {:.5f}, {:.5f}}}",
+            v.x, v.y, v.z);
+    }
+};
+
+// glm::vec4
+template<>
+struct std::formatter<glm::vec4>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::vec4& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{:.5f}, {:.5f}, {:.5f}, {:.5f}}}",
+            v.x, v.y, v.z, v.w);
+    }
+};
+
+// glm::ivec2
+template<>
+struct std::formatter<glm::ivec2>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::ivec2& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}}}",
+            v.x, v.y);
+    }
+};
+
+// glm::ivec3
+template<>
+struct std::formatter<glm::ivec3>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::ivec3& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}, {}}}",
+            v.x, v.y, v.z);
+    }
+};
+
+// glm::ivec4
+template<>
+struct std::formatter<glm::ivec4>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::ivec4& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}, {}, {}}}",
+            v.x, v.y, v.z, v.w);
+    }
+};
+
+// glm::uvec2
+template<>
+struct std::formatter<glm::uvec2>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::uvec2& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}}}",
+            v.x, v.y);
+    }
+};
+
+// glm::uvec3
+template<>
+struct std::formatter<glm::uvec3>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::uvec3& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}, {}}}",
+            v.x, v.y, v.z);
+    }
+};
+
+// glm::uvec4
+template<>
+struct std::formatter<glm::uvec4>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::uvec4& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}, {}, {}}}",
+            v.x, v.y, v.z, v.w);
+    }
+};
