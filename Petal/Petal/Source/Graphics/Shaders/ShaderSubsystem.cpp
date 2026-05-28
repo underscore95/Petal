@@ -2,6 +2,7 @@
 
 #include "File/FileUtils.h"
 #include "Timing/Timer.h"
+#include "Graphics/Internal/VkFormat.h"
 
 using namespace slang;
 using namespace Slang;
@@ -189,7 +190,24 @@ namespace Petal {
             );
         }
 
-        m_logger->Verbose("Compiled shader in {} ms", timer.MillisSinceStart());
+        // Output log
+        for (const ShaderResource &resource : out.Resources) {
+            m_logger->Verbose("Found resource '{}' ({}) in shaders {} bound to set {} index {}", resource.Name, resource.Type, resource.Stages, resource.BindingSet,
+                              resource.BindingIndex);
+            if (resource.IsArray) {
+                if (resource.IsStaticArray()) m_logger->Verbose(" - '{}' is a static array with size {}", resource.Name, resource.StaticArraySize);
+                else m_logger->Verbose(" - '{}' is a dynamically sized array.", resource.Name);
+            }
+        }
+
+        if (out.VertexType.HasValue()) {
+            m_logger->Verbose("Vertex Size: {} ({} Attributes)", out.VertexType->Size, out.VertexType->Attributes.size());
+            for (const VertexType::Attribute &attr : out.VertexType->Attributes) {
+                m_logger->Verbose(" - Found attribute '{}' with size {} and format {}", attr.Name, attr.Size, attr.Format);
+            }
+        }
+
+        m_logger->Verbose("Compiled and reflected shader in {} ms", timer.MillisSinceStart());
         return out;
     }
 
@@ -372,7 +390,7 @@ namespace Petal {
                 else {
                     PETAL_ERROR(Result::PETAL_SHADER_REFLECTION_INVALID_TYPE, m_logger, "Unsupported vector with scalar type {} as vertex input", scalarType);
                 }
-                info.Attributes.push_back({SCALAR_SIZE * elementCount, format});
+                info.Attributes.push_back({variableLayout->getName(), SCALAR_SIZE * elementCount, format});
             } else if (kind == TypeReflection::Kind::Scalar) {
                 TypeReflection::ScalarType scalarType = variableLayout->getType()->getScalarType();
                 VkFormat format;
@@ -382,7 +400,7 @@ namespace Petal {
                 else {
                     PETAL_ERROR(Result::PETAL_SHADER_REFLECTION_INVALID_TYPE, m_logger, "Unsupported scalar type {} as vertex input", scalarType);
                 }
-                info.Attributes.push_back({SCALAR_SIZE, format});
+                info.Attributes.push_back({variableLayout->getName(), SCALAR_SIZE, format});
             } else {
                 PETAL_ERROR(Result::PETAL_SHADER_REFLECTION_INVALID_TYPE, m_logger, "Unsupported type {} as vertex input", variableLayout->getType()->getName());
             }

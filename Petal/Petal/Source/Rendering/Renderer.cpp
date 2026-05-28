@@ -50,7 +50,15 @@ namespace Petal {
         PETAL_CHECK_OPTIONAL_SILENT(indexBuffer);
         m_context.GetMemorySubsystem().Write(*indexBuffer.Value(), mesh.GetIndices(), mesh.GetIndexBufferSize());
 
-        auto meshResource = std::make_unique<MeshResource>(m_context, m_logger, vertexBuffer.Release(), indexBuffer.Release(), mesh.GetNumIndices(), mesh.GetVertexType().Size);
+        auto meshResource = std::make_unique<MeshResource>(
+            m_context,
+            m_logger,
+            vertexBuffer.Release(),
+            indexBuffer.Release(),
+            mesh.GetNumIndices(),
+            mesh.GetVertexType().Size,
+            mesh.GetIndexType()
+        );
         return meshResource;
     }
 
@@ -92,7 +100,7 @@ namespace Petal {
         shader.BindResources(commandBuffers);
 
         m_context.CmdBindVertexBuffer(commandBuffers, 0, {std::cref(mesh.GetVertexBuffer())});
-        m_context.CmdBindIndexBuffer(commandBuffers, mesh.GetIndexBuffer(), IndexType::INDICES_32_BIT); // todo don't hardcode
+        m_context.CmdBindIndexBuffer(commandBuffers, mesh.GetIndexBuffer(), mesh.GetIndexType());
 
         m_context.CmdWritePushConstants(commandBuffers, shader, &params, sizeof(params));
 
@@ -133,7 +141,7 @@ namespace Petal {
     Result Renderer::CreateBuffers() {
         // Vertex
         constexpr glm::u32 VERTEX_BUFFER_SIZE = 1024 * 1024 * 512;
-        BufferCreateInfo vertexBufferCreateInfo = { .BufferType = BufferType::VERTEX_BUFFER };
+        BufferCreateInfo vertexBufferCreateInfo = {.BufferType = BufferType::VERTEX_BUFFER};
         AllocatedOptional<VulkanBuffer> bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Vertex Buffer",
             VERTEX_BUFFER_SIZE,
@@ -144,7 +152,7 @@ namespace Petal {
 
         // Index
         constexpr glm::u32 INDEX_BUFFER_SIZE = 1024 * 1024 * 64;
-        BufferCreateInfo indexBufferCreateInfo = { .BufferType = BufferType::INDEX_BUFFER };
+        BufferCreateInfo indexBufferCreateInfo = {.BufferType = BufferType::INDEX_BUFFER};
         bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Index Buffer",
             INDEX_BUFFER_SIZE,

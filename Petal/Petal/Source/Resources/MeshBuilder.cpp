@@ -7,7 +7,6 @@ namespace Petal {
     )
         : m_vertexType(vertexType),
           m_indexType(indexType) {
-        assert(indexType == IndexType::INDICES_32_BIT); // todo Model::GetFirstVertex() needs to support mix and matching...
     }
 
     void MeshBuilder::PushVertices(glm::u32 numVertices, const void *data) {
@@ -15,6 +14,14 @@ namespace Petal {
         char *verticesEnd = m_vertices.data() + m_numVertices * m_vertexType.Size;
         memcpy(verticesEnd, data, numVertices * m_vertexType.Size);
         m_numVertices += numVertices;
+    }
+
+    void MeshBuilder::SetIndices(const void *indices, glm::u32 size, IndexType indexType) {
+        assert(m_indexType == indexType && "Attempted to push index of wrong size to mesh");
+        assert(size % IndexTypes::GetData(indexType).SizeInBytes == 0);
+        m_indices.resize(size);
+        memcpy(m_indices.data(), indices, size);
+        m_numIndices = size / IndexTypes::GetData(indexType).SizeInBytes;
     }
 
     const VertexType &MeshBuilder::GetVertexType() const {

@@ -59,7 +59,7 @@ Model LoadModel(std::string path, const std::shared_ptr<Logger> &logger, const V
     Result resultOut;
     Model model(logger, path, {vertexType}, resultOut);
     VertexData v = *static_cast<const VertexData *>(model.GetSections().at(0).Mesh->GetVertices());
-    assert(resultOut==Result::SUCCESS);
+    assert(resultOut == Result::SUCCESS);
 
     logger->Info("Loaded {} model with {} meshes", path, model.GetSections().size());
     return model;

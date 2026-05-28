@@ -2,6 +2,7 @@
 
 #include "Common.h"
 #include "../../Graphics/Memory/Buffers/GPUBuffer.h"
+#include "Graphics/Other/IndexType.h"
 
 namespace Petal {
     class Renderer;
@@ -18,7 +19,8 @@ namespace Petal {
             std::unique_ptr<GPUBuffer> vertexBuffer,
             std::unique_ptr<GPUBuffer> indexBuffer,
             glm::u32 numIndices,
-            glm::u32 vertexSize
+            glm::u32 vertexSize,
+            IndexType indexType
         );
 
     public:
@@ -28,6 +30,8 @@ namespace Petal {
 
         const GPUBuffer &GetIndexBuffer() const;
 
+        IndexType GetIndexType() const;
+
     private:
         GraphicsContext &m_context;
         std::shared_ptr<Logger> m_logger;
@@ -35,5 +39,6 @@ namespace Petal {
         std::unique_ptr<GPUBuffer> m_indexBuffer;
         glm::u32 m_numIndices;
         glm::u32 m_vertexSize;
+        IndexType m_indexType;
     };
 } // Petal

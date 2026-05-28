@@ -25,6 +25,7 @@ VOut vertexMain(
     VOut output;
 
     float4 worldPos = float4(v.position, 1.0);
+    worldPos.xyz *= 0.15;
     float4 viewPos = mul(worldPos, camera[0].ViewMatrix);
     output.position = mul(viewPos, camera[0].ProjMatrix);
     output.normal = v.normal;

@@ -388,8 +388,6 @@ namespace Petal {
         const GPUBuffer &buffer,
         IndexType indexType
     ) const {
-        assert(indexType == IndexType::INDICES_32_BIT); // for now only 32 bit supported
-
         for (glm::u32 i = 0; i < commandBuffers.Size(); i++) {
             vkCmdBindIndexBuffer(
                 commandBuffers.GetHandle(i),

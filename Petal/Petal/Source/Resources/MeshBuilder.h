@@ -18,15 +18,7 @@ namespace Petal {
         // Push vertices
         void PushVertices(glm::u32 numVertices, const void *data);
 
-        // Push indices
-        template<typename IndexType>
-        void PushIndices(glm::u32 numIndices, const IndexType *indices) {
-            assert(IndexTypes::GetData(m_indexType).Type == typeid(IndexType) && "Attempted to push index of wrong size to mesh");
-            m_indices.resize(m_indices.size() + numIndices * sizeof(IndexType));
-            char *indicesEnd = m_indices.data() + m_numIndices;
-            memcpy(indicesEnd, indices, numIndices * sizeof(IndexType));
-            m_numIndices += numIndices;
-        }
+        void SetIndices(const void *indices, glm::u32 size, IndexType indexType);
 
         const VertexType &GetVertexType() const;
 

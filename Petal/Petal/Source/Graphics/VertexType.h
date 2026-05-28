@@ -5,6 +5,7 @@
 namespace Petal {
     struct VertexType {
         struct Attribute {
+            std::string Name;
             glm::u32 Size;
             VkFormat Format;
         };

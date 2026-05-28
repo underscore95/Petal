@@ -11,13 +11,15 @@ namespace Petal {
         std::unique_ptr<GPUBuffer> vertexBuffer,
         std::unique_ptr<GPUBuffer> indexBuffer,
         glm::u32 numIndices,
-        glm::u32 vertexSize
+        glm::u32 vertexSize,
+        IndexType indexType
     ) : m_context(context),
         m_logger(logger),
         m_vertexBuffer(std::move(vertexBuffer)),
         m_indexBuffer(std::move(indexBuffer)),
         m_numIndices(numIndices),
-        m_vertexSize(vertexSize) {
+        m_vertexSize(vertexSize),
+        m_indexType(indexType) {
         assert(s_vertexSize == 0 || m_vertexSize == s_vertexSize); // todo support varying vertex sizes
         s_vertexSize = m_vertexSize;
     }
@@ -32,5 +34,9 @@ namespace Petal {
 
     const GPUBuffer &MeshResource::GetIndexBuffer() const {
         return *m_indexBuffer;
+    }
+
+    IndexType MeshResource::GetIndexType() const {
+        return m_indexType;
     }
 } // Petal

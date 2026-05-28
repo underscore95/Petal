@@ -10,6 +10,11 @@ PETAL_MAKE_FORMATTABLE(
 );
 
 PETAL_MAKE_FORMATTABLE(
+    VkFormat, format,
+    std::format("{}", string_VkFormat(format))
+);
+
+PETAL_MAKE_FORMATTABLE(
     VkSurfaceFormat2KHR, surfaceFormat,
     std::format("[format: {}, color space: {}]", string_VkFormat(surfaceFormat.surfaceFormat.format), string_VkColorSpaceKHR(surfaceFormat.surfaceFormat.colorSpace))
 );
