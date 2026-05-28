@@ -172,15 +172,18 @@ namespace Petal {
 
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
         if (m_shader.GetVertexType().HasValue()) {
+            glm::u32 offset = 0;
             for (glm::u32 i = 0; i < m_shader.GetVertexType()->Attributes.size(); i++) {
                 const VertexType::Attribute &attribute = m_shader.GetVertexType()->Attributes[i];
                 VkVertexInputAttributeDescription attributeDescription = {
                     .location = i,
                     .binding = 0,
                     .format = attribute.Format,
-                    .offset = attribute.Size
+                    .offset = offset
                 };
                 attributeDescriptions.push_back(attributeDescription);
+
+                offset += attribute.Size;
             }
         }
 

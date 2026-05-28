@@ -55,13 +55,13 @@ using namespace PetalShader;
 //     return mesh;
 // }
 
-Model LoadSpider(const std::shared_ptr<Logger> &logger, const VertexType &vertexType) {
+Model LoadModel(std::string path, const std::shared_ptr<Logger> &logger, const VertexType &vertexType) {
     Result resultOut;
-    Model model(logger, "C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", {vertexType}, resultOut);
+    Model model(logger, path, {vertexType}, resultOut);
     VertexData v = *static_cast<const VertexData *>(model.GetSections().at(0).Mesh->GetVertices());
     assert(resultOut==Result::SUCCESS);
 
-    logger->Info("Loaded spider model with {} meshes", model.GetSections().size());
+    logger->Info("Loaded {} model with {} meshes", path, model.GetSections().size());
     return model;
 }
 
@@ -134,8 +134,8 @@ int run(Timer &engineShutdownTime) {
     std::shared_ptr<Renderer> renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
 
     // std::shared_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
-    Model spiderModel = LoadSpider(logger, *shader->GetVertexType().Value());
-    std::shared_ptr<ModelResource> model = renderer->UploadModel(spiderModel, "Spider").Release();
+   Model cpuModel = LoadModel("C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", logger, *shader->GetVertexType().Value());
+    std::shared_ptr<ModelResource> model = renderer->UploadModel(cpuModel, "MyModel").Release();
 
     Result result = renderer->Bind(*shader);
     assert(result == Result::SUCCESS);
