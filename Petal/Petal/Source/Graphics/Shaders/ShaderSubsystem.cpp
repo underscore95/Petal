@@ -181,7 +181,7 @@ namespace Petal {
         );
 
         if (vertexEntryPointIndex.HasValue()) {
-            petalResult = ReflectVertexInput(out, programLayout, *vertexEntryPointIndex.Value());
+            petalResult = ReflectVertexInput(out, programLayout, vertexEntryPointIndex.Value());
             PETAL_CHECK_COND(
                 petalResult != Result::SUCCESS,
                 petalResult,
@@ -305,7 +305,7 @@ namespace Petal {
         // Get resource information
         ShaderResource resource = {
             .Name = variableLayout->getName(),
-            .Type = *resourceType.Value(),
+            .Type = resourceType.Value(),
             .BindingIndex = variableLayout->getBindingIndex(),
             .BindingSet = variableLayout->getBindingSpace(),
             .Stages = {},

@@ -68,7 +68,7 @@ namespace Petal {
         Optional<Allocation> allocationOpt = bufferOpt->GetAllocations().Allocate(size);
         PETAL_CHECK_OPTIONAL(allocationOpt, m_logger, "Failed to create independent buffer (this should never happen...)");
 
-        auto gpuBuffer = std::make_unique<GPUBuffer>(m_context, name, bufferOpt.Release(), *allocationOpt.Value());
+        auto gpuBuffer = std::make_unique<GPUBuffer>(m_context, name, bufferOpt.Release(), allocationOpt.Value());
         return gpuBuffer;
     }
 
@@ -85,7 +85,7 @@ namespace Petal {
         assert(allocationOpt->Size == size);
 
         m_logger->Info("Created backed buffer of size {} at location {} (name {})", size, allocationOpt->Location, name);
-        return std::make_unique<GPUBuffer>(m_context, name, backingBuffer, *allocationOpt.Value());
+        return std::make_unique<GPUBuffer>(m_context, name, backingBuffer, allocationOpt.Value());
     }
 
     Result GPUMemorySubsystem::Write(

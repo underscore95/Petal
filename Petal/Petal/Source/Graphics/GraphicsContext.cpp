@@ -138,7 +138,7 @@ namespace Petal {
         Result result;
         auto shader = AllocatedOptional<VulkanShader>::Emplace(
             *this,
-            *intermediateShader.Value(),
+            intermediateShader.Value(),
             m_logger,
             result
         );
@@ -242,7 +242,7 @@ namespace Petal {
         for (glm::u32 i = 0; i < count; i++) {
             Optional<std::shared_ptr<VulkanFence> > fence = CreateFence(flags);
             PETAL_CHECK_OPTIONAL_SILENT(fence);
-            fences.push_back(*fence.Value());
+            fences.push_back(fence.Value());
         }
 
         return fences;
@@ -264,7 +264,7 @@ namespace Petal {
         for (glm::u32 i = 0; i < count; i++) {
             Optional<std::shared_ptr<VulkanSemaphore> > semaphore = CreateSemaphore(flags);
             PETAL_CHECK_OPTIONAL_SILENT(semaphore);
-            semaphores.push_back(*semaphore.Value());
+            semaphores.push_back(semaphore.Value());
         }
 
         return semaphores;

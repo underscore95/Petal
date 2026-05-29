@@ -388,19 +388,19 @@ namespace Petal {
     Result VulkanSwapchain::CreateSyncObjects() {
         Optional<std::shared_ptr<VulkanFence> > blockingFenceOptional = m_context.CreateFence();
         PETAL_CHECK_OPTIONAL_SILENT(blockingFenceOptional);
-        m_blockingCommandFence = *blockingFenceOptional.Value();
+        m_blockingCommandFence = blockingFenceOptional.Value();
 
         Optional<std::vector<std::shared_ptr<VulkanFence> > > fences = m_context.CreateFences(NumSwapchainImages(), VK_FENCE_CREATE_SIGNALED_BIT);
         PETAL_CHECK_OPTIONAL_SILENT(fences);
-        m_frameCompleteFences = *fences.Value();
+        m_frameCompleteFences = fences.Value();
 
         Optional<std::vector<std::shared_ptr<VulkanSemaphore> > > semaphores = m_context.CreateSemaphores(NumSwapchainImages(), 0);
         PETAL_CHECK_OPTIONAL_SILENT(fences);
-        m_frameCompleteSemaphores = *semaphores.Value();
+        m_frameCompleteSemaphores = semaphores.Value();
 
         semaphores = m_context.CreateSemaphores(NumSwapchainImages(), 0);
         PETAL_CHECK_OPTIONAL_SILENT(fences);
-        m_swapchainSemaphores = *semaphores.Value();
+        m_swapchainSemaphores = semaphores.Value();
 
         return Result::SUCCESS;
     }
@@ -411,7 +411,7 @@ namespace Petal {
     ) {
         Optional<glm::u32> numSwapchainImagesOptional = CheckRequestedNumImagesSupported();
         PETAL_CHECK_OPTIONAL_SILENT(numSwapchainImagesOptional);
-        m_numSwapchainImages = *numSwapchainImagesOptional.Value();
+        m_numSwapchainImages = numSwapchainImagesOptional.Value();
 
         Optional<VkPresentModeKHR> presentModeOptional = CheckRequestedPresentMode();
         PETAL_CHECK_OPTIONAL_SILENT(presentModeOptional);
@@ -437,7 +437,7 @@ namespace Petal {
             .pQueueFamilyIndices = queueFamilies.data(),
             .preTransform = m_context.GetDevice()->GetSurfaceCapabilities().surfaceCapabilities.currentTransform,
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-            .presentMode = *presentModeOptional.Value(),
+            .presentMode = presentModeOptional.Value(),
             .clipped = VK_TRUE
         };
 
@@ -567,12 +567,11 @@ namespace Petal {
         Optional<VkFormat> depthFormat = m_context.GetDevice()->FindDepthFormat();
         PETAL_CHECK_OPTIONAL(depthFormat, m_logger, "No supported depth format");
 
-        // todo support different render targets
         TextureCreateInfo info = {
             .Size = {windowSize.x, windowSize.y, 1},
             .ImageType = VK_IMAGE_TYPE_2D,
             .ViewType = VK_IMAGE_VIEW_TYPE_2D,
-            .Format = *depthFormat.Value(),
+            .Format = depthFormat.Value(),
             .Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             .AspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT
         };

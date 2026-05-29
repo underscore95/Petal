@@ -97,7 +97,7 @@ int run(Timer &engineShutdownTime) {
     );
     if (rendererOptional.IsEmpty()) return -1;
 
-    GraphicsContext &graphicsContext = *rendererOptional.Value();
+    GraphicsContext &graphicsContext = rendererOptional.Value();
     std::shared_ptr<CommandBufferVector> commandBuffers = graphicsContext.CreateCommandBuffers(
         graphicsContext.GetDevice()->GetGraphicsQueueFamily(),
         VK_COMMAND_BUFFER_LEVEL_PRIMARY,
@@ -134,7 +134,7 @@ int run(Timer &engineShutdownTime) {
     std::shared_ptr<Renderer> renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
 
     // std::shared_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
-   Model cpuModel = LoadModel("C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", logger, *shader->GetVertexType().Value());
+   Model cpuModel = LoadModel("C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", logger, shader->GetVertexType().Value());
     std::shared_ptr<ModelResource> model = renderer->UploadModel(cpuModel, "MyModel").Release();
 
     Result result = renderer->Bind(*shader);

@@ -143,7 +143,7 @@ namespace Petal {
         Optional<std::vector<VkPhysicalDevice> > devices = GetDevices();
         if (devices.IsEmpty()) return devices.GetResult();
 
-        for (VkPhysicalDevice physicalDevice : *devices.Value()) {
+        for (VkPhysicalDevice physicalDevice : devices.Value()) {
             m_physicalDevice = physicalDevice;
 
             VkPhysicalDeviceProperties deviceProperties;
@@ -153,11 +153,11 @@ namespace Petal {
 
             Optional<std::vector<VkQueueFamilyProperties> > queueFamilies = GetQueueFamilyProperties(physicalDevice);
             if (queueFamilies.IsEmpty()) continue;
-            if (!DoesDeviceMeetAllQueueFamilyRequirements(*queueFamilies.Value(), deviceRequirements.QueueFamilies)) continue;
+            if (!DoesDeviceMeetAllQueueFamilyRequirements(queueFamilies.Value(), deviceRequirements.QueueFamilies)) continue;
 
             Result result = GetRequiredQueueFamilyIndices(
                 m_physicalDevice,
-                *queueFamilies.Value(),
+                queueFamilies.Value(),
                 deviceRequirements.QueueFamilies
             );
             if (result != Result::SUCCESS) return result;

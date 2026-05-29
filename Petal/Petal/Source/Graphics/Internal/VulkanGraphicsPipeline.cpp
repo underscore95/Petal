@@ -145,7 +145,7 @@ namespace Petal {
             .viewMask = 0,
             .colorAttachmentCount = 1,
             .pColorAttachmentFormats = &swapchainFormat,
-            .depthAttachmentFormat = *depthFormatOptional.Value(),
+            .depthAttachmentFormat = depthFormatOptional.Value(),
             .stencilAttachmentFormat = VK_FORMAT_UNDEFINED
         };
 

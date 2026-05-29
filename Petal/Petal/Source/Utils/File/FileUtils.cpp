@@ -7,7 +7,7 @@ namespace Petal {
     ) {
         std::ifstream stream(path, std::ios::binary | std::ios::ate);
         if (!stream) {
-            if (logger.HasValue()) (*logger.Value())->Error("Failed to open file for reading: {}", path);
+            if (logger.HasValue()) (*logger)->Error("Failed to open file for reading: {}", path);
             return "";
         }
 
@@ -16,7 +16,7 @@ namespace Petal {
 
         stream.seekg(0, std::ios::beg);
         if (!stream.read(out.data(), size)) {
-            if (logger.HasValue()) (*logger.Value())->Error("Error occurred while reading: {}", path);
+            if (logger.HasValue()) (*logger)->Error("Error occurred while reading: {}", path);
             return "";
         }
 

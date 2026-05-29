@@ -57,8 +57,17 @@ namespace Petal {
 
     public:
         Result GetResult() const { return m_result; }
-        T *Value() { return m_present ? &m_value : nullptr; }
-        const T *Value() const { return m_present ? &m_value : nullptr; }
+
+        T &Value() {
+            assert(HasValue());
+            return m_value;
+        }
+
+        const T &Value() const {
+            assert(HasValue());
+            return m_value;
+        }
+
         bool HasValue() const { return m_present; }
         bool IsEmpty() const { return !HasValue(); }
 
@@ -70,6 +79,16 @@ namespace Petal {
         const T *operator->() const {
             assert(HasValue());
             return &m_value;
+        }
+
+        T &operator*() {
+            assert(HasValue());
+            return m_value;
+        }
+
+        const T &operator*() const {
+            assert(HasValue());
+            return m_value;
         }
 
     private:
@@ -218,8 +237,9 @@ namespace Petal {
             return m_result;
         }
 
-        T *Value() {
-            return m_present ? m_value : nullptr;
+        T &Value() {
+            assert(HasValue());
+            return *m_value;
         }
 
         bool HasValue() const {
