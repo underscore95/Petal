@@ -6,6 +6,7 @@ namespace Petal {
     enum class ResourceType {
         // Make sure to fill out EnumData in the .cpp
         STORAGE_BUFFER,
+        CONSTANT_BUFFER,
         COMBINED_SAMPLER,
         COUNT,
     };

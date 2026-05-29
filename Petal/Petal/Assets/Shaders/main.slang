@@ -6,8 +6,7 @@
 #include "Common.h"
 
 Sampler2D textures[];
-//uniform CameraMatrices camera;
-StructuredBuffer<CameraMatrices> camera;
+ConstantBuffer<CameraMatrices> camera;
 
 struct VOut
 {
@@ -26,8 +25,8 @@ VOut vertexMain(
 
     float4 worldPos = float4(v.position, 1.0);
     worldPos.xyz *= 0.15;
-    float4 viewPos = mul(worldPos, camera[0].ViewMatrix);
-    output.position = mul(viewPos, camera[0].ProjMatrix);
+    float4 viewPos = mul(worldPos, camera.ViewMatrix);
+    output.position = mul(viewPos, camera.ProjMatrix);
     output.normal = v.normal;
     output.uv = v.uv;
     return output;

@@ -16,7 +16,7 @@ namespace Petal {
         const bool& __conditionStored = condition; \
         if (__conditionStored) [[unlikely]] { \
             std::string errorMessageFormatted = std::format(message __VA_OPT__(,) __VA_ARGS__);\
-            loggerRef->Error("[Error Code: {}] {}", errorCode, errorMessageFormatted); \
+            loggerRef->Error("[{}] {}", errorCode, errorMessageFormatted); \
             assert(errorCode != Result::SUCCESS && "Why is the error code SUCCESS?"); \
             return errorCode; \
         } \

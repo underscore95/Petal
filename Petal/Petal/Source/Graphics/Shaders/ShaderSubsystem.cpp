@@ -294,17 +294,27 @@ namespace Petal {
                 resourceType = ResourceType::COMBINED_SAMPLER;
             }
         } else if (variableType == TypeReflection::Kind::ConstantBuffer) {
-            // todo support constant buffer / ubo
+            resourceType = ResourceType::CONSTANT_BUFFER;
+            TypeLayoutReflection *bufferContents = variableLayout->getTypeLayout()->getElementTypeLayout();
+            PETAL_CHECK_COND(
+                bufferContents->getName() == nullptr,
+                Result::PETAL_SHADER_REFLECTION_FAILED,
+                m_logger,
+                "Automatically-introduced (or anonymous type) ConstantBuffers are not supported by Petal."
+                "\nFix this error by explicitly writing ConstantBuffer<T> MyBuffer instead of using uniforms.",
+                bufferContents->getName() == nullptr ? "anonymous" : bufferContents->getName(),
+                bufferContents->getFieldCount()
+            );
         }
 
         if (resourceType.IsEmpty()) {
-            m_logger->Error("Unsupported field type {} (field name: {}, shape: {}, kind: {}) in shader.", variableType, shape, variableType, variableLayout->getName());
+            m_logger->Error("Unsupported field type (shape: {}, kind: {}) in shader.", shape, variableType);
             return Result::PETAL_SHADER_REFLECTION_FAILED;
         }
 
         // Get resource information
         ShaderResource resource = {
-            .Name = variableLayout->getName(),
+            .Name = variableLayout->getName() == nullptr ? "UnnamedResource" : variableLayout->getName(),
             .Type = resourceType.Value(),
             .BindingIndex = variableLayout->getBindingIndex(),
             .BindingSet = variableLayout->getBindingSpace(),

@@ -141,30 +141,32 @@ namespace Petal {
     Result Renderer::CreateBuffers() {
         // Vertex
         constexpr glm::u32 VERTEX_BUFFER_SIZE = 1024 * 1024 * 512;
-        BufferCreateInfo vertexBufferCreateInfo = {.BufferType = BufferType::VERTEX_BUFFER};
+        BufferCreateInfo bufferInfo = {.BufferType = BufferType::VERTEX_BUFFER};
         AllocatedOptional<VulkanBuffer> bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Vertex Buffer",
             VERTEX_BUFFER_SIZE,
-            vertexBufferCreateInfo
+            bufferInfo
         );
         PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create vertex buffer");
         m_vertexBuffer = bufferOpt.Release();
 
         // Index
         constexpr glm::u32 INDEX_BUFFER_SIZE = 1024 * 1024 * 64;
-        BufferCreateInfo indexBufferCreateInfo = {.BufferType = BufferType::INDEX_BUFFER};
+        bufferInfo = {.BufferType = BufferType::INDEX_BUFFER};
         bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Index Buffer",
             INDEX_BUFFER_SIZE,
-            indexBufferCreateInfo
+            bufferInfo
         );
         PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create index buffer");
         m_indexBuffer = bufferOpt.Release();
 
         // Camera
+        bufferInfo = {.BufferType = BufferType::CONSTANT_BUFFER};
         bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Camera Buffer",
-            sizeof(Petal::CameraMatrices)
+            sizeof(Petal::CameraMatrices),
+            bufferInfo
         );
         PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create camera buffer");
         m_cameraBuffer = bufferOpt.Release();
