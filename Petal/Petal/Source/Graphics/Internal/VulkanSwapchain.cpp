@@ -6,6 +6,9 @@
 #include "VulkanQueue.h"
 #include "VulkanShader.h"
 #include "CommandBuffers/CommandBufferVector.h"
+#include "Graphics/Memory/AllocationTracker.h"
+#include "Graphics/Memory/AllocationTracker.h"
+#include "Graphics/Memory/GPUMemorySubsystem.h"
 #include "Sync/VulkanFence.h"
 #include "Sync/VulkanSemaphore.h"
 #include "Window/Window.h"
@@ -13,14 +16,14 @@
 namespace Petal {
     VulkanSwapchain::VulkanSwapchain(
         Engine &engine,
-        GraphicsContext &renderer,
+        GraphicsContext &context,
         const VulkanQueue &queueFamily,
         Result &resultOut
     ) : m_engine(engine),
-        m_context(renderer) {
+        m_context(context) {
         m_logger = engine.GetLoggerSystem().GetLogger(LoggerSystem::GRAPHICS_LOGGER);
 
-        glm::uvec2 windowSize = renderer.GetWindow().GetDimensions();
+        glm::uvec2 windowSize = context.GetWindow().GetDimensions();
         resultOut = CreateSwapchain(queueFamily, windowSize);
         if (resultOut != Result::SUCCESS) return;
 
@@ -28,6 +31,9 @@ namespace Petal {
         if (resultOut != Result::SUCCESS) return;
 
         resultOut = CreateSyncObjects();
+        if (resultOut != Result::SUCCESS) return;
+
+        resultOut = CreateDepthBuffer(windowSize);
         if (resultOut != Result::SUCCESS) return;
 
         m_logger->Verbose("Created swapchain for window size {}x{}", windowSize.x, windowSize.y);
@@ -155,7 +161,6 @@ namespace Petal {
         const Color &color,
         glm::u32 swapchainIndex
     ) const {
-        VkImageSubresourceRange range = GraphicsContext::DEFAULT_IMAGE_SUBRESOURCE_RANGE;
         VkClearColorValue colorValue;
         color.WriteFloats(colorValue.float32);
         vkCmdClearColorImage(
@@ -164,7 +169,17 @@ namespace Petal {
             VK_IMAGE_LAYOUT_GENERAL,
             &colorValue,
             1,
-            &range
+            &GraphicsContext::DEFAULT_IMAGE_COLOR_SUBRESOURCE_RANGE
+        );
+
+        VkClearDepthStencilValue depthStencilValue = {.depth = 1.0f, .stencil = 0};
+        vkCmdClearDepthStencilImage(
+            commandBuffer,
+            m_depthBuffer->GetHandle(),
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+            &depthStencilValue,
+            1,
+            &GraphicsContext::DEFAULT_IMAGE_DEPTH_SUBRESOURCE_RANGE
         );
     }
 
@@ -254,6 +269,7 @@ namespace Petal {
 
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
             VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
+
             m_context.CmdTransitionImage(
                 commandBuffer,
                 m_images[swapchainIndex],
@@ -261,7 +277,39 @@ namespace Petal {
                 VK_IMAGE_LAYOUT_GENERAL
             );
 
+            VkImageMemoryBarrier2 depthTransition{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                .pNext = nullptr,
+                .srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                .srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                .srcQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
+                .dstQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
+                .image = m_depthBuffer->GetHandle(),
+                .subresourceRange = GraphicsContext::DEFAULT_IMAGE_DEPTH_SUBRESOURCE_RANGE
+            };
+            m_context.CmdTransitionImage(
+                commandBuffer,
+                depthTransition
+            );
+
             glm::uvec2 windowSize = m_context.GetWindow().GetDimensions();
+
+            VkRenderingAttachmentInfo depthAttachment = {
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .pNext = nullptr,
+                .imageView = m_depthBuffer->GetView(),
+                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                .resolveMode = VK_RESOLVE_MODE_NONE,
+                .resolveImageView = nullptr,
+                .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .clearValue = {.depthStencil = VkClearDepthStencilValue{1.0f, 0}} // todo
+            };
 
             VkRenderingAttachmentInfo colorAttachment = {
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -273,7 +321,7 @@ namespace Petal {
                 .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                 .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                 .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue = {0, 0, 0, 1} // todo
+                .clearValue = {.color = {0, 0, 0, 1}} // todo
             };
 
             VkRenderingInfo renderingInfo = {
@@ -285,7 +333,7 @@ namespace Petal {
                 .viewMask = 0,
                 .colorAttachmentCount = 1,
                 .pColorAttachments = &colorAttachment,
-                .pDepthAttachment = nullptr,
+                .pDepthAttachment = &depthAttachment,
                 .pStencilAttachment = nullptr
             };
             vkCmdBeginRendering(commandBuffer, &renderingInfo);
@@ -512,6 +560,27 @@ namespace Petal {
 
         m_logger->Warn("Surface format VK_FORMAT_B8G8R8A8_SRGB and VK_COLOR_SPACE_SRGB_NONLINEAR_KHR is not supported, defaulting to format {}", surfaceFormats[0]);
         m_swapchainSurfaceFormat = surfaceFormats[0];
+        return Result::SUCCESS;
+    }
+
+    Result VulkanSwapchain::CreateDepthBuffer(glm::uvec2 windowSize) {
+        Optional<VkFormat> depthFormat = m_context.GetDevice()->FindDepthFormat();
+        PETAL_CHECK_OPTIONAL(depthFormat, m_logger, "No supported depth format");
+
+        // todo support different render targets
+        TextureCreateInfo info = {
+            .Size = {windowSize.x, windowSize.y, 1},
+            .ImageType = VK_IMAGE_TYPE_2D,
+            .ViewType = VK_IMAGE_VIEW_TYPE_2D,
+            .Format = *depthFormat.Value(),
+            .Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            .AspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT
+        };
+
+        AllocatedOptional<VulkanTexture> texture = m_context.GetMemorySubsystem().CreateTexture("Depth Buffer", info);
+        PETAL_CHECK_OPTIONAL(texture, m_logger, "Failed to create depth buffer");
+
+        m_depthBuffer = texture.Release();
         return Result::SUCCESS;
     }
 } // Petal

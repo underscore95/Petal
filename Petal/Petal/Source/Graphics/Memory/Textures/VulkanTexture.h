@@ -33,6 +33,8 @@ namespace Petal {
 
         VkDescriptorImageInfo GetDescriptorInfo() const;
 
+        VkImageView GetView() const;
+
     private:
         Result CreateTexture();
         Result CreateSampler();

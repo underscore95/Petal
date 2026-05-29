@@ -15,12 +15,17 @@ PETAL_MAKE_FORMATTABLE(
 );
 
 PETAL_MAKE_FORMATTABLE(
+    VkImageViewType, imageViewType,
+    std::format("{}", string_VkImageViewType(imageViewType))
+);
+
+PETAL_MAKE_FORMATTABLE(
     VkSurfaceFormat2KHR, surfaceFormat,
     std::format("[format: {}, color space: {}]", string_VkFormat(surfaceFormat.surfaceFormat.format), string_VkColorSpaceKHR(surfaceFormat.surfaceFormat.colorSpace))
 );
 
 namespace Petal {
-    inline glm::u32 VkFormatBytesPerPixel(VkFormat format) {
+    inline glm::u32 VkFormatValueSize(VkFormat format) {
         switch (format) {
             case VK_FORMAT_R8_UNORM:
                 return 1;

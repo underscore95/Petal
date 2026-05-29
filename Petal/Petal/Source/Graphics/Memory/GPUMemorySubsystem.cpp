@@ -199,14 +199,11 @@ namespace Petal {
             .srcQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
             .dstQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
             .image = texture.GetHandle(),
-            .subresourceRange = GraphicsContext::DEFAULT_IMAGE_SUBRESOURCE_RANGE
+            .subresourceRange = GraphicsContext::DEFAULT_IMAGE_COLOR_SUBRESOURCE_RANGE
         };
 
         m_context.CmdTransitionImage(
             m_commandBuffer->GetHandle(),
-            texture.GetHandle(),
-            imageBarrier.oldLayout,
-            imageBarrier.newLayout,
             imageBarrier
         );
 
@@ -239,9 +236,6 @@ namespace Petal {
                                      VK_ACCESS_2_SHADER_SAMPLED_READ_BIT | VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
         m_context.CmdTransitionImage(
             m_commandBuffer->GetHandle(),
-            texture.GetHandle(),
-            imageBarrier.oldLayout,
-            imageBarrier.newLayout,
             imageBarrier
         );
 

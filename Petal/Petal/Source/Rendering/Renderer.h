@@ -3,6 +3,7 @@
 #include "RendererSettings.h"
 #include "Camera/Camera.h"
 #include "Graphics/GraphicsContext.h"
+#include "Graphics/Memory/Textures/VulkanTexture.h"
 #include "Resources/ModelResource.h"
 
 namespace PetalShader {

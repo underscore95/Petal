@@ -2,7 +2,7 @@
 
 #include "File/FileUtils.h"
 #include "Timing/Timer.h"
-#include "Graphics/Internal/VkFormat.h"
+#include "Graphics/Internal/Vulkan.h"
 
 using namespace slang;
 using namespace Slang;

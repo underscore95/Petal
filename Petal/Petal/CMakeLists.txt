@@ -23,7 +23,7 @@ add_library(Petal SHARED
         Source/Utils/Logging/Errors/ErrorHandler.h
         Source/Utils/Logging/Errors/Result.h
         Source/Utils/FormatString.h
-        Source/Graphics/Internal/VkFormat.h
+        Source/Graphics/Internal/Vulkan.h
         Source/Graphics/Internal/RenderingDevice.cpp
         Source/Graphics/Internal/RenderingDevice.h
         Source/Utils/Logging/Errors/Optional.h

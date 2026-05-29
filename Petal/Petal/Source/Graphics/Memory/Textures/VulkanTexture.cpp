@@ -9,13 +9,13 @@ namespace Petal {
         GraphicsContext &context,
         const std::shared_ptr<Logger> &logger,
         const std::string &name,
-        const TextureCreateInfo &m_textureCreateInfo,
+        const TextureCreateInfo &textureCreateInfo,
         Result &resultOut
     ) : m_context(context),
         m_logger(logger),
         m_name(name),
-        m_aspectMask(VK_IMAGE_ASPECT_COLOR_BIT) /*todo: make configurable*/,
-        m_textureCreateInfo(m_textureCreateInfo) {
+        m_aspectMask(textureCreateInfo.AspectFlags),
+        m_textureCreateInfo(textureCreateInfo) {
         resultOut = CreateTexture();
         if (resultOut != Result::SUCCESS) return;
 
@@ -59,6 +59,10 @@ namespace Petal {
             .imageView = m_view,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         };
+    }
+
+    VkImageView VulkanTexture::GetView() const {
+        return m_view;
     }
 
     Result VulkanTexture::CreateTexture() {
@@ -122,7 +126,7 @@ namespace Petal {
                 .layerCount = 1
             }
         };
-        m_size = m_textureCreateInfo.Size.x * m_textureCreateInfo.Size.y * m_textureCreateInfo.Size.z * VkFormatBytesPerPixel(m_textureCreateInfo.Format);
+        m_size = m_textureCreateInfo.Size.x * m_textureCreateInfo.Size.y * m_textureCreateInfo.Size.z * VkFormatValueSize(m_textureCreateInfo.Format);
 
         res = vkCreateImageView(m_context.GetDevice()->GetHandle(), &viewInfo, nullptr, &m_view);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VMA_TEXTURE_CREATION_FAILED, m_logger, "Failed to create view for texture {}", m_name);

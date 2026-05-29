@@ -61,10 +61,10 @@ namespace Petal {
         result = CreateCommandPools();
         if (result != Result::SUCCESS) return;
 
-        result = CreateSwapchain();
+        m_memorySubsystem = std::make_unique<GPUMemorySubsystem>(*this, m_engine.GetLoggerSystem().GetLogger(LoggerSystem::GPU_MEMORY_LOGGER), result);
         if (result != Result::SUCCESS) return;
 
-        m_memorySubsystem = std::make_unique<GPUMemorySubsystem>(*this, m_engine.GetLoggerSystem().GetLogger(LoggerSystem::GPU_MEMORY_LOGGER), result);
+        result = CreateSwapchain();
         if (result != Result::SUCCESS) return;
 
         result = Result::SUCCESS;
@@ -283,8 +283,7 @@ namespace Petal {
         VkCommandBuffer commandBuffer,
         VkImage image,
         VkImageLayout oldLayout,
-        VkImageLayout newLayout,
-        OptionalRef<VkImageMemoryBarrier2> transition
+        VkImageLayout newLayout
     ) {
         VkImageMemoryBarrier2 imageBarrier{
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -298,10 +297,14 @@ namespace Petal {
             .srcQueueFamilyIndex = GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
             .dstQueueFamilyIndex = GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
             .image = image,
-            .subresourceRange = DEFAULT_IMAGE_SUBRESOURCE_RANGE
+            .subresourceRange = DEFAULT_IMAGE_COLOR_SUBRESOURCE_RANGE
         };
         if (newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) imageBarrier.dstAccessMask = 0;
 
+        CmdTransitionImage(commandBuffer, imageBarrier);
+    }
+
+    void GraphicsContext::CmdTransitionImage(VkCommandBuffer commandBuffer, VkImageMemoryBarrier2 transition) {
         VkDependencyInfo depInfo{
             .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             .pNext = nullptr,
@@ -311,7 +314,7 @@ namespace Petal {
             .bufferMemoryBarrierCount = 0,
             .pBufferMemoryBarriers = nullptr,
             .imageMemoryBarrierCount = 1,
-            .pImageMemoryBarriers = transition.HasValue() ? transition.Value() : &imageBarrier
+            .pImageMemoryBarriers = &transition
         };
 
         vkCmdPipelineBarrier2(commandBuffer, &depInfo);

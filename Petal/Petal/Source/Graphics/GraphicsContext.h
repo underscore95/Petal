@@ -108,13 +108,17 @@ namespace Petal {
         AllocatedOptional<Renderer> CreateRenderer(const RendererSettings &settings);
 
         // Shorthand for transitioning an image layout
-        // By default, an excessively blocking barrier for graphics queue images is used, but this can be overridden by passing a transition parameter
+        // By default, an excessively blocking barrier for graphics queue images is used
         void CmdTransitionImage(
             VkCommandBuffer commandBuffer,
             VkImage image,
             VkImageLayout oldLayout,
-            VkImageLayout newLayout,
-            OptionalRef<VkImageMemoryBarrier2> transition = OptionalRef<VkImageMemoryBarrier2>::Empty()
+            VkImageLayout newLayout
+        );
+
+        void CmdTransitionImage(
+            VkCommandBuffer commandBuffer,
+            VkImageMemoryBarrier2 transition
         );
 
         Result DeviceWaitIdle();
@@ -134,7 +138,7 @@ namespace Petal {
         void CmdBindVertexBuffer(
             const CommandBufferVector &commandBuffers,
             glm::u32 firstBinding,
-            const std::vector<std::reference_wrapper<const GPUBuffer>> &buffers
+            const std::vector<std::reference_wrapper<const GPUBuffer> > &buffers
         ) const;
 
         // Bind an index buffer
@@ -144,8 +148,16 @@ namespace Petal {
             IndexType indexType
         ) const;
 
-        static constexpr VkImageSubresourceRange DEFAULT_IMAGE_SUBRESOURCE_RANGE = {
+        static constexpr VkImageSubresourceRange DEFAULT_IMAGE_COLOR_SUBRESOURCE_RANGE = {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        };
+
+        static constexpr VkImageSubresourceRange DEFAULT_IMAGE_DEPTH_SUBRESOURCE_RANGE = {
+            .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,

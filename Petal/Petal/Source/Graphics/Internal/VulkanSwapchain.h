@@ -4,6 +4,7 @@
 
 
 namespace Petal {
+    class VulkanTexture;
     class VulkanShader;
 }
 
@@ -18,7 +19,7 @@ namespace Petal {
     public:
         VulkanSwapchain(
             Engine &engine,
-            GraphicsContext &renderer,
+            GraphicsContext &context,
             const VulkanQueue &queueFamily,
             Result &resultOut
         );
@@ -95,6 +96,8 @@ namespace Petal {
 
         Result ChooseSurfaceFormat();
 
+        Result CreateDepthBuffer(glm::uvec2 windowSize);
+
     private:
         Engine& m_engine;
         GraphicsContext &m_context;
@@ -105,6 +108,7 @@ namespace Petal {
         std::vector<VkImage> m_images;
         std::vector<VkImageView> m_imageViews;
         std::shared_ptr<VulkanFence> m_blockingCommandFence;
+        std::shared_ptr<VulkanTexture> m_depthBuffer;
 
         // Frame data
         glm::u32 m_swapchainIndex = 0;

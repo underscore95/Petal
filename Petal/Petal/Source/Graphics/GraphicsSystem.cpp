@@ -1,6 +1,6 @@
 #include "GraphicsSystem.h"
 #include "Engine.h"
-#include "Internal/VkFormat.h"
+#include "Internal/Vulkan.h"
 #include "Memory/MemorySystem.h"
 #include "Window/Window.h"
 #include "Window/WindowSystem.h"
