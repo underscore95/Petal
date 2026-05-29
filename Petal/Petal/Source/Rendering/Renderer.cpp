@@ -89,7 +89,7 @@ namespace Petal {
     void Renderer::CmdRender(
         const CommandBufferVector &commandBuffers,
         const VulkanShader &shader,
-        const PetalShader::Params &params,
+        const Petal::Params &params,
         const MeshResource &mesh,
         glm::u32 instances
     ) const {
@@ -113,8 +113,8 @@ namespace Petal {
         const ModelResource &model
     ) const {
         for (const std::unique_ptr<MeshResource> &mesh : model.GetMeshes()) {
-            PetalShader::Params params = {
-                .DiffuseMapIndex = 1, // todo
+            Petal::Params params = {
+                .DiffuseMap = 1, // todo
             };
             CmdRender(commandBuffers, shader, params, *mesh);
         }
@@ -123,7 +123,7 @@ namespace Petal {
     void Renderer::SetCamera(const Camera &camera) {
         m_hasUploadedCamera = true;
 
-        PetalShader::CameraMatrices matrices = {
+        Petal::CameraMatrices matrices = {
             .ViewMatrix = camera.GetViewMatrix(),
             .ProjMatrix = camera.GetProjMatrix()
         };
@@ -164,7 +164,7 @@ namespace Petal {
         // Camera
         bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
             "Camera Buffer",
-            sizeof(PetalShader::CameraMatrices)
+            sizeof(Petal::CameraMatrices)
         );
         PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create camera buffer");
         m_cameraBuffer = bufferOpt.Release();

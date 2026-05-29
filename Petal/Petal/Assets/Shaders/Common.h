@@ -1,17 +1,10 @@
-#ifndef PETAL_SHADER_COMMON
-#define PETAL_SHADER_COMMON 1
+#ifndef PETAL_GUARD_COMMON
+#define PETAL_GUARD_COMMON 1
+
+#include "Petal/Math.h"
 
 #ifdef __cplusplus
-
-#include <glm/glm.hpp>
-
-namespace PetalShader {
-    using float3 = glm::vec3;
-    using float2 = glm::vec2;
-    using float4x4 = glm::mat4x4;
-    using uint = glm::u32;
-    using float4x4 = glm::mat4x4;
-
+namespace Petal {
 #endif
 
     struct VertexData {
@@ -21,7 +14,7 @@ namespace PetalShader {
     };
 
     struct Params {
-        uint DiffuseMapIndex;
+        uint DiffuseMap;
     };
 
     struct CameraMatrices {
@@ -33,4 +26,4 @@ namespace PetalShader {
 } // PetalShader
 #endif
 
-#endif // PETAL_SHADER_COMMON
+#endif // PETAL_GUARD_COMMON

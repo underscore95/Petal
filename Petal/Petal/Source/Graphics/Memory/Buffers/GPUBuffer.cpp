@@ -22,7 +22,7 @@ namespace Petal {
 
         m_context.GetSwapchain().ScheduleSwapchainFrames([backingBufferWeak, allocation]() {
             std::shared_ptr backingBufferStrong = backingBufferWeak.lock();
-            if (!backingBufferStrong)return;
+            if (!backingBufferStrong) return;
             backingBufferStrong->GetAllocations().Free(allocation);
         });
     }

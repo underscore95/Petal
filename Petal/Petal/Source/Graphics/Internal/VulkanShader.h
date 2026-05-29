@@ -50,7 +50,19 @@ namespace Petal {
         // Bind a resource
         Result BindBuffer(const std::string &name, const IBuffer &buffer) const;
 
-        Result BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture> > &textures) const;
+        // T must be iterable (vector, StableVector, etc)
+        template<typename Container>
+        Result BindTextures(const std::string &name, const Container &textures) const {
+            std::vector<VkDescriptorImageInfo> imageInfos(textures.size());
+            size_t i = 0;
+            for (const auto &texture : textures) {
+                static_assert(typeid(texture) == typeid(std::shared_ptr<VulkanTexture>));
+                imageInfos[i] = texture->GetDescriptorInfo();
+                i++;
+            }
+
+            return BindTexturesImpl(name, imageInfos);
+        }
 
         // Must be called once for each command buffer before this shader is used
         void BindResources(VkCommandBuffer commandBuffer) const;
@@ -66,6 +78,8 @@ namespace Petal {
         const Optional<VertexType> &GetVertexType() const;
 
     private:
+        Result BindTexturesImpl(const std::string &name, const std::vector<VkDescriptorImageInfo> &textures) const;
+
         Result CreateShaderModule(
             const IntermediateShaderResource &shader
         );
@@ -87,6 +101,6 @@ namespace Petal {
         std::unordered_map<std::string, ShaderResource> m_resources;
         std::vector<Stage> m_shaderStages;
         std::unique_ptr<VulkanGraphicsPipeline> m_pipeline;
-       Optional< VertexType> m_vertexType;
+        Optional<VertexType> m_vertexType;
     };
 } // Petal

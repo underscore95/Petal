@@ -120,6 +120,8 @@ add_library(Petal SHARED
         Source/Rendering/Camera/Camera.h
         Source/Window/MouseButton.h
         Source/Window/Key.h
+        Assets/Shaders/Petal/Math.h
+        Source/Utils/StableVector.h
 )
 
 # Macros

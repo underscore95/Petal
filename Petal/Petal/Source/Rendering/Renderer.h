@@ -6,11 +6,8 @@
 #include "Graphics/Memory/Textures/VulkanTexture.h"
 #include "Resources/ModelResource.h"
 
-namespace PetalShader {
-    struct Params;
-}
-
 namespace Petal {
+    struct Params;
     class Model;
     class VulkanBuffer;
     class MeshBuilder;
@@ -45,7 +42,7 @@ namespace Petal {
         void CmdRender(
             const CommandBufferVector &commandBuffers,
             const VulkanShader &shader,
-            const PetalShader::Params &params, // todo something about this
+            const Petal::Params &params, // todo something about this
             const MeshResource &mesh, glm::u32 instances = 1
         ) const;
 

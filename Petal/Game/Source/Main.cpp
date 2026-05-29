@@ -3,7 +3,6 @@
 #include "../../Petal/Assets/Shaders/Common.h"
 #include "Timing/Timer.h"
 using namespace Petal;
-using namespace PetalShader;
 
 // Petal::MeshBuilder CreateMesh() {
 //     MeshBuilder mesh({sizeof(VertexData)}, IndexType::INDICES_32_BIT);
@@ -125,7 +124,7 @@ int run(Timer &engineShutdownTime) {
         ImageLoaderSettings{},
         TextureCreateInfo{}
     ).Release();
-    shader->BindTextures("textures", {iconTexture, testTexture});
+    shader->BindTextures<std::vector<std::shared_ptr<VulkanTexture> > >("textures", std::vector{iconTexture, testTexture});
 
     // Renderer
     RendererSettings rendererSettings = {
@@ -134,7 +133,7 @@ int run(Timer &engineShutdownTime) {
     std::shared_ptr<Renderer> renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
 
     // std::shared_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
-   Model cpuModel = LoadModel("C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", logger, shader->GetVertexType().Value());
+    Model cpuModel = LoadModel("C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", logger, shader->GetVertexType().Value());
     std::shared_ptr<ModelResource> model = renderer->UploadModel(cpuModel, "MyModel").Release();
 
     Result result = renderer->Bind(*shader);

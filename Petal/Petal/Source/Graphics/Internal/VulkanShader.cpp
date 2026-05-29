@@ -41,7 +41,7 @@ namespace Petal {
             m_renderer,
             *this,
             m_logger,
-            VulkanGraphicsPipeline::PipelineSettings{.PushConstantsSize = sizeof(PetalShader::Params)},
+            VulkanGraphicsPipeline::PipelineSettings{.PushConstantsSize = sizeof(Petal::Params)},
             resultOut
         );
         if (resultOut != Result::SUCCESS) return;
@@ -231,7 +231,7 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
-    Result VulkanShader::BindTextures(const std::string &name, const std::vector<std::shared_ptr<VulkanTexture> > &textures) const {
+    Result VulkanShader::BindTexturesImpl(const std::string &name, const std::vector<VkDescriptorImageInfo> &textures) const {
         const auto it = m_resources.find(name);
         PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find texture {}. Note resource names are case sensitive.", name);
 
@@ -243,20 +243,15 @@ namespace Petal {
             "Failed to find texture {} (warning: found a {} with the same name)", name, shaderResource.Type
         );
 
-        std::vector<VkDescriptorImageInfo> imageInfos(textures.size());
-        for (glm::u32 i = 0; i < textures.size(); i++) {
-            imageInfos[i] = textures[i]->GetDescriptorInfo();
-        }
-
         VkWriteDescriptorSet write = {
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .pNext = nullptr,
             .dstSet = m_descriptorSets[shaderResource.BindingSet],
             .dstBinding = shaderResource.BindingIndex,
             .dstArrayElement = 0,
-            .descriptorCount = static_cast<glm::u32>(imageInfos.size()),
+            .descriptorCount = static_cast<glm::u32>(textures.size()),
             .descriptorType = ResourceTypes::GetData(shaderResource.Type).VulkanDescriptorType,
-            .pImageInfo = imageInfos.data(),
+            .pImageInfo = textures.data(),
             .pBufferInfo = nullptr,
             .pTexelBufferView = nullptr
         };

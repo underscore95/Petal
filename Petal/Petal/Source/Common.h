@@ -15,3 +15,4 @@
 #include "Graphics/Internal/Vulkan.h"
 #include "Constants.h"
 #include "Utils/Scheduler.h"
+#include "Utils/StableVector.h"
