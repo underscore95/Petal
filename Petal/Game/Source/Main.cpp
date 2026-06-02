@@ -1,7 +1,6 @@
 #include "GameCamera.h"
 #include "Petal.h"
 #include "../../Petal/Assets/Shaders/Common.h"
-#include "Timing/Timer.h"
 using namespace Petal;
 
 // Petal::MeshBuilder CreateMesh() {
@@ -70,15 +69,21 @@ void RecordCommandBuffers(
     std::shared_ptr<CommandBufferVector> commandBuffers,
     std::shared_ptr<VulkanShader> shader,
     std::shared_ptr<ModelResource> model,
-    const Camera &camera
+    OptionalRef<std::vector<RenderTarget> > renderTargets
 ) {
     commandBuffers->BeginAll(0);
 
-    graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
+    graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers, renderTargets);
 
     renderer.CmdRender(*commandBuffers, *shader, *model);
 
-    graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
+    graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers, renderTargets);
+
+    if (renderTargets.HasValue()) {
+        // put to correct transition
+        graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
+        graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
+    }
 
     commandBuffers->EndAll();
 }
@@ -90,13 +95,13 @@ int run(Timer &engineShutdownTime) {
     std::shared_ptr<Logger> logger = engine.GetLoggerSystem().CreateLogger("Game");
 
     std::shared_ptr<Window> window = engine.GetWindowSystem().OpenWindow();
-    OptionalRef<GraphicsContext> rendererOptional = engine.GetGraphicsSystem().CreateGraphicsContext(
+    OptionalRef<GraphicsContext> contextOptional = engine.GetGraphicsSystem().CreateGraphicsContext(
         window,
         DeviceRequirements::DEFAULT()
     );
-    if (rendererOptional.IsEmpty()) return -1;
+    if (contextOptional.IsEmpty()) return -1;
 
-    GraphicsContext &graphicsContext = rendererOptional.Value();
+    GraphicsContext &graphicsContext = contextOptional.Value();
     std::shared_ptr<CommandBufferVector> commandBuffers = graphicsContext.CreateCommandBuffers(
         graphicsContext.GetDevice()->GetGraphicsQueueFamily(),
         VK_COMMAND_BUFFER_LEVEL_PRIMARY,
@@ -139,8 +144,25 @@ int run(Timer &engineShutdownTime) {
     Result result = renderer->Bind(*shader);
     assert(result == Result::SUCCESS);
 
+    // Render target
+    std::vector<RenderTarget> targets;
+    for (glm::u32 i = 0; i < contextOptional->GetSwapchain().NumSwapchainImages(); i++) {
+        targets.push_back({
+            .Color = graphicsContext.GetMemorySubsystem().CreateTexture(
+                "render texture", {
+                    .Size = {window->GetDimensions().x, window->GetDimensions().y, 1},
+                    .ImageType = VK_IMAGE_TYPE_2D,
+                    .ViewType = VK_IMAGE_VIEW_TYPE_2D,
+                    .Format = VK_FORMAT_B8G8R8A8_SRGB,
+                    .Usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                    .AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
+                }).Release(),
+            .Depth = nullptr
+        });
+    }
+
     GameCamera camera(window, renderer, logger);
-    RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, camera.GetCamera());
+    RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, Result::PETAL_OPTIONAL_EMPTY);
 
     float dt = FLT_EPSILON;
     while (!window->WantsToClose()) {
@@ -155,7 +177,7 @@ int run(Timer &engineShutdownTime) {
         Result result = graphicsContext.GetSwapchain().BeginRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, camera.GetCamera());
+            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, Result::PETAL_OPTIONAL_EMPTY);
             continue;
         }
 
@@ -164,7 +186,7 @@ int run(Timer &engineShutdownTime) {
         graphicsContext.GetSwapchain().EndRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, camera.GetCamera());
+            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, Result::PETAL_OPTIONAL_EMPTY);
             continue;
         }
 

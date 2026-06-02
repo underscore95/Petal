@@ -4,11 +4,12 @@
 
 
 namespace Petal {
-    class VulkanTexture;
-    class VulkanShader;
+    struct RenderTarget;
 }
 
 namespace Petal {
+    class VulkanTexture;
+    class VulkanShader;
     class GraphicsContext;
     class VulkanSemaphore;
     class CommandBufferVector;
@@ -44,13 +45,6 @@ namespace Petal {
         // This is guaranteed to be between 0 and NumSwapchainImages()-1
         glm::u32 GetSwapchainIndex() const;
 
-        // Record a command to clear a specific swapchain image into a command buffer
-        void CmdClear(
-            VkCommandBuffer commandBuffer,
-            const Color &color,
-            glm::u32 swapchainIndex
-        ) const;
-
         // Submit a command used to render the frame.
         // It will be stored and all frame command buffers will be executed at once at the end of frame
         void SubmitFrameCommand(
@@ -64,11 +58,20 @@ namespace Petal {
 
         // This must be called before any render commands are recorded into the command buffer
         // CommandBufferVector should contain NumSwapchainImages() command buffers
-        void CmdBeginRendering(const CommandBufferVector &commandBuffers) const;
+        // If renderTargets is empty, render to the swapchain
+        // todo this could return a struct containing command buffer vector and render target to end rendering more safely
+        void CmdBeginRendering(
+            const CommandBufferVector &commandBuffers,
+            OptionalRef<std::vector<RenderTarget> > renderTargets = Result::PETAL_OPTIONAL_EMPTY
+        ) const;
 
         // This must be called once all render commands have been recorded into the command buffer, if CmdBeginRendering has been called.
         // CommandBufferVector should contain NumSwapchainImages() command buffers
-        void CmdEndRendering(const CommandBufferVector &commandBuffers) const;
+        // If renderTargets is empty, render to the swapchain. renderTargets must be the same targets that were passed into CmdBeginRendering
+        void CmdEndRendering(
+            const CommandBufferVector &commandBuffers,
+            OptionalRef<std::vector<RenderTarget> > renderTargets = Result::PETAL_OPTIONAL_EMPTY
+        ) const;
 
         // Instanced rendering using a specific shader
         // Bind the vertex buffer and index buffer (if using) to the shader before submitting the command buffer.
@@ -81,7 +84,7 @@ namespace Petal {
 
         // Schedule a function to run after <num swapchain images> frames
         // Note this function will not run if the engine shuts down first however it will run if only the swapchain is destroyed
-        void ScheduleSwapchainFrames(const std::function<void()>& function) const;
+        void ScheduleSwapchainFrames(const std::function<void()> &function) const;
 
     private:
         Result CreateSyncObjects();
@@ -99,14 +102,13 @@ namespace Petal {
         Result CreateDepthBuffer(glm::uvec2 windowSize);
 
     private:
-        Engine& m_engine;
+        Engine &m_engine;
         GraphicsContext &m_context;
         std::shared_ptr<Logger> m_logger;
         VkSwapchainKHR m_handle;
         VkSurfaceFormat2KHR m_swapchainSurfaceFormat;
         glm::u32 m_numSwapchainImages;
-        std::vector<VkImage> m_images;
-        std::vector<VkImageView> m_imageViews;
+        std::vector<RenderTarget> m_swapchainTargets;
         std::shared_ptr<VulkanFence> m_blockingCommandFence;
         std::shared_ptr<VulkanTexture> m_depthBuffer;
 

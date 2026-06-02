@@ -23,12 +23,12 @@ namespace Petal {
         if (resultOut != Result::SUCCESS) return;
 
         m_context.SetObjectDebugName(reinterpret_cast<glm::u64>(m_sampler), VK_OBJECT_TYPE_SAMPLER, std::format("{} Sampler", m_name));
-        m_context.SetObjectDebugName(reinterpret_cast<glm::u64>(m_handle), VK_OBJECT_TYPE_IMAGE, std::format("{} Sampler", m_name));
-        m_context.SetObjectDebugName(reinterpret_cast<glm::u64>(m_view), VK_OBJECT_TYPE_IMAGE_VIEW, std::format("{} Sampler", m_name));
+        m_context.SetObjectDebugName(reinterpret_cast<glm::u64>(m_handle), VK_OBJECT_TYPE_IMAGE, std::format("{} Image", m_name));
+        m_context.SetObjectDebugName(reinterpret_cast<glm::u64>(m_view), VK_OBJECT_TYPE_IMAGE_VIEW, std::format("{} Image View", m_name));
     }
 
     VulkanTexture::~VulkanTexture() {
-        if (m_sampler) vkDestroySampler(m_context.GetDevice()->GetHandle(), m_sampler, nullptr);
+        if (m_sampler != VK_NULL_HANDLE) vkDestroySampler(m_context.GetDevice()->GetHandle(), m_sampler, nullptr);
         if (m_view != VK_NULL_HANDLE) vkDestroyImageView(m_context.GetDevice()->GetHandle(), m_view, nullptr);
         if (m_handle != VK_NULL_HANDLE) vmaDestroyImage(m_context.GetAllocator()->GetHandle(), m_handle, m_allocation);
     }
@@ -61,7 +61,7 @@ namespace Petal {
         };
     }
 
-    VkImageView VulkanTexture::GetView() const {
+    VkImageView VulkanTexture::GetImageView() const {
         return m_view;
     }
 

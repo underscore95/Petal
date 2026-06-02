@@ -122,6 +122,9 @@ add_library(Petal SHARED
         Source/Window/Key.h
         Assets/Shaders/Petal/Math.h
         Source/Utils/StableVector.h
+        Source/Graphics/Internal/RenderTarget.cpp
+        Source/Graphics/Internal/RenderTarget.h
+        Source/Graphics/Internal/IHasVulkanImage.h
 )
 
 # Macros

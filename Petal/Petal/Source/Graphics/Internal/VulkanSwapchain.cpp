@@ -2,18 +2,30 @@
 #include "Graphics/GraphicsContext.h"
 #include "Engine.h"
 #include "RenderingDevice.h"
+#include "RenderTarget.h"
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanQueue.h"
 #include "VulkanShader.h"
 #include "CommandBuffers/CommandBufferVector.h"
-#include "Graphics/Memory/AllocationTracker.h"
-#include "Graphics/Memory/AllocationTracker.h"
 #include "Graphics/Memory/GPUMemorySubsystem.h"
 #include "Sync/VulkanFence.h"
 #include "Sync/VulkanSemaphore.h"
 #include "Window/Window.h"
 
 namespace Petal {
+    struct SwapchainImage final : IHasVulkanImage {
+        VkImage Image;
+        VkImageView View;
+
+        VkImageView GetImageView() const override {
+            return View;
+        }
+
+        VkImage GetImage() const override {
+            return Image;
+        }
+    };
+
     VulkanSwapchain::VulkanSwapchain(
         Engine &engine,
         GraphicsContext &context,
@@ -40,12 +52,12 @@ namespace Petal {
     }
 
     VulkanSwapchain::~VulkanSwapchain() {
-        for (auto &imageView : m_imageViews) {
-            vkDestroyImageView(m_context.GetDevice()->GetHandle(), imageView, nullptr);
+        for (const RenderTarget &renderTarget : m_swapchainTargets) {
+            // color image is part of VkSwapchain
+            // depth buffer is destroyed by VulkanTexture destructor
+            vkDestroyImageView(m_context.GetDevice()->GetHandle(), renderTarget.Color->GetImageView(), nullptr);
         }
-        m_imageViews.clear();
 
-        // Destroying the swapchain destroys the images
         vkDestroySwapchainKHR(
             m_context.GetDevice()->GetHandle(),
             m_handle,
@@ -156,33 +168,6 @@ namespace Petal {
         return m_swapchainIndex;
     }
 
-    void VulkanSwapchain::CmdClear(
-        VkCommandBuffer commandBuffer,
-        const Color &color,
-        glm::u32 swapchainIndex
-    ) const {
-        VkClearColorValue colorValue;
-        color.WriteFloats(colorValue.float32);
-        vkCmdClearColorImage(
-            commandBuffer,
-            m_images[swapchainIndex],
-            VK_IMAGE_LAYOUT_GENERAL,
-            &colorValue,
-            1,
-            &GraphicsContext::DEFAULT_IMAGE_COLOR_SUBRESOURCE_RANGE
-        );
-
-        VkClearDepthStencilValue depthStencilValue = {.depth = 1.0f, .stencil = 0};
-        vkCmdClearDepthStencilImage(
-            commandBuffer,
-            m_depthBuffer->GetHandle(),
-            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-            &depthStencilValue,
-            1,
-            &GraphicsContext::DEFAULT_IMAGE_DEPTH_SUBRESOURCE_RANGE
-        );
-    }
-
     void VulkanSwapchain::SubmitFrameCommand(
         const CommandBufferStrongRef &commandBuffer
     ) {
@@ -264,65 +249,51 @@ namespace Petal {
         return m_swapchainSurfaceFormat;
     }
 
-    void VulkanSwapchain::CmdBeginRendering(const CommandBufferVector &commandBuffers) const {
+    void VulkanSwapchain::CmdBeginRendering(
+        const CommandBufferVector &commandBuffers,
+        OptionalRef<std::vector<RenderTarget> > renderTargets
+    ) const {
         assert(commandBuffers.IsSwapchainSize());
 
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
+            const RenderTarget &renderTarget = renderTargets.HasValue() ? renderTargets.Value()[swapchainIndex] : m_swapchainTargets[swapchainIndex];
+
             VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
 
-            m_context.CmdTransitionImage(
-                commandBuffer,
-                m_images[swapchainIndex],
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_GENERAL
-            );
+            if (renderTarget.Color) {
+                m_context.CmdTransitionImage(
+                    commandBuffer,
+                    renderTarget.Color->GetImage(),
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_GENERAL // todo color attachment optimal?
+                );
+            }
 
-            VkImageMemoryBarrier2 depthTransition{
-                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                .pNext = nullptr,
-                .srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                .srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                .srcQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
-                .dstQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
-                .image = m_depthBuffer->GetHandle(),
-                .subresourceRange = GraphicsContext::DEFAULT_IMAGE_DEPTH_SUBRESOURCE_RANGE
-            };
-            m_context.CmdTransitionImage(
-                commandBuffer,
-                depthTransition
-            );
+            if (renderTarget.Depth) {
+                VkImageMemoryBarrier2 depthTransition{
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                    .pNext = nullptr,
+                    .srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                    .srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                    .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                    .srcQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
+                    .dstQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
+                    .image = renderTarget.Depth->GetImage(),
+                    .subresourceRange = GraphicsContext::DEFAULT_IMAGE_DEPTH_SUBRESOURCE_RANGE
+                };
+                m_context.CmdTransitionImage(
+                    commandBuffer,
+                    depthTransition
+                );
+            }
 
             glm::uvec2 windowSize = m_context.GetWindow().GetDimensions();
 
-            VkRenderingAttachmentInfo depthAttachment = {
-                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                .pNext = nullptr,
-                .imageView = m_depthBuffer->GetView(),
-                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                .resolveMode = VK_RESOLVE_MODE_NONE,
-                .resolveImageView = nullptr,
-                .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                .clearValue = {.depthStencil = VkClearDepthStencilValue{1.0f, 0}} // todo
-            };
-
-            VkRenderingAttachmentInfo colorAttachment = {
-                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                .pNext = nullptr,
-                .imageView = m_imageViews[swapchainIndex],
-                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                .resolveMode = VK_RESOLVE_MODE_NONE,
-                .resolveImageView = nullptr,
-                .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue = {.color = {0, 0, 0, 1}} // todo
-            };
+            Optional<VkRenderingAttachmentInfo> colorAttachment = renderTarget.CreateColorAttachment();
+            Optional<VkRenderingAttachmentInfo> depthAttachment = renderTarget.CreateDepthAttachment();
 
             VkRenderingInfo renderingInfo = {
                 .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
@@ -332,8 +303,8 @@ namespace Petal {
                 .layerCount = 1,
                 .viewMask = 0,
                 .colorAttachmentCount = 1,
-                .pColorAttachments = &colorAttachment,
-                .pDepthAttachment = &depthAttachment,
+                .pColorAttachments = colorAttachment.HasValue() ? colorAttachment.Data() : nullptr,
+                .pDepthAttachment = depthAttachment.HasValue() ? depthAttachment.Data() : nullptr,
                 .pStencilAttachment = nullptr
             };
             vkCmdBeginRendering(commandBuffer, &renderingInfo);
@@ -352,16 +323,22 @@ namespace Petal {
         }
     }
 
-    void VulkanSwapchain::CmdEndRendering(const CommandBufferVector &commandBuffers) const {
+    void VulkanSwapchain::CmdEndRendering(
+        const CommandBufferVector &commandBuffers,
+        OptionalRef<std::vector<RenderTarget> > renderTargets
+    ) const {
         assert(commandBuffers.IsSwapchainSize());
 
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
+            const RenderTarget &renderTarget = renderTargets.HasValue() ? renderTargets.Value()[swapchainIndex] : m_swapchainTargets[swapchainIndex];
+
             VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
             vkCmdEndRendering(commandBuffer);
 
+            // If this causes sync error, you likely passed in different renderTargets from CmdBeginRendering
             m_context.CmdTransitionImage(
                 commandBuffer,
-                m_images[swapchainIndex], VK_IMAGE_LAYOUT_GENERAL,
+                renderTarget.Color->GetImage(), VK_IMAGE_LAYOUT_GENERAL, // todo color attachment optimal?
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
             );
         }
@@ -468,19 +445,26 @@ namespace Petal {
         }
 
         // Create the images
-        m_images.resize(m_numSwapchainImages);
-        m_imageViews.resize(m_numSwapchainImages);
+        m_swapchainTargets.resize(m_numSwapchainImages);
 
-        res = vkGetSwapchainImagesKHR(device, m_handle, &m_numSwapchainImages, m_images.data());
+        std::vector<VkImage> images(m_numSwapchainImages);
+        res = vkGetSwapchainImagesKHR(device, m_handle, &m_numSwapchainImages, images.data());
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_SWAPCHAIN_CREATION_FAILED, m_logger, "Failed to get the swapchain images");
 
         for (glm::u32 i = 0; i < m_numSwapchainImages; i++) {
+            auto image = std::make_shared<SwapchainImage>();
+
+            // Image
+            m_swapchainTargets[i].Color = image;
+            image->Image = images[i];
+
+            // View
             VkImageViewCreateInfo viewInfo =
             {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .image = m_images[i],
+                .image = images[i],
                 .viewType = VK_IMAGE_VIEW_TYPE_2D,
                 .format = m_swapchainSurfaceFormat.surfaceFormat.format,
                 .components = {
@@ -498,7 +482,7 @@ namespace Petal {
                 }
             };
 
-            res = vkCreateImageView(device, &viewInfo, nullptr, &m_imageViews[i]);
+            res = vkCreateImageView(device, &viewInfo, nullptr, &image->View);
             PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_SWAPCHAIN_CREATION_FAILED, m_logger, "Failed to create swapchain image view {} ({})", i, res);
         }
 
@@ -580,6 +564,11 @@ namespace Petal {
         PETAL_CHECK_OPTIONAL(texture, m_logger, "Failed to create depth buffer");
 
         m_depthBuffer = texture.Release();
+        assert(!m_swapchainTargets.empty());
+        for (RenderTarget &target : m_swapchainTargets) {
+            target.Depth = m_depthBuffer;
+        }
+
         return Result::SUCCESS;
     }
 } // Petal

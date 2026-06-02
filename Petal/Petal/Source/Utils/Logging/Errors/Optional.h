@@ -91,6 +91,16 @@ namespace Petal {
             return m_value;
         }
 
+        T *Data() {
+            assert(HasValue());
+            return &m_value;
+        }
+
+        const T *Data() const {
+            assert(HasValue());
+            return &m_value;
+        }
+
     private:
         T m_value;
         bool m_present;
@@ -199,30 +209,13 @@ namespace Petal {
             }
         }
 
-        OptionalRef(const OptionalRef &other) = delete;
+        OptionalRef(const OptionalRef &other) = default;
 
-        OptionalRef(OptionalRef &&other) noexcept
-            : m_value(other.m_value),
-              m_present(other.m_present),
-              m_result(other.m_result) {
-        }
+        OptionalRef(OptionalRef &&other) noexcept = default;
 
-        OptionalRef &operator=(const OptionalRef &other) = delete;
+        OptionalRef &operator=(const OptionalRef &other) = default;
 
-        OptionalRef &operator=(OptionalRef &&other) noexcept {
-            if (this == &other)
-                return *this;
-
-            m_value = other.m_value;
-            m_present = other.m_present;
-            m_result = other.m_result;
-
-            other.m_value = nullptr;
-            other.m_present = false;
-            other.m_result = Result::PETAL_OPTIONAL_MOVED_OUT;
-
-            return *this;
-        }
+        OptionalRef &operator=(OptionalRef &&other) noexcept = default;
 
         ~OptionalRef() {
             m_value = nullptr;
@@ -252,7 +245,7 @@ namespace Petal {
 
         T *operator->() {
             assert(HasValue());
-            return m_value.get();
+            return m_value;
         }
 
     private:

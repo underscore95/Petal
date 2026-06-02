@@ -1,13 +1,14 @@
 #pragma once
 
 #include "TextureCreateInfo.h"
+#include "Graphics/Internal/IHasVulkanImage.h"
 #include "Graphics/Internal/VulkanAllocator.h"
 
 namespace Petal {
     class GraphicsContext;
 
     // Represents a texture on the GPU
-    class VulkanTexture {
+    class VulkanTexture : public IHasVulkanImage {
     public:
         VulkanTexture(
             GraphicsContext &context,
@@ -17,7 +18,7 @@ namespace Petal {
             Result &resultOut
         );
 
-        ~VulkanTexture();
+        ~VulkanTexture() override;
 
     public:
         VkImage GetHandle() const;
@@ -33,22 +34,26 @@ namespace Petal {
 
         VkDescriptorImageInfo GetDescriptorInfo() const;
 
-        VkImageView GetView() const;
+        VkImageView GetImageView() const override;
+
+    private:
+        VkImage GetImage() const override { return GetHandle(); }
 
     private:
         Result CreateTexture();
+
         Result CreateSampler();
 
     private:
         GraphicsContext &m_context;
         std::shared_ptr<Logger> m_logger;
         std::string m_name;
-        VkImage m_handle;
-        VkImageView m_view;
+        VkImage m_handle = VK_NULL_HANDLE;
+        VkImageView m_view = VK_NULL_HANDLE;
         VmaAllocation m_allocation;
         glm::u32 m_size;
         VkImageAspectFlags m_aspectMask;
         const TextureCreateInfo m_textureCreateInfo;
-        VkSampler m_sampler;
+        VkSampler m_sampler = VK_NULL_HANDLE;
     };
 } // Petal

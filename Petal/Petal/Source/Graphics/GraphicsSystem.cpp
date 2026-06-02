@@ -54,7 +54,7 @@ namespace Petal {
             result
         );
 
-        PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to create renderer: {}", static_cast<int>(result));
+        PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to create renderer: {}", result);
 
         auto it = m_renderers.insert(std::move(renderer));
         return *it.first->get();
