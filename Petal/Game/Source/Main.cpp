@@ -69,20 +69,19 @@ void RecordCommandBuffers(
     std::shared_ptr<CommandBufferVector> commandBuffers,
     std::shared_ptr<VulkanShader> shader,
     std::shared_ptr<ModelResource> model,
-    OptionalRef<std::vector<RenderTarget> > renderTargets
+    OptionalRef<std::shared_ptr<std::vector<RenderTarget> > > renderTargets
 ) {
     commandBuffers->BeginAll(0);
 
-    graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers, renderTargets);
+    std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> renderCommands = graphicsContext.GetSwapchain().CmdBeginRendering(commandBuffers, renderTargets);
 
-    renderer.CmdRender(*commandBuffers, *shader, *model);
+    renderer.CmdRender(*renderCommands, *shader, *model);
 
-    graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers, renderTargets);
+    renderCommands.reset();
 
     if (renderTargets.HasValue()) {
         // put to correct transition
-        graphicsContext.GetSwapchain().CmdBeginRendering(*commandBuffers);
-        graphicsContext.GetSwapchain().CmdEndRendering(*commandBuffers);
+        renderCommands = graphicsContext.GetSwapchain().CmdBeginRendering(commandBuffers);
     }
 
     commandBuffers->EndAll();

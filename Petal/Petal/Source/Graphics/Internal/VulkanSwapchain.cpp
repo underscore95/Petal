@@ -52,7 +52,7 @@ namespace Petal {
     }
 
     VulkanSwapchain::~VulkanSwapchain() {
-        for (const RenderTarget &renderTarget : m_swapchainTargets) {
+        for (const RenderTarget &renderTarget : *m_swapchainTargets) {
             // color image is part of VkSwapchain
             // depth buffer is destroyed by VulkanTexture destructor
             vkDestroyImageView(m_context.GetDevice()->GetHandle(), renderTarget.Color->GetImageView(), nullptr);
@@ -249,16 +249,19 @@ namespace Petal {
         return m_swapchainSurfaceFormat;
     }
 
-    void VulkanSwapchain::CmdBeginRendering(
-        const CommandBufferVector &commandBuffers,
-        OptionalRef<std::vector<RenderTarget> > renderTargets
-    ) const {
-        assert(commandBuffers.IsSwapchainSize());
+    VulkanSwapchain::RenderCommandBuffers::RenderCommandBuffers(
+        GraphicsContext &context,
+        const std::shared_ptr<CommandBufferVector> &commands,
+        const std::shared_ptr<std::vector<RenderTarget> > &renderTargets
+    )
+        : m_context(context),
+          m_commands(commands),
+          m_renderTargets(renderTargets) {
+        assert(commands->IsSwapchainSize());
 
-        for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
-            const RenderTarget &renderTarget = renderTargets.HasValue() ? renderTargets.Value()[swapchainIndex] : m_swapchainTargets[swapchainIndex];
-
-            VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
+        for (glm::u32 swapchainIndex = 0; swapchainIndex < commands->Size(); swapchainIndex++) {
+            const RenderTarget &renderTarget = (*m_renderTargets)[swapchainIndex];
+            VkCommandBuffer commandBuffer = commands->GetHandle(swapchainIndex);
 
             if (renderTarget.Color) {
                 m_context.CmdTransitionImage(
@@ -323,19 +326,15 @@ namespace Petal {
         }
     }
 
-    void VulkanSwapchain::CmdEndRendering(
-        const CommandBufferVector &commandBuffers,
-        OptionalRef<std::vector<RenderTarget> > renderTargets
-    ) const {
-        assert(commandBuffers.IsSwapchainSize());
+    VulkanSwapchain::RenderCommandBuffers::~RenderCommandBuffers() {
+        assert(m_commands->IsSwapchainSize());
 
-        for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
-            const RenderTarget &renderTarget = renderTargets.HasValue() ? renderTargets.Value()[swapchainIndex] : m_swapchainTargets[swapchainIndex];
+        for (glm::u32 swapchainIndex = 0; swapchainIndex < m_commands->Size(); swapchainIndex++) {
+            const RenderTarget &renderTarget = (*m_renderTargets)[swapchainIndex];
+            VkCommandBuffer commandBuffer = m_commands->GetHandle(swapchainIndex);
 
-            VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
             vkCmdEndRendering(commandBuffer);
 
-            // If this causes sync error, you likely passed in different renderTargets from CmdBeginRendering
             m_context.CmdTransitionImage(
                 commandBuffer,
                 renderTarget.Color->GetImage(), VK_IMAGE_LAYOUT_GENERAL, // todo color attachment optimal?
@@ -344,14 +343,29 @@ namespace Petal {
         }
     }
 
+    const CommandBufferVector &VulkanSwapchain::RenderCommandBuffers::GetCommands() const {
+        return *m_commands;
+    }
+
+    std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> VulkanSwapchain::CmdBeginRendering(
+        const std::shared_ptr<CommandBufferVector> &commandBuffers,
+        OptionalRef<std::shared_ptr<std::vector<RenderTarget> > > renderTargets
+    ) const {
+        return std::shared_ptr<RenderCommandBuffers>(new RenderCommandBuffers(
+            m_context,
+            commandBuffers,
+            renderTargets.HasValue() ? *renderTargets : m_swapchainTargets
+        ));
+    }
+
     void VulkanSwapchain::CmdRenderIndexed(
         const VulkanShader &shader,
-        const CommandBufferVector &commandBuffers,
+        const RenderCommandBuffers &commandBuffers,
         glm::u32 numIndices,
         glm::u32 numInstances
-    ) {
-        for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.Size(); swapchainIndex++) {
-            VkCommandBuffer commandBuffer = commandBuffers.GetHandle(swapchainIndex);
+    ) const {
+        for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.GetCommands().Size(); swapchainIndex++) {
+            VkCommandBuffer commandBuffer = commandBuffers.GetCommands().GetHandle(swapchainIndex);
 
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.GetPipeline().GetHandle());
             vkCmdDrawIndexed(commandBuffer, numIndices, numInstances, 0, 0, 0);
@@ -445,7 +459,7 @@ namespace Petal {
         }
 
         // Create the images
-        m_swapchainTargets.resize(m_numSwapchainImages);
+        m_swapchainTargets = std::make_shared<std::vector<RenderTarget> >(m_numSwapchainImages);
 
         std::vector<VkImage> images(m_numSwapchainImages);
         res = vkGetSwapchainImagesKHR(device, m_handle, &m_numSwapchainImages, images.data());
@@ -455,7 +469,7 @@ namespace Petal {
             auto image = std::make_shared<SwapchainImage>();
 
             // Image
-            m_swapchainTargets[i].Color = image;
+            (*m_swapchainTargets)[i].Color = image;
             image->Image = images[i];
 
             // View
@@ -564,8 +578,8 @@ namespace Petal {
         PETAL_CHECK_OPTIONAL(texture, m_logger, "Failed to create depth buffer");
 
         m_depthBuffer = texture.Release();
-        assert(!m_swapchainTargets.empty());
-        for (RenderTarget &target : m_swapchainTargets) {
+        assert(m_swapchainTargets && !m_swapchainTargets->empty());
+        for (RenderTarget &target : *m_swapchainTargets) {
             target.Depth = m_depthBuffer;
         }
 

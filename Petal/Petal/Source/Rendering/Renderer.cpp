@@ -87,7 +87,7 @@ namespace Petal {
     }
 
     void Renderer::CmdRender(
-        const CommandBufferVector &commandBuffers,
+        const VulkanSwapchain::RenderCommandBuffers &commandBuffers,
         const VulkanShader &shader,
         const Petal::Params &params,
         const MeshResource &mesh,
@@ -97,18 +97,18 @@ namespace Petal {
             m_logger->Error("You must call SetCamera before rendering a mesh.");
         }
 
-        shader.BindResources(commandBuffers);
+        shader.BindResources(commandBuffers.GetCommands());
 
-        m_context.CmdBindVertexBuffer(commandBuffers, 0, {std::cref(mesh.GetVertexBuffer())});
-        m_context.CmdBindIndexBuffer(commandBuffers, mesh.GetIndexBuffer(), mesh.GetIndexType());
+        m_context.CmdBindVertexBuffer(commandBuffers.GetCommands(), 0, {std::cref(mesh.GetVertexBuffer())});
+        m_context.CmdBindIndexBuffer(commandBuffers.GetCommands(), mesh.GetIndexBuffer(), mesh.GetIndexType());
 
-        m_context.CmdWritePushConstants(commandBuffers, shader, &params, sizeof(params));
+        m_context.CmdWritePushConstants(commandBuffers.GetCommands(), shader, &params, sizeof(params));
 
         m_context.GetSwapchain().CmdRenderIndexed(shader, commandBuffers, mesh.GetNumIndices(), instances);
     }
 
     void Renderer::CmdRender(
-        const CommandBufferVector &commandBuffers,
+        const VulkanSwapchain::RenderCommandBuffers &commandBuffers,
         const VulkanShader &shader,
         const ModelResource &model
     ) const {

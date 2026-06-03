@@ -192,12 +192,14 @@ namespace Petal {
         static_assert(!IsResult<T>::value, "OptionalRef<Result> is forbidden because it creates constructor ambiguity.");
 
     public:
+        // ReSharper disable once CppNonExplicitConvertingConstructor
         OptionalRef(T &value)
             : m_value(&value),
               m_present(true),
               m_result(Result::SUCCESS) {
         }
 
+        // ReSharper disable once CppNonExplicitConvertingConstructor
         OptionalRef(Result result)
             : m_value(nullptr),
               m_present(false),
@@ -207,18 +209,6 @@ namespace Petal {
                 __debugbreak();
 #endif
             }
-        }
-
-        OptionalRef(const OptionalRef &other) = default;
-
-        OptionalRef(OptionalRef &&other) noexcept = default;
-
-        OptionalRef &operator=(const OptionalRef &other) = default;
-
-        OptionalRef &operator=(OptionalRef &&other) noexcept = default;
-
-        ~OptionalRef() {
-            m_value = nullptr;
         }
 
         static constexpr OptionalRef Empty() {
@@ -246,6 +236,16 @@ namespace Petal {
         T *operator->() {
             assert(HasValue());
             return m_value;
+        }
+
+        T &operator*() {
+            assert(HasValue());
+            return *m_value;
+        }
+
+        const T &operator*() const {
+            assert(HasValue());
+            return *m_value;
         }
 
     private:

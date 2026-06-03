@@ -40,14 +40,15 @@ namespace Petal {
         );
 
         void CmdRender(
-            const CommandBufferVector &commandBuffers,
+            const VulkanSwapchain::RenderCommandBuffers &commandBuffers,
             const VulkanShader &shader,
-            const Petal::Params &params, // todo something about this
+            const Petal::Params &params,
+            // todo something about this
             const MeshResource &mesh, glm::u32 instances = 1
         ) const;
 
         void CmdRender(
-            const CommandBufferVector &commandBuffers,
+            const VulkanSwapchain::RenderCommandBuffers &commandBuffers,
             const VulkanShader &shader,
             const ModelResource &model
         ) const;

@@ -56,31 +56,45 @@ namespace Petal {
 
         VkSurfaceFormat2KHR GetSurfaceFormat() const;
 
+        struct RenderCommandBuffers {
+            friend class VulkanSwapchain;
+        private:
+            RenderCommandBuffers(
+                GraphicsContext &context,
+                const std::shared_ptr<CommandBufferVector> &commands,
+                const std::shared_ptr<std::vector<RenderTarget> > &renderTargets
+            );
+
+        public:
+            ~RenderCommandBuffers();
+
+            DISABLE_COPY_AND_MOVE(RenderCommandBuffers);
+
+        public:
+            const CommandBufferVector& GetCommands() const;
+
+        private:
+            GraphicsContext &m_context;
+            std::shared_ptr<CommandBufferVector> m_commands;
+            std::shared_ptr<std::vector<RenderTarget> > m_renderTargets;
+        };
+
         // This must be called before any render commands are recorded into the command buffer
         // CommandBufferVector should contain NumSwapchainImages() command buffers
         // If renderTargets is empty, render to the swapchain
-        // todo this could return a struct containing command buffer vector and render target to end rendering more safely
-        void CmdBeginRendering(
-            const CommandBufferVector &commandBuffers,
-            OptionalRef<std::vector<RenderTarget> > renderTargets = Result::PETAL_OPTIONAL_EMPTY
-        ) const;
-
-        // This must be called once all render commands have been recorded into the command buffer, if CmdBeginRendering has been called.
-        // CommandBufferVector should contain NumSwapchainImages() command buffers
-        // If renderTargets is empty, render to the swapchain. renderTargets must be the same targets that were passed into CmdBeginRendering
-        void CmdEndRendering(
-            const CommandBufferVector &commandBuffers,
-            OptionalRef<std::vector<RenderTarget> > renderTargets = Result::PETAL_OPTIONAL_EMPTY
+        std::shared_ptr<RenderCommandBuffers> CmdBeginRendering(
+            const std::shared_ptr<CommandBufferVector> &commandBuffers,
+            OptionalRef<std::shared_ptr<std::vector<RenderTarget> > > renderTargets = Result::PETAL_OPTIONAL_EMPTY
         ) const;
 
         // Instanced rendering using a specific shader
-        // Bind the vertex buffer and index buffer (if using) to the shader before submitting the command buffer.
+        // Vertex/index buffers must be bound to the shader separately
         void CmdRenderIndexed(
             const VulkanShader &shader,
-            const CommandBufferVector &commandBuffers,
+            const RenderCommandBuffers &commandBuffers,
             glm::u32 numIndices,
             glm::u32 numInstances = 1
-        );
+        ) const;
 
         // Schedule a function to run after <num swapchain images> frames
         // Note this function will not run if the engine shuts down first however it will run if only the swapchain is destroyed
@@ -108,7 +122,7 @@ namespace Petal {
         VkSwapchainKHR m_handle;
         VkSurfaceFormat2KHR m_swapchainSurfaceFormat;
         glm::u32 m_numSwapchainImages;
-        std::vector<RenderTarget> m_swapchainTargets;
+        std::shared_ptr<std::vector<RenderTarget> > m_swapchainTargets;
         std::shared_ptr<VulkanFence> m_blockingCommandFence;
         std::shared_ptr<VulkanTexture> m_depthBuffer;
 
