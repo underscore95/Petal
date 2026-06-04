@@ -12,18 +12,18 @@ namespace Petal {
 
     class FrameGraph {
         struct ResourceState {
-            std::reference_wrapper<const RenderPass> LastPass;
+            const RenderPass *LastPass;
             ResourceAccess LastAccess;
-            Optional<VkImageLayout> LastImageLayout;
+            Optional<VkImageLayout> LastImageLayout = Result::PETAL_OPTIONAL_EMPTY;
         };
 
     public:
         FrameGraph(
-            GraphicsContext& context,
+            GraphicsContext &context,
             const std::shared_ptr<Logger> &logger,
             const std::shared_ptr<CommandBufferVector> &commands,
             const std::vector<std::shared_ptr<IVulkanResource> > &resources,
-            std::forward_list<RenderPass> &&passes,
+            std::vector<std::unique_ptr<RenderPass> > &&passes,
             Result &resultOut
         );
 
@@ -41,10 +41,10 @@ namespace Petal {
         Result Record();
 
     private:
-        GraphicsContext& m_context;
+        GraphicsContext &m_context;
         std::shared_ptr<Logger> m_logger;
         std::shared_ptr<CommandBufferVector> m_commands;
         std::unordered_map<std::shared_ptr<IVulkanResource>, Optional<ResourceState> > m_resources;
-        std::forward_list<RenderPass> m_passes;
+        std::vector<std::unique_ptr<RenderPass> > m_passes;
     };
 } // Petal

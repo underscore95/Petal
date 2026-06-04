@@ -13,7 +13,7 @@ namespace Petal {
         const std::shared_ptr<Logger> &logger,
         const std::shared_ptr<CommandBufferVector> &commands,
         const std::vector<std::shared_ptr<IVulkanResource> > &resources,
-        std::forward_list<RenderPass> &&passes,
+        std::vector<std::unique_ptr<RenderPass> > &&passes,
         Result &resultOut
     )
         : m_context(context),
@@ -21,7 +21,7 @@ namespace Petal {
           m_commands(commands),
           m_passes(std::move(passes)) {
         for (const std::shared_ptr<IVulkanResource> &resource : resources) {
-            m_resources[resource] = Result::PETAL_OPTIONAL_EMPTY;
+            m_resources.emplace(resource, Result::PETAL_OPTIONAL_EMPTY);
         }
 
         resultOut = Record();
@@ -106,20 +106,29 @@ namespace Petal {
     Result FrameGraph::Record() {
         Result result;
 
-        for (RenderPass &pass : m_passes) {
+        for (std::unique_ptr<RenderPass> &pass : m_passes) {
+            assert(pass);
+
             std::vector<VkBufferMemoryBarrier2> bufferBarriers;
             std::vector<VkImageMemoryBarrier2> imageBarriers;
 
-            for (const RenderPass::PassResource &resource : pass.GetAccessedResources()) {
-                Optional<ResourceState> &state = m_resources[resource.Resource];
+            for (const RenderPass::PassResource &resource : pass->GetAccessedResources()) {
+                auto it = m_resources.find(resource.Resource);
+                PETAL_CHECK_COND(
+                    it == m_resources.end(),
+                    Result::FRAME_GRAPH_ERROR,
+                    m_logger,
+                    "Pass {} referenced resource {} which the frame graph didn't know about", pass->GetName(), resource.Resource->GetName()
+                );
+                Optional<ResourceState> &state = it->second;
 
                 if (state.HasValue()) {
                     result = PushBarriers(*state, resource, bufferBarriers, imageBarriers);
-                    PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to insert barriers for render pass {}", pass.GetName());
+                    PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to insert barriers for render pass {}", pass->GetName());
                 }
 
                 state = ResourceState{
-                    .LastPass = pass,
+                    .LastPass = pass.get(),
                     .LastAccess = resource.AccessType,
                     .LastImageLayout = resource.RequiredImageLayout
                 };
@@ -140,8 +149,8 @@ namespace Petal {
                 vkCmdPipelineBarrier2(m_commands->GetHandle(i), &depInfo);
             }
 
-            result = pass.Record(m_commands);
-            PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to record commands for render pass {}", pass.GetName());
+            result = pass->Record(m_commands);
+            PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to record commands for render pass {}", pass->GetName());
         }
 
         return Result::SUCCESS;
