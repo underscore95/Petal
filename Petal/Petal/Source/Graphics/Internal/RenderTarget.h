@@ -1,11 +1,11 @@
 #pragma once
 
 namespace Petal {
-    class IHasVulkanImage;
+    class ITexture;
 
     struct RenderTarget {
-        std::shared_ptr<IHasVulkanImage> Color;
-        std::shared_ptr<IHasVulkanImage> Depth;
+        std::shared_ptr<ITexture> Color;
+        std::shared_ptr<ITexture> Depth;
 
         Optional<VkRenderingAttachmentInfo> CreateColorAttachment() const;
 

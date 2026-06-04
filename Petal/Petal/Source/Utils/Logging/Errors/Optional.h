@@ -101,6 +101,16 @@ namespace Petal {
             return &m_value;
         }
 
+        T &OrElse(T &def) {
+            if (HasValue()) return m_value;
+            return def;
+        }
+
+        const T &OrElse(const T &def) const {
+            if (HasValue()) return m_value;
+            return def;
+        }
+
     private:
         T m_value;
         bool m_present;

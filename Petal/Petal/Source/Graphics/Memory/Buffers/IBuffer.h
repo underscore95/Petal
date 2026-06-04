@@ -1,12 +1,11 @@
 #pragma once
 
 #include "Common.h"
+#include "Graphics/Memory/IVulkanResource.h"
 
 namespace Petal {
-    class IBuffer {
+    class IBuffer : public IVulkanResource {
     public:
-        virtual const std::string &GetName() const =0;
-
         virtual VkDescriptorBufferInfo GetDescriptorInfo() const = 0;
 
         virtual glm::u32 GetOffset() const = 0;

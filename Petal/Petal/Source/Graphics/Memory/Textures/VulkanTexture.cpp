@@ -41,8 +41,18 @@ namespace Petal {
         return m_size;
     }
 
-    std::string VulkanTexture::GetName() const {
+    const std::string &VulkanTexture::GetName() const {
         return m_name;
+    }
+
+    VkImageSubresourceRange VulkanTexture::GetRange() const {
+        return {
+            .aspectMask = m_textureCreateInfo.AspectFlags,
+            .baseMipLevel = 0,
+            .levelCount = 1, // todo support mip and array
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        };
     }
 
     VkImageAspectFlags VulkanTexture::GetAspectMask() const {

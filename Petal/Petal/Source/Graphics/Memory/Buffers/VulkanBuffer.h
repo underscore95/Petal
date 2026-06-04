@@ -29,7 +29,7 @@ namespace Petal {
             Result &resultOut
         );
 
-        ~VulkanBuffer();
+        ~VulkanBuffer() override;
 
     public:
         VkBuffer GetHandle() const override;

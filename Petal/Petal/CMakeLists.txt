@@ -124,7 +124,15 @@ add_library(Petal SHARED
         Source/Utils/StableVector.h
         Source/Graphics/Internal/RenderTarget.cpp
         Source/Graphics/Internal/RenderTarget.h
-        Source/Graphics/Internal/IHasVulkanImage.h
+        Source/Graphics/Internal/ITexture.h
+        Source/Rendering/FrameGraph/RenderPass.cpp
+        Source/Rendering/FrameGraph/RenderPass.h
+        Source/Utils/INameable.h
+        Source/Graphics/Resources/ResourceAccess.cpp
+        Source/Graphics/Resources/ResourceAccess.h
+        Source/Graphics/Memory/IVulkanResource.h
+        Source/Rendering/FrameGraph/FrameGraph.cpp
+        Source/Rendering/FrameGraph/FrameGraph.h
 )
 
 # Macros

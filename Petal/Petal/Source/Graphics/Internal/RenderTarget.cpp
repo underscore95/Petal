@@ -1,6 +1,6 @@
 #include "RenderTarget.h"
 
-#include "IHasVulkanImage.h"
+#include "ITexture.h"
 
 namespace Petal {
     Optional<VkRenderingAttachmentInfo> RenderTarget::CreateColorAttachment() const {

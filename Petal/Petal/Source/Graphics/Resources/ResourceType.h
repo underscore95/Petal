@@ -44,3 +44,4 @@ namespace Petal {
 }
 
 PETAL_MAKE_ENUM_FORMATTABLE(Petal::ResourceType);
+PETAL_MAKE_ENUM_FORMATTABLE(Petal::ResourceTypes::Category);

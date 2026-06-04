@@ -13,16 +13,27 @@
 #include "Window/Window.h"
 
 namespace Petal {
-    struct SwapchainImage final : IHasVulkanImage {
+    struct SwapchainImage final : ITexture {
         VkImage Image;
         VkImageView View;
+        std::string Name;
 
         VkImageView GetImageView() const override {
             return View;
         }
 
-        VkImage GetImage() const override {
-            return Image;
+        VkImage GetImage() const override { return Image; }
+
+        const std::string &GetName() const override { return Name; }
+
+        VkImageSubresourceRange GetRange() const override {
+            return {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            };
         }
     };
 
@@ -467,6 +478,7 @@ namespace Petal {
 
         for (glm::u32 i = 0; i < m_numSwapchainImages; i++) {
             auto image = std::make_shared<SwapchainImage>();
+            image->Name = std::format("Swapchain Image {}", i);
 
             // Image
             (*m_swapchainTargets)[i].Color = image;
