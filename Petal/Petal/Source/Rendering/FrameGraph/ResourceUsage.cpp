@@ -144,7 +144,7 @@ namespace Petal {
 
     ResourceUsage ResourceUsage::Present() {
         return {
-            VK_PIPELINE_STAGE_2_NONE,
+            VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             VK_ACCESS_2_NONE,
             VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
         };

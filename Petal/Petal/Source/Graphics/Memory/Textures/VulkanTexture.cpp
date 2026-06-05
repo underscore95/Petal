@@ -55,6 +55,10 @@ namespace Petal {
         };
     }
 
+    bool VulkanTexture::IsSwapchainImage() const {
+        return false;
+    }
+
     VkImageAspectFlags VulkanTexture::GetAspectMask() const {
         return m_aspectMask;
     }

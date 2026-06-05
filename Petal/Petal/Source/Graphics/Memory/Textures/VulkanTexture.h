@@ -38,6 +38,8 @@ namespace Petal {
 
         VkImageSubresourceRange GetRange() const override;
 
+        bool IsSwapchainImage() const override;
+
     private:
         VkImage GetImage() const override { return GetHandle(); }
 

@@ -75,6 +75,7 @@ namespace Petal {
         // todo queue
         glm::u32 queueIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex();
         const VkAccessFlagBits2 lastAccess = state.HasValue() ? state->LastUsage.AccessMask : VK_ACCESS_2_NONE;
+        VkPipelineStageFlagBits2 lastStage = state.HasValue() ? state->LastUsage.StageMask : VK_PIPELINE_STAGE_2_NONE;
 
         ResourceTypes::Category category = ResourceTypes::GetData(resource.ResourceType).ResourceCategory;
         if (category == ResourceTypes::Category::BUFFER) {
@@ -83,9 +84,9 @@ namespace Petal {
             VkBufferMemoryBarrier2 barrier = {
                 .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
                 .pNext = nullptr,
-                .srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                .srcStageMask = lastStage,
                 .srcAccessMask = lastAccess,
-                .dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                .dstStageMask = resource.Usage.StageMask,
                 .dstAccessMask = resource.Usage.AccessMask,
                 .srcQueueFamilyIndex = queueIndex,
                 .dstQueueFamilyIndex = queueIndex,
@@ -97,9 +98,13 @@ namespace Petal {
 
             graphVisualRepresentation += std::format(
                 "Buffer Barrier on {}"
+                "\n  Previous Stage {}"
+                "\n  New Stage {}"
                 "\n  Previous Access {}"
                 "\n  New Access {}\n\n",
                 resource.Resource->GetName(),
+                string_VkPipelineStageFlags2(barrier.srcStageMask),
+                string_VkPipelineStageFlags2(barrier.dstStageMask),
                 string_VkAccessFlags2(barrier.srcAccessMask),
                 string_VkAccessFlags2(barrier.dstAccessMask)
             );
@@ -108,12 +113,17 @@ namespace Petal {
             PETAL_CHECK_COND(texture == nullptr, Result::FRAME_GRAPH_ERROR, m_logger, "Failed to cast resource {} to ITexture", resource.Resource->GetName());
             PETAL_CHECK_OPTIONAL(resource.Usage.ImageLayout, m_logger, "Missing image layout in pass resource {}", resource.Resource->GetName());
 
+            if (state.IsEmpty() && texture->IsSwapchainImage()) {
+                // Need a stronger synchronization since the swapchain owns this resource, not us
+                lastStage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+            }
+
             VkImageMemoryBarrier2 barrier = {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                 .pNext = nullptr,
-                .srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                .srcStageMask = lastStage,
                 .srcAccessMask = lastAccess,
-                .dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                .dstStageMask = resource.Usage.StageMask,
                 .dstAccessMask = resource.Usage.AccessMask,
                 .oldLayout = state.HasValue() && state->LastUsage.ImageLayout.HasValue() ? state->LastUsage.ImageLayout.Value() : VK_IMAGE_LAYOUT_UNDEFINED,
                 .newLayout = *resource.Usage.ImageLayout,
@@ -127,10 +137,14 @@ namespace Petal {
             graphVisualRepresentation += std::format(
                 "Texture Barrier on {}"
                 "\n  Layout {} to {}"
+                "\n  Previous Stage {}"
+                "\n  New Stage {}"
                 "\n  Previous Access {}"
                 "\n  New Access {}\n\n",
                 resource.Resource->GetName(),
                 barrier.oldLayout, barrier.newLayout,
+                string_VkPipelineStageFlags2(barrier.srcStageMask),
+                string_VkPipelineStageFlags2(barrier.dstStageMask),
                 string_VkAccessFlags2(barrier.srcAccessMask),
                 string_VkAccessFlags2(barrier.dstAccessMask)
             );

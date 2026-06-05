@@ -35,6 +35,10 @@ namespace Petal {
                 .layerCount = 1
             };
         }
+
+        bool IsSwapchainImage() const override {
+            return true;
+        }
     };
 
     VulkanSwapchain::VulkanSwapchain(
