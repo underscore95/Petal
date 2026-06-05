@@ -4,7 +4,6 @@
 #include "RenderPass.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/Memory/IVulkanResource.h"
-#include "Graphics/Resources/ResourceAccess.h"
 
 namespace Petal {
     class CommandBufferVector;
@@ -13,8 +12,10 @@ namespace Petal {
     class FrameGraph {
         struct ResourceState {
             const RenderPass *LastPass;
-            ResourceAccess LastAccess;
-            Optional<VkImageLayout> LastImageLayout = Result::PETAL_OPTIONAL_EMPTY;
+            ResourceUsage LastUsage;
+
+            ResourceState();
+            ResourceState(const RenderPass &lastPass, const ResourceUsage &lastUsage);
         };
 
     public:

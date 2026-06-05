@@ -45,8 +45,7 @@ namespace Petal {
 
     Result RenderPass::TrackTexturePerCommand(
         const std::vector<std::shared_ptr<ITexture> > &textures,
-        ResourceAccess accessType,
-        VkImageLayout requiredLayout
+        const ResourceUsage &usage
     ) {
         PETAL_CHECK_COND(
             textures.size() != m_numCommandBuffers,
@@ -59,9 +58,8 @@ namespace Petal {
         for (size_t i = 0; i < textures.size(); i++) {
             PassResource resource = {
                 .Resource = textures[i],
-                .AccessType = accessType,
-                .RequiredImageLayout = requiredLayout,
-                .ResourceType = ResourceType::COMBINED_SAMPLER
+                .ResourceType = ResourceType::COMBINED_SAMPLER,
+                .Usage = usage
             };
             Result result = TrackResource(resource, i);
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
@@ -74,6 +72,7 @@ namespace Petal {
         const std::vector<RenderTarget> &targets,
         RenderTargetAction action
     ) {
+        assert(action == RenderTargetAction::PRESENT || action == RenderTargetAction::RENDER);
         PETAL_CHECK_COND(
             targets.size() != m_numCommandBuffers,
             Result::PETAL_RENDER_PASS_RESOURCE_ERROR,
@@ -82,29 +81,24 @@ namespace Petal {
         );
 
         // COLOR
-        constexpr std::array COLOR_LAYOUTS = {
-            VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-        };
         std::vector<std::shared_ptr<ITexture> > color(targets.size());
         for (size_t i = 0; i < targets.size(); i++) {
             color[i] = targets[i].Color;
         }
-        ResourceAccess colorAccess;
-        if (action == RenderTargetAction::PRESENT) colorAccess = ResourceAccess::READ;
-        else if (action == RenderTargetAction::RENDER) colorAccess = ResourceAccess::WRITE;
-        else
-            PETAL_ERROR(Result::FRAME_GRAPH_ERROR, m_logger, "Unsupported RenderTargetAction {}", colorAccess);
-        Result result = TrackTexturePerCommand(color, colorAccess, COLOR_LAYOUTS[static_cast<size_t>(action)]);
+
+        ResourceUsage colorUsage = action == RenderTargetAction::RENDER ? ResourceUsage::ColorAttachment() : ResourceUsage::Present();
+        Result result = TrackTexturePerCommand(color, colorUsage);
         PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
         // DEPTH
-        std::vector<std::shared_ptr<ITexture> > depth(targets.size());
-        for (size_t i = 0; i < targets.size(); i++) {
-            depth[i] = targets[i].Depth;
+        if (action == RenderTargetAction::RENDER) {
+            std::vector<std::shared_ptr<ITexture> > depth(targets.size());
+            for (size_t i = 0; i < targets.size(); i++) {
+                depth[i] = targets[i].Depth;
+            }
+            result = TrackTexturePerCommand(depth, ResourceUsage::DepthAttachmentReadWrite());
+            PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
         }
-        // todo access flags VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT
-        result = TrackTexturePerCommand(depth, ResourceAccess::READ_WRITE, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
-        PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
         return Result::SUCCESS;
     }

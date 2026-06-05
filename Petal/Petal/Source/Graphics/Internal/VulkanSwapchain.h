@@ -126,7 +126,6 @@ namespace Petal {
         glm::u32 m_numSwapchainImages;
         std::shared_ptr<std::vector<RenderTarget> > m_swapchainTargets;
         std::shared_ptr<VulkanFence> m_blockingCommandFence;
-        std::shared_ptr<VulkanTexture> m_depthBuffer;
 
         // Frame data
         glm::u32 m_swapchainIndex = 0;

@@ -553,13 +553,12 @@ namespace Petal {
             .AspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT
         };
 
-        AllocatedOptional<VulkanTexture> texture = m_context.GetMemorySubsystem().CreateTexture("Depth Buffer", info);
-        PETAL_CHECK_OPTIONAL(texture, m_logger, "Failed to create depth buffer");
+        for (size_t i = 0; i < m_swapchainTargets->size(); i++) {
+            AllocatedOptional<VulkanTexture> texture = m_context.GetMemorySubsystem().CreateTexture(std::format("Depth Buffer {}", i), info);
+            PETAL_CHECK_OPTIONAL(texture, m_logger, "Failed to create depth buffer");
 
-        m_depthBuffer = texture.Release();
-        assert(m_swapchainTargets && !m_swapchainTargets->empty());
-        for (RenderTarget &target : *m_swapchainTargets) {
-            target.Depth = m_depthBuffer;
+            assert(m_swapchainTargets && !m_swapchainTargets->empty());
+            (*m_swapchainTargets)[i].Depth = texture.Release();
         }
 
         return Result::SUCCESS;

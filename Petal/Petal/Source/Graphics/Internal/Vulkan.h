@@ -66,5 +66,37 @@ namespace Petal {
                 return 0;
         }
     }
+
+    inline bool IsRead(VkAccessFlags2 accessMask) {
+        constexpr VkAccessFlags2 ReadMask =
+                VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT |
+                VK_ACCESS_2_INDEX_READ_BIT |
+                VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT |
+                VK_ACCESS_2_UNIFORM_READ_BIT |
+                VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT |
+                VK_ACCESS_2_SHADER_READ_BIT |
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT |
+                VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT |
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                VK_ACCESS_2_TRANSFER_READ_BIT |
+                VK_ACCESS_2_HOST_READ_BIT |
+                VK_ACCESS_2_MEMORY_READ_BIT;
+
+        return (accessMask & ReadMask) != 0;
+    }
+
+    inline bool IsWrite(VkAccessFlags2 accessMask) {
+        constexpr VkAccessFlags2 WriteMask =
+                VK_ACCESS_2_SHADER_WRITE_BIT |
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT |
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT |
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                VK_ACCESS_2_TRANSFER_WRITE_BIT |
+                VK_ACCESS_2_HOST_WRITE_BIT |
+                VK_ACCESS_2_MEMORY_WRITE_BIT;
+
+        return (accessMask & WriteMask) != 0;
+    }
 } // Petal
 #endif

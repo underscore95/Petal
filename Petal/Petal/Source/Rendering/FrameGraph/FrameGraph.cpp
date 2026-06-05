@@ -8,6 +8,18 @@
 #include "Graphics/Memory/Buffers/IBuffer.h"
 
 namespace Petal {
+    FrameGraph::ResourceState::ResourceState()
+        : LastPass(nullptr),
+          LastUsage(VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_NONE) {
+    }
+
+    FrameGraph::ResourceState::ResourceState(
+        const RenderPass &lastPass,
+        const ResourceUsage &lastUsage
+    ) : LastPass(&lastPass),
+        LastUsage(lastUsage) {
+    }
+
     FrameGraph::FrameGraph(
         GraphicsContext &context,
         const std::shared_ptr<Logger> &logger,
@@ -47,26 +59,22 @@ namespace Petal {
         std::string &graphVisualRepresentation
     ) {
         if (state.HasValue()) {
-            bool isParallelRead = state->LastAccess == ResourceAccess::READ && resource.AccessType == ResourceAccess::READ;
-            bool isImageTransition = resource.RequiredImageLayout.HasValue() && resource.RequiredImageLayout != state->LastImageLayout;
+            assert(state->LastPass);
+
+            bool isParallelRead = IsRead(state->LastUsage.AccessMask)
+                                  && !IsWrite(state->LastUsage.AccessMask)
+                                  && IsRead(resource.Usage.AccessMask)
+                                  && !IsWrite(resource.Usage.AccessMask);
+            bool isImageTransition = resource.Usage.ImageLayout.HasValue() && resource.Usage.ImageLayout != state->LastUsage.ImageLayout;
             if (isParallelRead && !isImageTransition) {
                 // Parallel reads don't require sync
                 return Result::SUCCESS;
             }
         }
 
-        VkAccessFlagBits2 previousAccess = 0;
-        if (state.HasValue()) {
-            if (ResourceAccesses::GetData(state->LastAccess).IsRead) previousAccess |= VK_ACCESS_2_MEMORY_READ_BIT;
-            if (ResourceAccesses::GetData(state->LastAccess).IsWrite) previousAccess |= VK_ACCESS_2_MEMORY_WRITE_BIT;
-        }
-
-        VkAccessFlagBits2 newAccess = 0;
-        if (ResourceAccesses::GetData(resource.AccessType).IsRead) newAccess |= VK_ACCESS_2_MEMORY_READ_BIT;
-        if (ResourceAccesses::GetData(resource.AccessType).IsWrite) newAccess |= VK_ACCESS_2_MEMORY_WRITE_BIT;
-
         // todo queue
         glm::u32 queueIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex();
+        const VkAccessFlagBits2 lastAccess = state.HasValue() ? state->LastUsage.AccessMask : VK_ACCESS_2_NONE;
 
         ResourceTypes::Category category = ResourceTypes::GetData(resource.ResourceType).ResourceCategory;
         if (category == ResourceTypes::Category::BUFFER) {
@@ -76,9 +84,9 @@ namespace Petal {
                 .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
                 .pNext = nullptr,
                 .srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                .srcAccessMask = previousAccess,
+                .srcAccessMask = lastAccess,
                 .dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                .dstAccessMask = newAccess,
+                .dstAccessMask = resource.Usage.AccessMask,
                 .srcQueueFamilyIndex = queueIndex,
                 .dstQueueFamilyIndex = queueIndex,
                 .buffer = buffer->GetHandle(),
@@ -98,17 +106,17 @@ namespace Petal {
         } else if (category == ResourceTypes::Category::TEXTURE) {
             const auto texture = dynamic_cast<const ITexture *>(resource.Resource.get());
             PETAL_CHECK_COND(texture == nullptr, Result::FRAME_GRAPH_ERROR, m_logger, "Failed to cast resource {} to ITexture", resource.Resource->GetName());
-            PETAL_CHECK_OPTIONAL(resource.RequiredImageLayout, m_logger, "Missing image layout in pass resource {}", resource.Resource->GetName());
+            PETAL_CHECK_OPTIONAL(resource.Usage.ImageLayout, m_logger, "Missing image layout in pass resource {}", resource.Resource->GetName());
 
             VkImageMemoryBarrier2 barrier = {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                 .pNext = nullptr,
                 .srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                .srcAccessMask = previousAccess,
+                .srcAccessMask = lastAccess,
                 .dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                .dstAccessMask = newAccess,
-                .oldLayout = state.HasValue() && state->LastImageLayout.HasValue() ? state->LastImageLayout.Value() : VK_IMAGE_LAYOUT_UNDEFINED,
-                .newLayout = *resource.RequiredImageLayout,
+                .dstAccessMask = resource.Usage.AccessMask,
+                .oldLayout = state.HasValue() && state->LastUsage.ImageLayout.HasValue() ? state->LastUsage.ImageLayout.Value() : VK_IMAGE_LAYOUT_UNDEFINED,
+                .newLayout = *resource.Usage.ImageLayout,
                 .srcQueueFamilyIndex = queueIndex,
                 .dstQueueFamilyIndex = queueIndex,
                 .image = texture->GetImage(),
@@ -159,11 +167,7 @@ namespace Petal {
                     result = PushBarriers(state, resource, bufferBarriers, imageBarriers, m_visualRepresentation[commandIndex]);
                     PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to insert barriers for render pass {}", pass->GetName());
 
-                    state = ResourceState{
-                        .LastPass = pass.get(),
-                        .LastAccess = resource.AccessType,
-                        .LastImageLayout = resource.RequiredImageLayout
-                    };
+                    state = ResourceState{*pass, resource.Usage};
                 }
 
                 VkDependencyInfo depInfo{
@@ -180,11 +184,11 @@ namespace Petal {
 
                 vkCmdPipelineBarrier2(m_commands->GetHandle(commandIndex), &depInfo);
 
-                result = pass->Record(m_commands);
-                PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to record commands for render pass {}", pass->GetName());
-
                 m_visualRepresentation[commandIndex] += "Executed RenderPass: " + pass->GetName() + "\n\n";
             }
+
+            result = pass->Record(m_commands);
+            PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to record commands for render pass {}", pass->GetName());
         }
 
         result = m_commands->EndAll();

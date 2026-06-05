@@ -1,19 +1,13 @@
 #pragma once
 
 #include "INameable.h"
+#include "ResourceUsage.h"
 #include "Graphics/Memory/IVulkanResource.h"
-#include "Graphics/Resources/ResourceAccess.h"
 #include "Graphics/Resources/ResourceType.h"
 
 namespace Petal {
     struct RenderTarget;
-}
-
-namespace Petal {
     class ITexture;
-}
-
-namespace Petal {
     class VulkanTexture;
     class VulkanBuffer;
     class CommandBufferVector;
@@ -22,9 +16,8 @@ namespace Petal {
     public:
         struct PassResource {
             std::shared_ptr<IVulkanResource> Resource;
-            ResourceAccess AccessType;
-            Optional<VkImageLayout> RequiredImageLayout;
             ResourceType ResourceType;
+            ResourceUsage Usage;
         };
 
     public:
@@ -52,8 +45,7 @@ namespace Petal {
 
         Result TrackTexturePerCommand(
             const std::vector<std::shared_ptr<ITexture> > &textures,
-            ResourceAccess accessType,
-            VkImageLayout requiredLayout
+            const ResourceUsage &usage
         );
 
         enum class RenderTargetAction {

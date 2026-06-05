@@ -128,13 +128,13 @@ add_library(Petal SHARED
         Source/Rendering/FrameGraph/RenderPass.cpp
         Source/Rendering/FrameGraph/RenderPass.h
         Source/Utils/INameable.h
-        Source/Graphics/Resources/ResourceAccess.cpp
-        Source/Graphics/Resources/ResourceAccess.h
         Source/Graphics/Memory/IVulkanResource.h
         Source/Rendering/FrameGraph/FrameGraph.cpp
         Source/Rendering/FrameGraph/FrameGraph.h
         Source/Rendering/FrameGraph/PresentRenderPass.cpp
         Source/Rendering/FrameGraph/PresentRenderPass.h
+        Source/Rendering/FrameGraph/ResourceUsage.cpp
+        Source/Rendering/FrameGraph/ResourceUsage.h
 )
 
 # Macros

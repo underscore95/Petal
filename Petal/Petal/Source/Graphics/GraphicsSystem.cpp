@@ -252,7 +252,7 @@ namespace Petal {
             }
         }
         if (!objectsStr.empty()) {
-            objectsStr = "\nObjects: {}" + objectsStr;
+            objectsStr = "\nObjects: " + objectsStr;
         }
 
         // Build message
