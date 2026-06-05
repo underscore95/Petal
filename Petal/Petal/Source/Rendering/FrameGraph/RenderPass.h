@@ -6,6 +6,14 @@
 #include "Graphics/Resources/ResourceType.h"
 
 namespace Petal {
+    struct RenderTarget;
+}
+
+namespace Petal {
+    class ITexture;
+}
+
+namespace Petal {
     class VulkanTexture;
     class VulkanBuffer;
     class CommandBufferVector;
@@ -22,42 +30,43 @@ namespace Petal {
     public:
         RenderPass(
             const std::shared_ptr<Logger> &logger,
-            const std::vector<PassResource> &resources
+            glm::u32 numCommandBuffers
         );
 
     public:
-        const std::vector<PassResource> &GetAccessedResources() const;
+        const std::vector<std::vector<PassResource> > &GetAccessedResources() const;
 
-        const std::string &GetName() const override;
-
+        // Record the commands of this render pass
         virtual Result Record(const std::shared_ptr<CommandBufferVector> &commands) const = 0;
 
+        size_t GetNumCommandBuffers() const;
+
     protected:
-        template<typename Resource>
-            requires std::derived_from<Resource, IVulkanResource>
-        std::shared_ptr<Resource> GetResource(const std::string &name) const {
-            for (const PassResource &resource : m_resources) {
-                if (resource.Resource->GetName() != name) continue;
+        // Track a resource, you should only call this in the constructor
 
-                std::shared_ptr<Resource> typedResource = resource.Resource;
-                if (typedResource == nullptr) {
-                    m_logger->Error(
-                        "Render pass {} attempted to get resource of type {} which does not exist (a resource by that name of a different type exists)",
-                        m_name,
-                        typeid(Resource).name()
-                    );
-                }
+        // A single command buffer uses this resource (or multiple; call once per buffer)
+        Result TrackResource(const PassResource &resource, size_t index);
 
-                return typedResource;
-            }
+        // Every command buffer uses this resource
+        Result TrackResourceFully(const PassResource &resource);
 
-            m_logger->Error("Render pass {} attempted to get resource of type {} which does not exist", m_name, typeid(Resource).name());
-            return nullptr;
-        }
+        Result TrackTexturePerCommand(
+            const std::vector<std::shared_ptr<ITexture> > &textures,
+            ResourceAccess accessType,
+            VkImageLayout requiredLayout
+        );
+
+        enum class RenderTargetAction {
+            RENDER, // color attachment optimal, etc
+            PRESENT // present optimal
+        };
+
+        Result TrackRenderTargetPerCommand(const std::vector<RenderTarget> &targets, RenderTargetAction action);
 
     private:
         std::shared_ptr<Logger> m_logger;
-        std::vector<PassResource> m_resources;
-        std::string m_name;
+        // each command buffer accesses std::vector<PassResource>
+        std::vector<std::vector<PassResource> > m_accessedResources;
+        size_t m_numCommandBuffers;
     };
 } // Petal

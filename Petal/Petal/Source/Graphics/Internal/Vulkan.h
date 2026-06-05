@@ -15,6 +15,11 @@ PETAL_MAKE_FORMATTABLE(
 );
 
 PETAL_MAKE_FORMATTABLE(
+    VkImageLayout, v,
+    std::format("{}", string_VkImageLayout(v))
+);
+
+PETAL_MAKE_FORMATTABLE(
     VkImageViewType, imageViewType,
     std::format("{}", string_VkImageViewType(imageViewType))
 );

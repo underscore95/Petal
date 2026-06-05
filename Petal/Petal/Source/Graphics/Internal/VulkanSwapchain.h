@@ -56,6 +56,8 @@ namespace Petal {
 
         VkSurfaceFormat2KHR GetSurfaceFormat() const;
 
+       const std::vector<RenderTarget> & GetSwapchainRenderTarget() const;
+
         struct RenderCommandBuffers {
             friend class VulkanSwapchain;
         private:

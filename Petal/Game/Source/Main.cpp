@@ -63,29 +63,41 @@ Model LoadModel(std::string path, const std::shared_ptr<Logger> &logger, const V
     return model;
 }
 
-void RecordCommandBuffers(
-    Renderer &renderer,
-    GraphicsContext &graphicsContext,
-    std::shared_ptr<CommandBufferVector> commandBuffers,
-    std::shared_ptr<VulkanShader> shader,
-    std::shared_ptr<ModelResource> model,
-    OptionalRef<std::shared_ptr<std::vector<RenderTarget> > > renderTargets
-) {
-    commandBuffers->BeginAll(0);
-
-    std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> renderCommands = graphicsContext.GetSwapchain().CmdBeginRendering(commandBuffers, renderTargets);
-
-    renderer.CmdRender(*renderCommands, *shader, *model);
-
-    renderCommands.reset();
-
-    if (renderTargets.HasValue()) {
-        // put to correct transition
-        renderCommands = graphicsContext.GetSwapchain().CmdBeginRendering(commandBuffers);
+class MyPass : public RenderPass {
+public:
+    MyPass(
+        GraphicsContext &graphicsContext,
+        Renderer &renderer,
+        const std::shared_ptr<Logger> &logger,
+        const std::shared_ptr<VulkanShader> &shader,
+        const std::shared_ptr<ModelResource> &model
+    ) : RenderPass(logger, graphicsContext.GetSwapchain().NumSwapchainImages()),
+        m_graphicsContext(graphicsContext),
+        m_renderer(renderer),
+        m_shader(shader),
+        m_model(model) {
+        TrackRenderTargetPerCommand(graphicsContext.GetSwapchain().GetSwapchainRenderTarget(), RenderTargetAction::RENDER);
     }
 
-    commandBuffers->EndAll();
-}
+public:
+    const std::string &GetName() const override { return m_name; }
+
+    Result Record(const std::shared_ptr<CommandBufferVector> &commands) const override {
+        std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> renderCommands = m_graphicsContext.GetSwapchain().CmdBeginRendering(commands);
+
+        m_renderer.CmdRender(*renderCommands, *m_shader, *m_model);
+        renderCommands.reset(); // just to be explicit
+
+        return Result::SUCCESS;
+    }
+
+private:
+    GraphicsContext &m_graphicsContext;
+    Renderer &m_renderer;
+    std::shared_ptr<VulkanShader> m_shader;
+    std::shared_ptr<ModelResource> m_model;
+    std::string m_name = "MyPass";
+};
 
 int run(Timer &engineShutdownTime) {
     glm::u32 frameNumber = 0;
@@ -98,14 +110,7 @@ int run(Timer &engineShutdownTime) {
         window,
         DeviceRequirements::DEFAULT()
     );
-    if (contextOptional.IsEmpty()) return -1;
-
     GraphicsContext &graphicsContext = contextOptional.Value();
-    std::shared_ptr<CommandBufferVector> commandBuffers = graphicsContext.CreateCommandBuffers(
-        graphicsContext.GetDevice()->GetGraphicsQueueFamily(),
-        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        graphicsContext.GetSwapchain().NumSwapchainImages()
-    ).Release();
 
     ShaderAsset asset(
         "C:/Coding/Projects/Petal/Petal/Petal/Assets/Shaders/main.slang",
@@ -161,7 +166,20 @@ int run(Timer &engineShutdownTime) {
     }
 
     GameCamera camera(window, renderer, logger);
-    RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, Result::PETAL_OPTIONAL_EMPTY);
+
+    // Frame graph
+    std::shared_ptr<CommandBufferVector> commandBuffers = graphicsContext.CreateCommandBuffers(
+        graphicsContext.GetDevice()->GetGraphicsQueueFamily(),
+        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        graphicsContext.GetSwapchain().NumSwapchainImages()
+    ).Release();
+
+    std::vector<std::unique_ptr<RenderPass> > passes;
+    passes.push_back(std::make_unique<MyPass>(graphicsContext, *renderer, logger, shader, model));
+    passes.push_back(std::make_unique<PresentRenderPass>(logger, "Present", graphicsContext.GetSwapchain().GetSwapchainRenderTarget(), result));
+    FrameGraph frameGraph(graphicsContext, logger, commandBuffers, std::move(passes), result);
+    assert(result == Result::SUCCESS);
+    logger->Info("Frame Graph Generated: \n{}", frameGraph.ToString()[0]);
 
     float dt = FLT_EPSILON;
     while (!window->WantsToClose()) {
@@ -176,7 +194,7 @@ int run(Timer &engineShutdownTime) {
         Result result = graphicsContext.GetSwapchain().BeginRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, Result::PETAL_OPTIONAL_EMPTY);
+            frameGraph.RerecordCommandBuffers();
             continue;
         }
 
@@ -185,7 +203,7 @@ int run(Timer &engineShutdownTime) {
         graphicsContext.GetSwapchain().EndRendering();
         if (result == Result::PETAL_WINDOW_RESIZED) {
             graphicsContext.RecreateSwapchain();
-            RecordCommandBuffers(*renderer, graphicsContext, commandBuffers, shader, model, Result::PETAL_OPTIONAL_EMPTY);
+            frameGraph.RerecordCommandBuffers();
             continue;
         }
 

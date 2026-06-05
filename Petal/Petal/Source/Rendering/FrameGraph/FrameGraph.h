@@ -22,20 +22,22 @@ namespace Petal {
             GraphicsContext &context,
             const std::shared_ptr<Logger> &logger,
             const std::shared_ptr<CommandBufferVector> &commands,
-            const std::vector<std::shared_ptr<IVulkanResource> > &resources,
-            std::vector<std::unique_ptr<RenderPass> > &&passes,
+            std::vector<std::unique_ptr<RenderPass> > passes,
             Result &resultOut
         );
 
     public:
         Result RerecordCommandBuffers();
 
+        const std::vector<std::string> &ToString() const;
+
     private:
         Result PushBarriers(
-            const ResourceState &state,
+            Optional<ResourceState> &state,
             const RenderPass::PassResource &resource,
             std::vector<VkBufferMemoryBarrier2> &bufferBarriers,
-            std::vector<VkImageMemoryBarrier2> &imageBarriers
+            std::vector<VkImageMemoryBarrier2> &imageBarriers,
+            std::string &graphVisualRepresentation
         );
 
         Result Record();
@@ -46,5 +48,6 @@ namespace Petal {
         std::shared_ptr<CommandBufferVector> m_commands;
         std::unordered_map<std::shared_ptr<IVulkanResource>, Optional<ResourceState> > m_resources;
         std::vector<std::unique_ptr<RenderPass> > m_passes;
+        std::vector<std::string> m_visualRepresentation;
     };
 } // Petal

@@ -111,6 +111,16 @@ namespace Petal {
             return def;
         }
 
+        bool operator==(const Optional &other) const {
+            if (HasValue() && other.HasValue()) return Value() == other.Value();
+            if (IsEmpty() && other.IsEmpty()) return true;
+            return false;
+        }
+
+        bool operator!=(const Optional &other) const {
+            return !(*this == other);
+        }
+
     private:
         T m_value;
         bool m_present;

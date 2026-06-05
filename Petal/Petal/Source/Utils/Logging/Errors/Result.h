@@ -52,6 +52,7 @@ namespace Petal {
         PETAL_NO_SWAPCHAIN_SHADER,
         PETAL_BUFFER_CREATION_FAILED,
         FRAME_GRAPH_ERROR,
+        PETAL_RENDER_PASS_RESOURCE_ERROR,
 
         // Petal Resource Errors
         PETAL_FILE_DOES_NOT_EXIST,

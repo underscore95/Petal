@@ -22,6 +22,9 @@
 
 #include "Rendering/Renderer.h"
 #include "Rendering/Camera/Camera.h"
+#include "Rendering/FrameGraph/FrameGraph.h"
+#include "Rendering/FrameGraph/RenderPass.h"
+#include "Rendering/FrameGraph/PresentRenderPass.h"
 
 #include "Resources/MeshBuilder.h"
 #include "Resources/ImageLoaderSettings.h"

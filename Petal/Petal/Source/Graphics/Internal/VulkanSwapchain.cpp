@@ -260,6 +260,10 @@ namespace Petal {
         return m_swapchainSurfaceFormat;
     }
 
+    const std::vector<RenderTarget> &VulkanSwapchain::GetSwapchainRenderTarget() const {
+        return *m_swapchainTargets;
+    }
+
     VulkanSwapchain::RenderCommandBuffers::RenderCommandBuffers(
         GraphicsContext &context,
         const std::shared_ptr<CommandBufferVector> &commands,
@@ -273,36 +277,6 @@ namespace Petal {
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commands->Size(); swapchainIndex++) {
             const RenderTarget &renderTarget = (*m_renderTargets)[swapchainIndex];
             VkCommandBuffer commandBuffer = commands->GetHandle(swapchainIndex);
-
-            if (renderTarget.Color) {
-                m_context.CmdTransitionImage(
-                    commandBuffer,
-                    renderTarget.Color->GetImage(),
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_GENERAL // todo color attachment optimal?
-                );
-            }
-
-            if (renderTarget.Depth) {
-                VkImageMemoryBarrier2 depthTransition{
-                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                    .pNext = nullptr,
-                    .srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                    .srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                    .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                    .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                    .srcQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
-                    .dstQueueFamilyIndex = m_context.GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
-                    .image = renderTarget.Depth->GetImage(),
-                    .subresourceRange = GraphicsContext::DEFAULT_IMAGE_DEPTH_SUBRESOURCE_RANGE
-                };
-                m_context.CmdTransitionImage(
-                    commandBuffer,
-                    depthTransition
-                );
-            }
 
             glm::uvec2 windowSize = m_context.GetWindow().GetDimensions();
 
@@ -341,16 +315,9 @@ namespace Petal {
         assert(m_commands->IsSwapchainSize());
 
         for (glm::u32 swapchainIndex = 0; swapchainIndex < m_commands->Size(); swapchainIndex++) {
-            const RenderTarget &renderTarget = (*m_renderTargets)[swapchainIndex];
             VkCommandBuffer commandBuffer = m_commands->GetHandle(swapchainIndex);
 
             vkCmdEndRendering(commandBuffer);
-
-            m_context.CmdTransitionImage(
-                commandBuffer,
-                renderTarget.Color->GetImage(), VK_IMAGE_LAYOUT_GENERAL, // todo color attachment optimal?
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-            );
         }
     }
 

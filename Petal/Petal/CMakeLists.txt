@@ -133,6 +133,8 @@ add_library(Petal SHARED
         Source/Graphics/Memory/IVulkanResource.h
         Source/Rendering/FrameGraph/FrameGraph.cpp
         Source/Rendering/FrameGraph/FrameGraph.h
+        Source/Rendering/FrameGraph/PresentRenderPass.cpp
+        Source/Rendering/FrameGraph/PresentRenderPass.h
 )
 
 # Macros
