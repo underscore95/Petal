@@ -51,10 +51,6 @@ namespace Petal {
 
         ~Optional() = default;
 
-        static constexpr Optional Empty() {
-            return Result::PETAL_OPTIONAL_EMPTY;
-        }
-
     public:
         Result GetResult() const { return m_result; }
 

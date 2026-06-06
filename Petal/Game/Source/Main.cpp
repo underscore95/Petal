@@ -152,15 +152,20 @@ int run(Timer &engineShutdownTime) {
     std::vector<RenderTarget> targets;
     for (glm::u32 i = 0; i < contextOptional->GetSwapchain().NumSwapchainImages(); i++) {
         targets.push_back({
-            .Color = graphicsContext.GetMemorySubsystem().CreateTexture(
-                "render texture", {
-                    .Size = {window->GetDimensions().x, window->GetDimensions().y, 1},
-                    .ImageType = VK_IMAGE_TYPE_2D,
-                    .ViewType = VK_IMAGE_VIEW_TYPE_2D,
-                    .Format = VK_FORMAT_B8G8R8A8_SRGB,
-                    .Usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                    .AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
-                }).Release(),
+            .Colors = {
+                {
+                    .Texture = graphicsContext.GetMemorySubsystem().CreateTexture(
+                        "render texture", {
+                            .Size = {window->GetDimensions().x, window->GetDimensions().y, 1},
+                            .ImageType = VK_IMAGE_TYPE_2D,
+                            .ViewType = VK_IMAGE_VIEW_TYPE_2D,
+                            .Format = VK_FORMAT_B8G8R8A8_SRGB,
+                            .Usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                            .AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
+                        }).Release(),
+                    .ClearColor = {0, 0, 0, 1}
+                }
+            },
             .Depth = nullptr
         });
     }

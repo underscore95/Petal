@@ -4,10 +4,15 @@ namespace Petal {
     class ITexture;
 
     struct RenderTarget {
-        std::shared_ptr<ITexture> Color;
+        struct ColorAttachment {
+            std::shared_ptr<ITexture> Texture;
+            glm::vec4 ClearColor;
+        };
+
+        std::vector<ColorAttachment> Colors;
         std::shared_ptr<ITexture> Depth;
 
-        Optional<VkRenderingAttachmentInfo> CreateColorAttachment() const;
+        std::vector<VkRenderingAttachmentInfo> CreateColorAttachments() const;
 
         Optional<VkRenderingAttachmentInfo> CreateDepthAttachment() const;
     };

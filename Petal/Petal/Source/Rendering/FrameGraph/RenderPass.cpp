@@ -81,14 +81,33 @@ namespace Petal {
         );
 
         // COLOR
-        std::vector<std::shared_ptr<ITexture> > color(targets.size());
-        for (size_t i = 0; i < targets.size(); i++) {
-            color[i] = targets[i].Color;
+        bool resizedColors = false; // so we catch error if first 0 images and then others have non 0 images
+        std::vector<std::vector<std::shared_ptr<ITexture> > > color;
+        // [[albedo0, albedo1, albedo2], [normal0, normal1, normal2]] etc
+        for (const RenderTarget &target : targets) {
+            // Error check
+            if (!resizedColors) {
+                color.resize(target.Colors.size());
+                resizedColors = true;
+            }
+            PETAL_CHECK_COND(
+                color.size() != target.Colors.size(),
+                Result::FRAME_GRAPH_ERROR,
+                m_logger,
+                "TrackRenderTargetPerCommand - Render Targets had a different number of color textures"
+            );
+
+            // Push attachments
+            for (size_t i = 0; i < target.Colors.size(); i++) {
+                color[i].push_back(target.Colors[i].Texture);
+            }
         }
 
-        ResourceUsage colorUsage = action == RenderTargetAction::RENDER ? ResourceUsage::ColorAttachment() : ResourceUsage::Present();
-        Result result = TrackTexturePerCommand(color, colorUsage);
-        PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+        for (const std::vector<std::shared_ptr<ITexture> > &textures : color) {
+            ResourceUsage colorUsage = action == RenderTargetAction::RENDER ? ResourceUsage::ColorAttachment() : ResourceUsage::Present();
+            Result result = TrackTexturePerCommand(textures, colorUsage);
+            PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+        }
 
         // DEPTH
         if (action == RenderTargetAction::RENDER) {
@@ -96,7 +115,7 @@ namespace Petal {
             for (size_t i = 0; i < targets.size(); i++) {
                 depth[i] = targets[i].Depth;
             }
-            result = TrackTexturePerCommand(depth, ResourceUsage::DepthAttachmentReadWrite());
+            Result result = TrackTexturePerCommand(depth, ResourceUsage::DepthAttachmentReadWrite());
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
         }
 

@@ -124,6 +124,7 @@ namespace Petal {
         VkSwapchainKHR m_handle;
         VkSurfaceFormat2KHR m_swapchainSurfaceFormat;
         glm::u32 m_numSwapchainImages;
+        std::vector<VkImageView> m_swapchainImageViews;
         std::shared_ptr<std::vector<RenderTarget> > m_swapchainTargets;
         std::shared_ptr<VulkanFence> m_blockingCommandFence;
 

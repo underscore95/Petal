@@ -67,10 +67,10 @@ namespace Petal {
     }
 
     VulkanSwapchain::~VulkanSwapchain() {
-        for (const RenderTarget &renderTarget : *m_swapchainTargets) {
+        for (VkImageView view : m_swapchainImageViews) {
             // color image is part of VkSwapchain
             // depth buffer is destroyed by VulkanTexture destructor
-            vkDestroyImageView(m_context.GetDevice()->GetHandle(), renderTarget.Color->GetImageView(), nullptr);
+            vkDestroyImageView(m_context.GetDevice()->GetHandle(), view, nullptr);
         }
 
         vkDestroySwapchainKHR(
@@ -284,7 +284,7 @@ namespace Petal {
 
             glm::uvec2 windowSize = m_context.GetWindow().GetDimensions();
 
-            Optional<VkRenderingAttachmentInfo> colorAttachment = renderTarget.CreateColorAttachment();
+            std::vector<VkRenderingAttachmentInfo> colorAttachment = renderTarget.CreateColorAttachments();
             Optional<VkRenderingAttachmentInfo> depthAttachment = renderTarget.CreateDepthAttachment();
 
             VkRenderingInfo renderingInfo = {
@@ -294,8 +294,8 @@ namespace Petal {
                 .renderArea = {{0, 0}, {windowSize.x, windowSize.y}},
                 .layerCount = 1,
                 .viewMask = 0,
-                .colorAttachmentCount = 1,
-                .pColorAttachments = colorAttachment.HasValue() ? colorAttachment.Data() : nullptr,
+                .colorAttachmentCount = static_cast<glm::u32>(colorAttachment.size()),
+                .pColorAttachments = colorAttachment.empty() ? nullptr : colorAttachment.data(),
                 .pDepthAttachment = depthAttachment.HasValue() ? depthAttachment.Data() : nullptr,
                 .pStencilAttachment = nullptr
             };
@@ -444,6 +444,7 @@ namespace Petal {
         m_swapchainTargets = std::make_shared<std::vector<RenderTarget> >(m_numSwapchainImages);
 
         std::vector<VkImage> images(m_numSwapchainImages);
+        m_swapchainImageViews.resize(m_numSwapchainImages);
         res = vkGetSwapchainImagesKHR(device, m_handle, &m_numSwapchainImages, images.data());
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_SWAPCHAIN_CREATION_FAILED, m_logger, "Failed to get the swapchain images");
 
@@ -452,7 +453,7 @@ namespace Petal {
             image->Name = std::format("Swapchain Image {}", i);
 
             // Image
-            (*m_swapchainTargets)[i].Color = image;
+            (*m_swapchainTargets)[i].Colors.push_back({image, {0, 0, 0, 1}});
             image->Image = images[i];
 
             // View
@@ -481,6 +482,7 @@ namespace Petal {
 
             res = vkCreateImageView(device, &viewInfo, nullptr, &image->View);
             PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_SWAPCHAIN_CREATION_FAILED, m_logger, "Failed to create swapchain image view {} ({})", i, res);
+            m_swapchainImageViews[i] = image->View;
         }
 
         return Result::SUCCESS;
