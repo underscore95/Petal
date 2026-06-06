@@ -78,6 +78,7 @@ namespace Petal {
 
         glm::u32 entryPointIndex = 0;
         Optional<glm::u32> vertexEntryPointIndex = Result::PETAL_OPTIONAL_EMPTY;
+        Optional<glm::u32> fragmentEntryPointIndex = Result::PETAL_OPTIONAL_EMPTY;
         for (const std::pair<const ShaderType, ShaderInfo> &shader : asset.Shaders) {
             ShaderType type = shader.first;
             const std::string &entryPointFunctionName = shader.second.EntryPoint;
@@ -97,6 +98,9 @@ namespace Petal {
             if (type == ShaderType::VERTEX) {
                 assert(vertexEntryPointIndex.IsEmpty());
                 vertexEntryPointIndex = entryPointIndex;
+            } else if (type == ShaderType::FRAGMENT) {
+                assert(fragmentEntryPointIndex.IsEmpty());
+                fragmentEntryPointIndex = entryPointIndex;
             }
 
             components.push_back(entryPoint);
@@ -190,6 +194,16 @@ namespace Petal {
             );
         }
 
+        if (fragmentEntryPointIndex.HasValue()) {
+            petalResult = ReflectFragmentOutput(out, programLayout, fragmentEntryPointIndex.Value());
+            PETAL_CHECK_COND(
+                petalResult != Result::SUCCESS,
+                petalResult,
+                m_logger,
+                "Failed to reflect fragment output for shader: {}", modulePath
+            );
+        }
+
         // Output log
         for (const ShaderResource &resource : out.Resources) {
             m_logger->Verbose("Found resource '{}' ({}) in shaders {} bound to set {} index {}", resource.Name, resource.Type, resource.Stages, resource.BindingSet,
@@ -204,6 +218,13 @@ namespace Petal {
             m_logger->Verbose("Vertex Size: {} ({} Attributes)", out.VertexType->Size, out.VertexType->Attributes.size());
             for (const VertexType::Attribute &attr : out.VertexType->Attributes) {
                 m_logger->Verbose(" - Found attribute '{}' with size {} and format {}", attr.Name, attr.Size, attr.Format);
+            }
+        }
+
+        if (out.FragmentShader.HasValue()) {
+            m_logger->Verbose("Fragment Shader - {} Outputs", out.FragmentShader->Outputs.size());
+            for (const IntermediateShaderResource::FragmentOutput &fragmentOut : out.FragmentShader->Outputs) {
+                m_logger->Verbose(" - Output '{}' ({}x {})", fragmentOut.Name, fragmentOut.NumElements, fragmentOut.Type);
             }
         }
 
@@ -359,6 +380,7 @@ namespace Petal {
         glm::u32 vertexEntryPointIndex
     ) {
         EntryPointReflection *entryPointReflection = programLayout->getEntryPointByIndex(vertexEntryPointIndex);
+        PETAL_CHECK_COND(entryPointReflection->getStage() != SLANG_STAGE_VERTEX, Result::PETAL_SHADER_REFLECTION_FAILED, m_logger, "ReflectVertexInput invalid entry point");
         glm::u32 numParams = entryPointReflection->getParameterCount();
 
         // find all input params that are vertex varying input
@@ -418,6 +440,86 @@ namespace Petal {
         }
 
         shader.VertexType = info;
+
+        return Result::SUCCESS;
+    }
+
+    Result ShaderSubsystem::ReflectFragmentOutput(
+        IntermediateShaderResource &shader,
+        slang::ProgramLayout *programLayout,
+        glm::u32 fragmentEntryPointIndex
+    ) {
+        shader.FragmentShader = IntermediateShaderResource::FragmentShaderInfo{};
+        EntryPointReflection *entryPointReflection = programLayout->getEntryPointByIndex(fragmentEntryPointIndex);
+        PETAL_CHECK_COND(entryPointReflection->getStage() != SLANG_STAGE_FRAGMENT, Result::PETAL_SHADER_REFLECTION_FAILED, m_logger, "ReflectFragmentOutput invalid entry point");
+
+        if (VariableLayoutReflection *output = entryPointReflection->getResultVarLayout()) {
+            Result result = ReflectFragmentOutputField(shader, output);
+            PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+        }
+
+        return Result::SUCCESS;
+    }
+
+    static Optional<IntermediateShaderResource::ScalarType> GetPetalScalarType(TypeLayoutReflection *type) {
+        switch (type->getScalarType()) {
+            case TypeReflection::Float32:
+                return IntermediateShaderResource::ScalarType::FLOAT;
+            case TypeReflection::Int32:
+                return IntermediateShaderResource::ScalarType::INT;
+            case TypeReflection::UInt32:
+                return IntermediateShaderResource::ScalarType::UNSIGNED_INT;
+            default:
+                return Result::PETAL_OPTIONAL_EMPTY;
+        }
+    }
+
+    Result ShaderSubsystem::ReflectFragmentOutputField(
+        IntermediateShaderResource &shader,
+        slang::VariableLayoutReflection *field
+    ) {
+        TypeLayoutReflection *fieldType = field->getTypeLayout();
+
+        // Recursively handle struct
+        if (fieldType->getKind() == TypeReflection::Kind::Struct) {
+            for (glm::u32 i = 0; i < fieldType->getFieldCount(); i++) {
+                Result result = ReflectFragmentOutputField(shader, fieldType->getFieldByIndex(i));
+                PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
+            }
+            return Result::SUCCESS;
+        }
+
+        // scalar / vector
+        glm::u32 numElements = 1;
+        Optional<IntermediateShaderResource::ScalarType> scalarType = Result::PETAL_OPTIONAL_EMPTY;
+        if (fieldType->getKind() == TypeReflection::Kind::Vector) {
+            numElements = fieldType->getElementCount();
+            assert(numElements >= 2 && numElements <= 4);
+            scalarType = GetPetalScalarType(fieldType->getElementTypeLayout());
+        } else {
+            PETAL_CHECK_COND(
+                fieldType->getKind() != TypeReflection::Kind::Scalar,
+                Result::PETAL_SHADER_REFLECTION_INVALID_TYPE,
+                m_logger,
+                "{} wasn't a scalar or vector (fragment shader output field)", fieldType->getKind()
+            );
+            scalarType = GetPetalScalarType(fieldType);
+        }
+
+        PETAL_CHECK_OPTIONAL(
+            scalarType,
+            m_logger,
+            "Failed to get scalar type of fragment output {} (type {})", (field->getName() ? field->getName() : ""), (fieldType->getName() ? fieldType->getName() : "")
+        );
+
+        IntermediateShaderResource::FragmentOutput output = {
+            .Name = field->getName() ? field->getName() : "",
+            .NumElements = numElements,
+            .Type = scalarType.Value()
+        };
+
+        if (output.Name.empty()) shader.FragmentShader->ContainsUnnamedOutputs = true;
+        shader.FragmentShader->Outputs.push_back(output);
 
         return Result::SUCCESS;
     }

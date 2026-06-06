@@ -37,6 +37,9 @@ namespace Petal {
 
         Result ReflectVertexInput(IntermediateShaderResource &shader, slang::ProgramLayout *programLayout, glm::u32 vertexEntryPointIndex);
 
+        Result ReflectFragmentOutput(IntermediateShaderResource& shader, slang::ProgramLayout *programLayout, glm::u32 fragmentEntryPointIndex);
+        Result ReflectFragmentOutputField(IntermediateShaderResource& shader, slang::VariableLayoutReflection* field);
+
         // If variableLayout is a struct, recursively iterate and push the VariableLayoutReflection of all fields to the vecotr
         // otherwise push variableLayout to the vector
         // this does not clear the output vector!
