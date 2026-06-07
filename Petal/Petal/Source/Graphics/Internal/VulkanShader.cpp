@@ -23,25 +23,26 @@ namespace Petal {
         GraphicsContext &renderer,
         const IntermediateShaderResource &shader,
         std::shared_ptr<Logger> logger,
+        const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings,
         Result &resultOut
     ) : m_renderer(renderer),
         m_logger(logger),
-        m_vertexType(shader.VertexType) {
+        m_intermediateShader(shader) {
         for (const ShaderResource &resource : shader.Resources) {
             m_resources[resource.Name] = resource;
         }
 
-        resultOut = CreateShaderModule(shader);
+        resultOut = CreateShaderModule();
         if (resultOut != Result::SUCCESS) return;
 
-        resultOut = CreateDescriptors(shader);
+        resultOut = CreateDescriptors();
         if (resultOut != Result::SUCCESS) return;
 
         m_pipeline = std::make_unique<VulkanGraphicsPipeline>(
             m_renderer,
             *this,
             m_logger,
-            VulkanGraphicsPipeline::PipelineSettings{.PushConstantsSize = sizeof(Petal::Params)},
+            pipelineSettings,
             resultOut
         );
         if (resultOut != Result::SUCCESS) return;
@@ -68,13 +69,11 @@ namespace Petal {
         if (m_descriptorPool) vkDestroyDescriptorPool(m_renderer.GetDevice()->GetHandle(), m_descriptorPool, nullptr);
     }
 
-    Result VulkanShader::CreateDescriptors(
-        const IntermediateShaderResource &shader
-    ) {
+    Result VulkanShader::CreateDescriptors() {
         // Count descriptors required
         std::unordered_map<glm::u32, SetInfo> descriptorSets; // set index -> SetInfo
         std::unordered_map<VkDescriptorType, glm::u32> descriptorsRequired;
-        for (const ShaderResource &resource : shader.Resources) {
+        for (const ShaderResource &resource : m_intermediateShader.Resources) {
             glm::u32 descriptorCount = 1;
             if (resource.IsArray) {
                 descriptorCount = resource.IsStaticArray() ? resource.StaticArraySize : GetMaxDescriptors(resource.BindingSet, resource.BindingIndex);
@@ -86,7 +85,7 @@ namespace Petal {
         }
 
         // Validation
-        for (const ShaderResource &resource : shader.Resources) {
+        for (const ShaderResource &resource : m_intermediateShader.Resources) {
             PETAL_CHECK_COND(
                 descriptorSets[resource.BindingSet].NumDescriptors <= resource.BindingIndex,
                 Result::PETAL_SHADER_DESCRIPTOR_ERROR,
@@ -231,6 +230,10 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
+    const IntermediateShaderResource &VulkanShader::GetIntermediateShader() const {
+        return m_intermediateShader;
+    }
+
     Result VulkanShader::BindTexturesImpl(const std::string &name, const std::vector<VkDescriptorImageInfo> &textures) const {
         const auto it = m_resources.find(name);
         PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find texture {}. Note resource names are case sensitive.", name);
@@ -303,14 +306,8 @@ namespace Petal {
         return *m_pipeline;
     }
 
-    const Optional<VertexType> &VulkanShader::GetVertexType() const {
-        return m_vertexType;
-    }
-
-    Result VulkanShader::CreateShaderModule(
-        const IntermediateShaderResource &shader
-    ) {
-        for (const std::pair<const ShaderType, IntermediateShaderResource::ShaderStage> &pair : shader.ShaderTypes) {
+    Result VulkanShader::CreateShaderModule() {
+        for (const std::pair<const ShaderType, IntermediateShaderResource::ShaderStage> &pair : m_intermediateShader.ShaderTypes) {
             ShaderType type = pair.first;
             const IntermediateShaderResource::ShaderStage &stage = pair.second;
 

@@ -4,6 +4,7 @@
 #include "Common.h"
 #include "GraphicsSettings.h"
 #include "Internal/DeviceRequirements.h"
+#include "Internal/VulkanGraphicsPipeline.h"
 #include "Other/IndexType.h"
 #include "Rendering/RendererSettings.h"
 
@@ -61,7 +62,7 @@ namespace Petal {
 
         GPUMemorySubsystem &GetMemorySubsystem() const;
 
-        AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset);
+        AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset, const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings);
 
         // Set the debug name of a vulkan object
         // In release mode, this is a no op

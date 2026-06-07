@@ -1,11 +1,15 @@
 #pragma once
-#include "Graphics/GraphicsContext.h"
+
 #include "Graphics/VertexType.h"
 
 namespace Petal {
+    class VulkanShader;
+    class GraphicsContext;
+    struct RenderTarget;
     class VulkanGraphicsPipeline {
     public:
         struct PipelineSettings {
+            std::vector<RenderTarget> RenderTargets;
             bool RenderWireframe = false;
             bool CullBackFaces = true;
             glm::u32 PushConstantsSize = 128;

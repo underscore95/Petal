@@ -2,25 +2,20 @@
 
 #include "Common.h"
 #include <vulkan/vulkan_core.h>
+
+#include "VulkanGraphicsPipeline.h"
 #include "Graphics/Shaders/ShaderType.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/VertexType.h"
 #include "Graphics/Memory/Textures/VulkanTexture.h"
 #include "Graphics/Resources/ResourceType.h"
+#include "Graphics/Shaders/IntermediateShaderResource.h"
 
 namespace Petal {
     struct VertexType;
-}
-
-namespace Petal {
     class IBuffer;
-}
-
-namespace Petal {
-    class VulkanGraphicsPipeline;
     struct ShaderResource;
     class GPUBuffer;
-    struct IntermediateShaderResource;
 
     class VulkanShader {
     private:
@@ -41,6 +36,7 @@ namespace Petal {
             GraphicsContext &renderer,
             const IntermediateShaderResource &shader,
             std::shared_ptr<Logger> logger,
+            const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings,
             Result &resultOut
         );
 
@@ -75,18 +71,14 @@ namespace Petal {
 
         const VulkanGraphicsPipeline &GetPipeline() const;
 
-        const Optional<VertexType> &GetVertexType() const;
+        const IntermediateShaderResource& GetIntermediateShader() const;
 
     private:
         Result BindTexturesImpl(const std::string &name, const std::vector<VkDescriptorImageInfo> &textures) const;
 
-        Result CreateShaderModule(
-            const IntermediateShaderResource &shader
-        );
+        Result CreateShaderModule();
 
-        Result CreateDescriptors(
-            const IntermediateShaderResource &shader
-        );
+        Result CreateDescriptors();
 
         // Maximum size of a dynamic array, since we need to allocate space for descriptors during initialization
         glm::u32 GetMaxDescriptors(glm::u32 set, glm::u32 binding) const;
@@ -94,6 +86,7 @@ namespace Petal {
     private:
         GraphicsContext &m_renderer;
         std::shared_ptr<Logger> m_logger;
+        IntermediateShaderResource m_intermediateShader;
         VkDescriptorPool m_descriptorPool;
         std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
         std::vector<VkDescriptorSet> m_descriptorSets;
@@ -101,6 +94,5 @@ namespace Petal {
         std::unordered_map<std::string, ShaderResource> m_resources;
         std::vector<Stage> m_shaderStages;
         std::unique_ptr<VulkanGraphicsPipeline> m_pipeline;
-        Optional<VertexType> m_vertexType;
     };
 } // Petal

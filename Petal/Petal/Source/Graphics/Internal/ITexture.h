@@ -13,5 +13,7 @@ namespace Petal {
         virtual VkImageSubresourceRange GetRange() const = 0;
 
         virtual bool IsSwapchainImage() const = 0;
+
+        virtual VkFormat GetFormat() const = 0;
     };
 } // Petal

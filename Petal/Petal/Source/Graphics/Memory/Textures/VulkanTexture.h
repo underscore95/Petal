@@ -40,6 +40,8 @@ namespace Petal {
 
         bool IsSwapchainImage() const override;
 
+        VkFormat GetFormat() const override;
+
     private:
         VkImage GetImage() const override { return GetHandle(); }
 

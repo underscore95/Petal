@@ -227,10 +227,6 @@ namespace Petal {
             }
         }
 
-        static constexpr OptionalRef Empty() {
-            return Result::PETAL_OPTIONAL_EMPTY;
-        }
-
     public:
         Result GetResult() const {
             return m_result;

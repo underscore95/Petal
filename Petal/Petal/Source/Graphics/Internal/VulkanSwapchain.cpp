@@ -16,6 +16,7 @@ namespace Petal {
     struct SwapchainImage final : ITexture {
         VkImage Image;
         VkImageView View;
+        VkFormat Format;
         std::string Name;
 
         VkImageView GetImageView() const override {
@@ -38,6 +39,10 @@ namespace Petal {
 
         bool IsSwapchainImage() const override {
             return true;
+        }
+
+        VkFormat GetFormat() const override {
+            return Format;
         }
     };
 
@@ -265,13 +270,13 @@ namespace Petal {
     }
 
     const std::vector<RenderTarget> &VulkanSwapchain::GetSwapchainRenderTarget() const {
-        return *m_swapchainTargets;
+        return m_swapchainTargets;
     }
 
     VulkanSwapchain::RenderCommandBuffers::RenderCommandBuffers(
         GraphicsContext &context,
         const std::shared_ptr<CommandBufferVector> &commands,
-        const std::shared_ptr<std::vector<RenderTarget> > &renderTargets
+        const std::vector<RenderTarget> &renderTargets
     )
         : m_context(context),
           m_commands(commands),
@@ -279,7 +284,7 @@ namespace Petal {
         assert(commands->IsSwapchainSize());
 
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commands->Size(); swapchainIndex++) {
-            const RenderTarget &renderTarget = (*m_renderTargets)[swapchainIndex];
+            const RenderTarget &renderTarget = m_renderTargets[swapchainIndex];
             VkCommandBuffer commandBuffer = commands->GetHandle(swapchainIndex);
 
             glm::uvec2 windowSize = m_context.GetWindow().GetDimensions();
@@ -325,13 +330,17 @@ namespace Petal {
         }
     }
 
+    const std::vector<RenderTarget> &VulkanSwapchain::RenderCommandBuffers::GetTargets() const {
+        return m_renderTargets;
+    }
+
     const CommandBufferVector &VulkanSwapchain::RenderCommandBuffers::GetCommands() const {
         return *m_commands;
     }
 
     std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> VulkanSwapchain::CmdBeginRendering(
         const std::shared_ptr<CommandBufferVector> &commandBuffers,
-        OptionalRef<std::shared_ptr<std::vector<RenderTarget> > > renderTargets
+        OptionalRef<const std::vector<RenderTarget>> renderTargets
     ) const {
         return std::shared_ptr<RenderCommandBuffers>(new RenderCommandBuffers(
             m_context,
@@ -347,6 +356,11 @@ namespace Petal {
         glm::u32 numInstances
     ) const {
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.GetCommands().Size(); swapchainIndex++) {
+            const Optional<IntermediateShaderResource::FragmentShaderInfo> fragInfo = shader.GetIntermediateShader().FragmentShader;
+            if (fragInfo.HasValue() && !fragInfo->MatchesRenderTarget(commandBuffers.GetTargets().at(0), m_logger)) {
+                m_logger->Warn("Render Target index {} does not match shader", swapchainIndex);
+            }
+
             VkCommandBuffer commandBuffer = commandBuffers.GetCommands().GetHandle(swapchainIndex);
 
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.GetPipeline().GetHandle());
@@ -441,7 +455,7 @@ namespace Petal {
         }
 
         // Create the images
-        m_swapchainTargets = std::make_shared<std::vector<RenderTarget> >(m_numSwapchainImages);
+        m_swapchainTargets = std::vector<RenderTarget>{m_numSwapchainImages};
 
         std::vector<VkImage> images(m_numSwapchainImages);
         m_swapchainImageViews.resize(m_numSwapchainImages);
@@ -453,8 +467,9 @@ namespace Petal {
             image->Name = std::format("Swapchain Image {}", i);
 
             // Image
-            (*m_swapchainTargets)[i].Colors.push_back({image, {0, 0, 0, 1}});
+            m_swapchainTargets[i].Colors.push_back({image, {0, 0, 0, 1}});
             image->Image = images[i];
+            image->Format = m_swapchainSurfaceFormat.surfaceFormat.format;
 
             // View
             VkImageViewCreateInfo viewInfo =
@@ -559,12 +574,12 @@ namespace Petal {
             .AspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT
         };
 
-        for (size_t i = 0; i < m_swapchainTargets->size(); i++) {
+        for (size_t i = 0; i < m_swapchainTargets.size(); i++) {
             AllocatedOptional<VulkanTexture> texture = m_context.GetMemorySubsystem().CreateTexture(std::format("Depth Buffer {}", i), info);
             PETAL_CHECK_OPTIONAL(texture, m_logger, "Failed to create depth buffer");
 
-            assert(m_swapchainTargets && !m_swapchainTargets->empty());
-            (*m_swapchainTargets)[i].Depth = texture.Release();
+            assert(!m_swapchainTargets.empty());
+            m_swapchainTargets[i].Depth = texture.Release();
         }
 
         return Result::SUCCESS;

@@ -34,6 +34,7 @@ VOut vertexMain(
 
 struct FOut {
     float4 Color;
+    float4 Red;
 }
 
 [shader("fragment")]
@@ -44,6 +45,8 @@ FOut fragmentMain(VOut input, uniform Params params) : SV_Target
 
     if (out.Color.a < 0.1) discard;
     out.Color.a = 1;
+
+    out.Red = float4(1,0,0,1);
 
     return out;
 }

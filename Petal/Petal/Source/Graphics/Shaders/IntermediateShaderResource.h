@@ -6,6 +6,8 @@
 #include "Graphics/Resources/ShaderResource.h"
 
 namespace Petal {
+    struct RenderTarget;
+
     // Represents a compiled shader that has yet to be tied to a specific graphics API
     struct IntermediateShaderResource {
         enum class ScalarType {
@@ -28,6 +30,13 @@ namespace Petal {
             std::vector<FragmentOutput> Outputs;
             // True if any of the FragmentOutput names are blank
             bool ContainsUnnamedOutputs;
+
+            // Check if the fragment output matches the render target color attachments
+            // If logger is not null, it will be used to log the mismatch
+            bool MatchesRenderTarget(
+                const RenderTarget &renderTarget,
+                OptionalRef<const std::shared_ptr<Logger>> logger = Result::PETAL_OPTIONAL_EMPTY
+            ) const;
         };
 
         std::vector<ShaderResource> Resources;
@@ -43,98 +52,7 @@ namespace Petal {
         Optional<FragmentShaderInfo> FragmentShader = Result::PETAL_OPTIONAL_EMPTY;
 
         // Check if the VkFormat matches the scalar type and num elements
-        static bool IsValidFormat(VkFormat format, ScalarType type, glm::u32 numElements) {
-            switch (type) {
-                case ScalarType::FLOAT:
-                    switch (numElements) {
-                        case 1:
-                            return format == VK_FORMAT_R32_SFLOAT ||
-                                   format == VK_FORMAT_R16_SFLOAT ||
-                                   format == VK_FORMAT_R8_UNORM ||
-                                   format == VK_FORMAT_R8_SNORM ||
-                                   format == VK_FORMAT_R16_UNORM ||
-                                   format == VK_FORMAT_R16_SNORM;
-
-                        case 2:
-                            return format == VK_FORMAT_R32G32_SFLOAT ||
-                                   format == VK_FORMAT_R16G16_SFLOAT ||
-                                   format == VK_FORMAT_R8G8_UNORM ||
-                                   format == VK_FORMAT_R8G8_SNORM ||
-                                   format == VK_FORMAT_R16G16_UNORM ||
-                                   format == VK_FORMAT_R16G16_SNORM;
-
-                        case 3:
-                            return format == VK_FORMAT_R32G32B32_SFLOAT;
-
-                        case 4:
-                            return format == VK_FORMAT_R32G32B32A32_SFLOAT ||
-                                   format == VK_FORMAT_R16G16B16A16_SFLOAT ||
-                                   format == VK_FORMAT_R8G8B8A8_UNORM ||
-                                   format == VK_FORMAT_R8G8B8A8_SNORM ||
-                                   format == VK_FORMAT_B8G8R8A8_UNORM ||
-                                   format == VK_FORMAT_R8G8B8A8_SRGB ||
-                                   format == VK_FORMAT_B8G8R8A8_SRGB ||
-                                   format == VK_FORMAT_A2R10G10B10_UNORM_PACK32 ||
-                                   format == VK_FORMAT_A2B10G10R10_UNORM_PACK32;
-                        default:
-                            assert(false);
-                    }
-                    break;
-
-                case ScalarType::INT:
-                    switch (numElements) {
-                        case 1:
-                            return format == VK_FORMAT_R32_SINT ||
-                                   format == VK_FORMAT_R16_SINT ||
-                                   format == VK_FORMAT_R8_SINT;
-
-                        case 2:
-                            return format == VK_FORMAT_R32G32_SINT ||
-                                   format == VK_FORMAT_R16G16_SINT ||
-                                   format == VK_FORMAT_R8G8_SINT;
-
-                        case 3:
-                            return format == VK_FORMAT_R32G32B32_SINT;
-
-                        case 4:
-                            return format == VK_FORMAT_R32G32B32A32_SINT ||
-                                   format == VK_FORMAT_R16G16B16A16_SINT ||
-                                   format == VK_FORMAT_R8G8B8A8_SINT;
-                        default:
-                            assert(false);
-                    }
-                    break;
-
-                case ScalarType::UNSIGNED_INT:
-                    switch (numElements) {
-                        case 1:
-                            return format == VK_FORMAT_R32_UINT ||
-                                   format == VK_FORMAT_R16_UINT ||
-                                   format == VK_FORMAT_R8_UINT;
-
-                        case 2:
-                            return format == VK_FORMAT_R32G32_UINT ||
-                                   format == VK_FORMAT_R16G16_UINT ||
-                                   format == VK_FORMAT_R8G8_UINT;
-
-                        case 3:
-                            return format == VK_FORMAT_R32G32B32_UINT;
-
-                        case 4:
-                            return format == VK_FORMAT_R32G32B32A32_UINT ||
-                                   format == VK_FORMAT_R16G16B16A16_UINT ||
-                                   format == VK_FORMAT_R8G8B8A8_UINT;
-                        default:
-                            assert(false);
-                    }
-                    break;
-
-                default:
-                    assert(false && "Unsupported VkFormat");
-            }
-
-            return false;
-        }
+        static bool IsValidFormat(VkFormat format, ScalarType type, glm::u32 numElements);
     };
 } // Petal
 

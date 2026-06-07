@@ -59,6 +59,10 @@ namespace Petal {
         return false;
     }
 
+    VkFormat VulkanTexture::GetFormat() const {
+        return m_textureCreateInfo.Format;
+    }
+
     VkImageAspectFlags VulkanTexture::GetAspectMask() const {
         return m_aspectMask;
     }

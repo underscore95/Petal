@@ -70,20 +70,22 @@ public:
         Renderer &renderer,
         const std::shared_ptr<Logger> &logger,
         const std::shared_ptr<VulkanShader> &shader,
-        const std::shared_ptr<ModelResource> &model
+        const std::shared_ptr<ModelResource> &model,
+        const std::vector<RenderTarget> &targets
     ) : RenderPass(logger, graphicsContext.GetSwapchain().NumSwapchainImages()),
         m_graphicsContext(graphicsContext),
         m_renderer(renderer),
         m_shader(shader),
-        m_model(model) {
-        TrackRenderTargetPerCommand(graphicsContext.GetSwapchain().GetSwapchainRenderTarget(), RenderTargetAction::RENDER);
+        m_model(model),
+        m_targets(targets) {
+        TrackRenderTargetPerCommand(targets, RenderTargetAction::RENDER);
     }
 
 public:
     const std::string &GetName() const override { return m_name; }
 
     Result Record(const std::shared_ptr<CommandBufferVector> &commands) const override {
-        std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> renderCommands = m_graphicsContext.GetSwapchain().CmdBeginRendering(commands);
+        std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> renderCommands = m_graphicsContext.GetSwapchain().CmdBeginRendering(commands, m_targets);
 
         m_renderer.CmdRender(*renderCommands, *m_shader, *m_model);
         renderCommands.reset(); // just to be explicit
@@ -97,6 +99,7 @@ private:
     std::shared_ptr<VulkanShader> m_shader;
     std::shared_ptr<ModelResource> m_model;
     std::string m_name = "MyPass";
+    std::vector<RenderTarget> m_targets;
 };
 
 int run(Timer &engineShutdownTime) {
@@ -112,6 +115,31 @@ int run(Timer &engineShutdownTime) {
     );
     GraphicsContext &graphicsContext = contextOptional.Value();
 
+    // Render target
+    std::vector<RenderTarget> targets;
+    for (glm::u32 i = 0; i < contextOptional->GetSwapchain().NumSwapchainImages(); i++) {
+        targets.push_back({
+            .Colors = {
+                graphicsContext.GetSwapchain().GetSwapchainRenderTarget()[i].Colors[0],
+
+                {
+                    .Texture = graphicsContext.GetMemorySubsystem().CreateTexture(
+                        std::format("Render Texture {}", i), {
+                            .Size = {window->GetDimensions().x, window->GetDimensions().y, 1},
+                            .ImageType = VK_IMAGE_TYPE_2D,
+                            .ViewType = VK_IMAGE_VIEW_TYPE_2D,
+                            .Format = VK_FORMAT_B8G8R8A8_SRGB,
+                            .Usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                            .AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
+                        }).Release(),
+                    .ClearColor = {0, 0, 0, 1}
+                }
+            },
+            .Depth = graphicsContext.GetSwapchain().GetSwapchainRenderTarget()[i].Depth
+        });
+    }
+
+    // Shader
     ShaderAsset asset(
         "C:/Coding/Projects/Petal/Petal/Petal/Assets/Shaders/main.slang",
         {
@@ -119,7 +147,11 @@ int run(Timer &engineShutdownTime) {
             {ShaderType::FRAGMENT, {"fragmentMain"}}
         }
     );
-    std::shared_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset).Release();
+    VulkanGraphicsPipeline::PipelineSettings pipelineSettings = {
+        .RenderTargets = targets,
+        .PushConstantsSize = sizeof(Petal::Params)
+    };
+    std::shared_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset, pipelineSettings).Release();
     assert(shader);
 
     // textures
@@ -142,33 +174,11 @@ int run(Timer &engineShutdownTime) {
     std::shared_ptr<Renderer> renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
 
     // std::shared_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
-    Model cpuModel = LoadModel("C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", logger, shader->GetVertexType().Value());
+    Model cpuModel = LoadModel("C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", logger, shader->GetIntermediateShader().VertexType.Value());
     std::shared_ptr<ModelResource> model = renderer->UploadModel(cpuModel, "MyModel").Release();
 
     Result result = renderer->Bind(*shader);
     assert(result == Result::SUCCESS);
-
-    // Render target
-    std::vector<RenderTarget> targets;
-    for (glm::u32 i = 0; i < contextOptional->GetSwapchain().NumSwapchainImages(); i++) {
-        targets.push_back({
-            .Colors = {
-                {
-                    .Texture = graphicsContext.GetMemorySubsystem().CreateTexture(
-                        "render texture", {
-                            .Size = {window->GetDimensions().x, window->GetDimensions().y, 1},
-                            .ImageType = VK_IMAGE_TYPE_2D,
-                            .ViewType = VK_IMAGE_VIEW_TYPE_2D,
-                            .Format = VK_FORMAT_B8G8R8A8_SRGB,
-                            .Usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                            .AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
-                        }).Release(),
-                    .ClearColor = {0, 0, 0, 1}
-                }
-            },
-            .Depth = nullptr
-        });
-    }
 
     GameCamera camera(window, renderer, logger);
 
@@ -180,8 +190,8 @@ int run(Timer &engineShutdownTime) {
     ).Release();
 
     std::vector<std::unique_ptr<RenderPass> > passes;
-    passes.push_back(std::make_unique<MyPass>(graphicsContext, *renderer, logger, shader, model));
-    passes.push_back(std::make_unique<PresentRenderPass>(logger, "Present", graphicsContext.GetSwapchain().GetSwapchainRenderTarget(), result));
+    passes.push_back(std::make_unique<MyPass>(graphicsContext, *renderer, logger, shader, model, targets));
+    passes.push_back(std::make_unique<PresentRenderPass>(logger, "Present", targets, result));
     FrameGraph frameGraph(graphicsContext, logger, commandBuffers, std::move(passes), result);
     assert(result == Result::SUCCESS);
     logger->Info("Frame Graph Generated: \n{}", frameGraph.ToString()[0]);

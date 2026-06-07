@@ -1,9 +1,11 @@
 #include "VulkanGraphicsPipeline.h"
 
 #include "RenderingDevice.h"
+#include "RenderTarget.h"
 #include "VulkanSwapchain.h"
 #include "VulkanShader.h"
 #include "Window/Window.h"
+#include "Graphics/GraphicsContext.h"
 
 namespace Petal {
     Result VulkanGraphicsPipeline::PipelineSettings::Validate(std::shared_ptr<Logger> logger) {
@@ -79,72 +81,24 @@ namespace Petal {
     }
 
     Result VulkanGraphicsPipeline::CreatePipeline() {
-        glm::uvec2 windowSize = m_renderer.GetWindow().GetDimensions();
-
-        // std::vector<VkViewport> viewports = {
-        //     VkViewport{
-        //         .x = 0,
-        //         .y = 0,
-        //         .width = static_cast<float>(windowSize.x),
-        //         .height = static_cast<float>(windowSize.y),
-        //         .minDepth = 0,
-        //         .maxDepth = 1
-        //     }
-        // };
-        //
-        // std::vector<VkRect2D> scissors = {
-        //     VkRect2D{
-        //         .offset = {0, 0}, .extent = {windowSize.x, windowSize.y}
-        //     }
-        // };
-        //
-        // VkPipelineViewportStateCreateInfo viewportState = {
-        //     .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-        //     .pNext = nullptr,
-        //     .flags = 0,
-        //     .viewportCount = static_cast<glm::u32>(viewports.size()),
-        //     .pViewports = viewports.data(),
-        //     .scissorCount = static_cast<glm::u32>(scissors.size()),
-        //     .pScissors = scissors.data()
-        // };
-
-        // VkPipelineColorBlendStateCreateInfo colorBlending = {};
-        // colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        // colorBlending.pNext = nullptr;
-        //
-        // colorBlending.logicOpEnable = VK_FALSE;
-        // colorBlending.logicOp = VK_LOGIC_OP_COPY;
-        // colorBlending.attachmentCount = 1;
-        // colorBlending.pAttachments = &_colorBlendAttachment;
-        //
-        // VkPipelineVertexInputStateCreateInfo _vertexInputInfo = {
-        //     .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        //     .pNext = nullptr,
-        //     .flags = 0,
-        //     .vertexBindingDescriptionCount = 0,
-        //     .pVertexBindingDescriptions = nullptr,
-        //     .vertexAttributeDescriptionCount = 0,
-        //     .pVertexAttributeDescriptions = nullptr
-        // };
-
-        //         VkPipelineInputAssemblyStateCreateInfo inputAssembly={
-        // .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO ,
-        // .pNext =nullptr ,
-        // .flags = ,
-        // .topology = ,
-        // .primitiveRestartEnable =
-        //         };
+        // todo: technically we can, just do we want to?
+        PETAL_CHECK_COND(m_settings.RenderTargets.empty(), Result::VULKAN_PIPELINE_CREATION_FAILED, m_logger, "Cannot create a graphics pipeline with no render target");
 
         // Rendering info
-        Optional<VkFormat> depthFormatOptional = m_renderer.GetDevice()->FindDepthFormat();
-        VkFormat swapchainFormat = m_renderer.GetSwapchain().GetSurfaceFormat().surfaceFormat.format;
+        Optional<VkFormat> depthFormatOptional = Result::PETAL_OPTIONAL_EMPTY;
+        if (m_settings.RenderTargets[0].Depth) depthFormatOptional = m_settings.RenderTargets[0].Depth->GetFormat();
+
+        std::vector<VkFormat> colorFormats(m_settings.RenderTargets[0].Colors.size());
+        for (size_t i = 0; i < m_settings.RenderTargets[0].Colors.size(); i++) {
+            colorFormats[i] = m_settings.RenderTargets[0].Colors[i].Texture->GetFormat();
+        }
 
         VkPipelineRenderingCreateInfo renderingInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
             .pNext = nullptr,
             .viewMask = 0,
-            .colorAttachmentCount = 1,
-            .pColorAttachmentFormats = &swapchainFormat,
+            .colorAttachmentCount = static_cast<glm::u32>(colorFormats.size()),
+            .pColorAttachmentFormats = colorFormats.data(),
             .depthAttachmentFormat = depthFormatOptional.Value(),
             .stencilAttachmentFormat = VK_FORMAT_UNDEFINED
         };
@@ -171,10 +125,11 @@ namespace Petal {
         };
 
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-        if (m_shader.GetVertexType().HasValue()) {
+        const Optional<VertexType> &vertexType = m_shader.GetIntermediateShader().VertexType;
+        if (vertexType.HasValue()) {
             glm::u32 offset = 0;
-            for (glm::u32 i = 0; i < m_shader.GetVertexType()->Attributes.size(); i++) {
-                const VertexType::Attribute &attribute = m_shader.GetVertexType()->Attributes[i];
+            for (glm::u32 i = 0; i < vertexType->Attributes.size(); i++) {
+                const VertexType::Attribute &attribute = vertexType->Attributes[i];
                 VkVertexInputAttributeDescription attributeDescription = {
                     .location = i,
                     .binding = 0,
@@ -198,7 +153,7 @@ namespace Petal {
         };
 
         if (!attributeDescriptions.empty()) {
-            vertexInputBindingDescription.stride = m_shader.GetVertexType()->Size;
+            vertexInputBindingDescription.stride = m_shader.GetIntermediateShader().VertexType->Size;
             vertexInputState.vertexBindingDescriptionCount = 1;
             vertexInputState.pVertexBindingDescriptions = &vertexInputBindingDescription;
             vertexInputState.vertexAttributeDescriptionCount = static_cast<glm::u32>(attributeDescriptions.size());
@@ -254,18 +209,22 @@ namespace Petal {
         };
 
         // Colour blend state
-        VkPipelineColorBlendAttachmentState blendAttachState = {
-            .blendEnable = VK_FALSE, // todo
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-                              VK_COLOR_COMPONENT_A_BIT
-        };
+        std::vector<VkPipelineColorBlendAttachmentState> blendAttachState;
+        blendAttachState.reserve(colorFormats.size());
+        for (size_t i = 0; i < colorFormats.size(); i++) {
+            blendAttachState.push_back({
+                .blendEnable = VK_FALSE, // todo
+                .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                                  VK_COLOR_COMPONENT_A_BIT
+            });
+        }
 
         VkPipelineColorBlendStateCreateInfo colorBlendState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .logicOpEnable = VK_FALSE,
             .logicOp = VK_LOGIC_OP_COPY,
-            .attachmentCount = 1,
-            .pAttachments = &blendAttachState
+            .attachmentCount = renderingInfo.colorAttachmentCount,
+            .pAttachments = blendAttachState.data()
         };
 
         // Dynamic state

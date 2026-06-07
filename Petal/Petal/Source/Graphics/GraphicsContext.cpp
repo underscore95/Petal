@@ -129,17 +129,21 @@ namespace Petal {
         return *m_memorySubsystem;
     }
 
-    AllocatedOptional<VulkanShader> GraphicsContext::CompileShader(const ShaderAsset &asset) {
+    AllocatedOptional<VulkanShader> GraphicsContext::CompileShader(
+        const ShaderAsset &asset,
+        const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings
+    ) {
         // TODO cache the SPIRV and reflection info
 
         Optional<IntermediateShaderResource> intermediateShader = m_graphicsSystem.GetShaderSubsystem().CompileSlangShader(asset);
         PETAL_CHECK_OPTIONAL_SILENT(intermediateShader);
 
         Result result;
-        auto shader = AllocatedOptional<VulkanShader>::Emplace(
+        AllocatedOptional<VulkanShader> shader = std::make_unique<VulkanShader>(
             *this,
             intermediateShader.Value(),
             m_logger,
+            pipelineSettings,
             result
         );
         if (result != Result::SUCCESS) return result;

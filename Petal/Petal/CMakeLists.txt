@@ -135,6 +135,7 @@ add_library(Petal SHARED
         Source/Rendering/FrameGraph/PresentRenderPass.h
         Source/Rendering/FrameGraph/ResourceUsage.cpp
         Source/Rendering/FrameGraph/ResourceUsage.h
+        Source/Graphics/Shaders/IntermediateShaderResource.cpp
 )
 
 # Macros

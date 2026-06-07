@@ -56,29 +56,32 @@ namespace Petal {
 
         VkSurfaceFormat2KHR GetSurfaceFormat() const;
 
-       const std::vector<RenderTarget> & GetSwapchainRenderTarget() const;
+        const std::vector<RenderTarget> &GetSwapchainRenderTarget() const;
 
         struct RenderCommandBuffers {
             friend class VulkanSwapchain;
+
         private:
             RenderCommandBuffers(
                 GraphicsContext &context,
                 const std::shared_ptr<CommandBufferVector> &commands,
-                const std::shared_ptr<std::vector<RenderTarget> > &renderTargets
+                const std::vector<RenderTarget> &renderTargets
             );
 
         public:
             ~RenderCommandBuffers();
 
+            const std::vector<RenderTarget> &GetTargets() const;
+
             DISABLE_COPY_AND_MOVE(RenderCommandBuffers);
 
         public:
-            const CommandBufferVector& GetCommands() const;
+            const CommandBufferVector &GetCommands() const;
 
         private:
             GraphicsContext &m_context;
             std::shared_ptr<CommandBufferVector> m_commands;
-            std::shared_ptr<std::vector<RenderTarget> > m_renderTargets;
+            std::vector<RenderTarget> m_renderTargets;
         };
 
         // This must be called before any render commands are recorded into the command buffer
@@ -86,7 +89,7 @@ namespace Petal {
         // If renderTargets is empty, render to the swapchain
         std::shared_ptr<RenderCommandBuffers> CmdBeginRendering(
             const std::shared_ptr<CommandBufferVector> &commandBuffers,
-            OptionalRef<std::shared_ptr<std::vector<RenderTarget> > > renderTargets = Result::PETAL_OPTIONAL_EMPTY
+            OptionalRef<const std::vector<RenderTarget>> renderTargets = Result::PETAL_OPTIONAL_EMPTY
         ) const;
 
         // Instanced rendering using a specific shader
@@ -125,7 +128,7 @@ namespace Petal {
         VkSurfaceFormat2KHR m_swapchainSurfaceFormat;
         glm::u32 m_numSwapchainImages;
         std::vector<VkImageView> m_swapchainImageViews;
-        std::shared_ptr<std::vector<RenderTarget> > m_swapchainTargets;
+        std::vector<RenderTarget> m_swapchainTargets;
         std::shared_ptr<VulkanFence> m_blockingCommandFence;
 
         // Frame data
