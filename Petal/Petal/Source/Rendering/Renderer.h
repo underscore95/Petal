@@ -41,7 +41,7 @@ namespace Petal {
 
         void CmdRender(
             const VulkanSwapchain::RenderCommandBuffers &commandBuffers,
-            const VulkanShader &shader,
+            const VulkanGraphicsPipeline &pipeline,
             const Petal::Params &params,
             // todo something about this
             const MeshResource &mesh, glm::u32 instances = 1
@@ -49,8 +49,7 @@ namespace Petal {
 
         void CmdRender(
             const VulkanSwapchain::RenderCommandBuffers &commandBuffers,
-            const VulkanShader &shader,
-            const ModelResource &model
+            const VulkanGraphicsPipeline &pipeline, const ModelResource &model
         ) const;
 
         void SetCamera(const Camera& camera);

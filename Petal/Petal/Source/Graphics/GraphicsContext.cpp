@@ -130,8 +130,7 @@ namespace Petal {
     }
 
     AllocatedOptional<VulkanShader> GraphicsContext::CompileShader(
-        const ShaderAsset &asset,
-        const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings
+        const ShaderAsset &asset
     ) {
         // TODO cache the SPIRV and reflection info
 
@@ -143,7 +142,6 @@ namespace Petal {
             *this,
             intermediateShader.Value(),
             m_logger,
-            pipelineSettings,
             result
         );
         if (result != Result::SUCCESS) return result;
@@ -343,15 +341,15 @@ namespace Petal {
 
     void GraphicsContext::CmdWritePushConstants(
         const CommandBufferVector &commandBuffers,
-        const VulkanShader &shader,
+        const VulkanGraphicsPipeline &pipeline,
         const void *data,
         glm::u32 size
-    ) {
+    ) const {
         assert(commandBuffers.IsSwapchainSize());
         for (glm::u32 i = 0; i < commandBuffers.Size(); i++) {
             vkCmdPushConstants(
                 commandBuffers.GetHandle(i),
-                shader.GetPipeline().GetLayout(),
+                pipeline.GetLayout(),
                 VK_SHADER_STAGE_ALL,
                 0,
                 size,

@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include "VulkanGraphicsPipeline.h"
 #include "CommandBuffers/CommandBufferRef.h"
 
 
@@ -95,10 +96,9 @@ namespace Petal {
         // Instanced rendering using a specific shader
         // Vertex/index buffers must be bound to the shader separately
         void CmdRenderIndexed(
-            const VulkanShader &shader,
+            const VulkanGraphicsPipeline &pipeline,
             const RenderCommandBuffers &commandBuffers,
-            glm::u32 numIndices,
-            glm::u32 numInstances = 1
+            glm::u32 numIndices, glm::u32 numInstances = 1
         ) const;
 
         // Schedule a function to run after <num swapchain images> frames

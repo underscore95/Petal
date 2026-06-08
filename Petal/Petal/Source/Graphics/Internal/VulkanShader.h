@@ -36,7 +36,6 @@ namespace Petal {
             GraphicsContext &renderer,
             const IntermediateShaderResource &shader,
             std::shared_ptr<Logger> logger,
-            const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings,
             Result &resultOut
         );
 
@@ -61,17 +60,24 @@ namespace Petal {
         }
 
         // Must be called once for each command buffer before this shader is used
-        void BindResources(VkCommandBuffer commandBuffer) const;
+        void BindResources(
+            const VulkanGraphicsPipeline &pipeline,
+            VkCommandBuffer commandBuffer
+        ) const;
 
-        void BindResources(const CommandBufferVector &commandBuffer) const;
+        void BindResources(
+            const VulkanGraphicsPipeline &pipeline,
+            const CommandBufferVector &commandBuffer
+        ) const;
 
         const std::vector<Stage> &GetShaderStages() const;
 
         const std::vector<VkDescriptorSetLayout> &GetDescriptorSetLayouts() const;
 
-        const VulkanGraphicsPipeline &GetPipeline() const;
+        const IntermediateShaderResource &GetIntermediateShader() const;
 
-        const IntermediateShaderResource& GetIntermediateShader() const;
+        // Create a pipeline for this shader
+        AllocatedOptional<VulkanGraphicsPipeline> CreatePipeline(const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings) const;
 
     private:
         Result BindTexturesImpl(const std::string &name, const std::vector<VkDescriptorImageInfo> &textures) const;
@@ -93,6 +99,5 @@ namespace Petal {
         // resource name -> resource
         std::unordered_map<std::string, ShaderResource> m_resources;
         std::vector<Stage> m_shaderStages;
-        std::unique_ptr<VulkanGraphicsPipeline> m_pipeline;
     };
 } // Petal

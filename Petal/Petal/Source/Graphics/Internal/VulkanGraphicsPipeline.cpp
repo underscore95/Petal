@@ -59,6 +59,10 @@ namespace Petal {
         return m_pipelineLayout;
     }
 
+    const VulkanShader &VulkanGraphicsPipeline::GetShader() const {
+        return m_shader;
+    }
+
     Result VulkanGraphicsPipeline::CreatePipelineLayout() {
         VkPushConstantRange pushConstantRange = {
             .stageFlags = VK_SHADER_STAGE_ALL,

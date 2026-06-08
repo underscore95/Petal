@@ -6,6 +6,7 @@ namespace Petal {
     class VulkanShader;
     class GraphicsContext;
     struct RenderTarget;
+
     class VulkanGraphicsPipeline {
     public:
         struct PipelineSettings {
@@ -32,6 +33,8 @@ namespace Petal {
         VkPipeline GetHandle() const;
 
         VkPipelineLayout GetLayout() const;
+
+        const VulkanShader &GetShader() const;
 
     private:
         Result CreatePipelineLayout();

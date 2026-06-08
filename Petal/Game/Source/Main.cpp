@@ -73,20 +73,18 @@ public:
         DeferredRenderer &deferredRenderer,
         const std::shared_ptr<Logger> &logger,
         const std::shared_ptr<VulkanShader> &shader,
-        const std::shared_ptr<ModelResource> &model,
-        const std::vector<RenderTarget> &targets
+        const std::shared_ptr<ModelResource> &model
     ) : DeferredGBufferWritePass(logger, "MyPass", graphicsContext.GetSwapchain().NumSwapchainImages(), deferredRenderer),
         m_graphicsContext(graphicsContext),
         m_renderer(renderer),
-        m_shader(shader),
-        m_model(model),
-        m_targets(targets) {
-        TrackRenderTargetPerCommand(targets, RenderTargetAction::RENDER);
+        m_deferredRenderer(deferredRenderer),
+        m_model(model) {
+        TrackRenderTargetPerCommand(deferredRenderer.GetGBuffer(), RenderTargetAction::RENDER);
     }
 
 public:
     Result Record(const std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> &renderCommands) const override {
-        m_renderer.CmdRender(*renderCommands, *m_shader, *m_model);
+        m_renderer.CmdRender(*renderCommands, m_deferredRenderer.GetPipeline(), *m_model);
 
         return Result::SUCCESS;
     }
@@ -94,9 +92,8 @@ public:
 private:
     GraphicsContext &m_graphicsContext;
     Renderer &m_renderer;
-    std::shared_ptr<VulkanShader> m_shader;
+    DeferredRenderer &m_deferredRenderer;
     std::shared_ptr<ModelResource> m_model;
-    std::vector<RenderTarget> m_targets;
 };
 
 int run(Timer &engineShutdownTime) {
@@ -112,29 +109,29 @@ int run(Timer &engineShutdownTime) {
     );
     GraphicsContext &graphicsContext = contextOptional.Value();
 
-    // Render target
-    std::vector<RenderTarget> targets;
-    for (glm::u32 i = 0; i < contextOptional->GetSwapchain().NumSwapchainImages(); i++) {
-        targets.push_back({
-            .Colors = {
-                graphicsContext.GetSwapchain().GetSwapchainRenderTarget()[i].Colors[0],
-
-                {
-                    .Texture = graphicsContext.GetMemorySubsystem().CreateTexture(
-                        std::format("Render Texture {}", i), {
-                            .Size = {window->GetDimensions().x, window->GetDimensions().y, 1},
-                            .ImageType = VK_IMAGE_TYPE_2D,
-                            .ViewType = VK_IMAGE_VIEW_TYPE_2D,
-                            .Format = VK_FORMAT_B8G8R8A8_SRGB,
-                            .Usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                            .AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
-                        }).Release(),
-                    .ClearColor = {0, 0, 0, 1}
-                }
-            },
-            .Depth = graphicsContext.GetSwapchain().GetSwapchainRenderTarget()[i].Depth
-        });
-    }
+    // // Render target
+    // std::vector<RenderTarget> targets;
+    // for (glm::u32 i = 0; i < contextOptional->GetSwapchain().NumSwapchainImages(); i++) {
+    //     targets.push_back({
+    //         .Colors = {
+    //             graphicsContext.GetSwapchain().GetSwapchainRenderTarget()[i].Colors[0],
+    //
+    //             {
+    //                 .Texture = graphicsContext.GetMemorySubsystem().CreateTexture(
+    //                     std::format("Render Texture {}", i), {
+    //                         .Size = {window->GetDimensions().x, window->GetDimensions().y, 1},
+    //                         .ImageType = VK_IMAGE_TYPE_2D,
+    //                         .ViewType = VK_IMAGE_VIEW_TYPE_2D,
+    //                         .Format = VK_FORMAT_B8G8R8A8_SRGB,
+    //                         .Usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+    //                         .AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
+    //                     }).Release(),
+    //                 .ClearColor = {0, 0, 0, 1}
+    //             }
+    //         },
+    //         .Depth = graphicsContext.GetSwapchain().GetSwapchainRenderTarget()[i].Depth
+    //     });
+    // }
 
     // Shader
     ShaderAsset asset(
@@ -144,11 +141,8 @@ int run(Timer &engineShutdownTime) {
             {ShaderType::FRAGMENT, {"fragmentMain"}}
         }
     );
-    VulkanGraphicsPipeline::PipelineSettings pipelineSettings = {
-        .RenderTargets = targets,
-        .PushConstantsSize = sizeof(Petal::Params)
-    };
-    std::shared_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset, pipelineSettings).Release();
+
+    std::shared_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset).Release();
     assert(shader);
 
     // textures
@@ -187,12 +181,17 @@ int run(Timer &engineShutdownTime) {
     ).Release();
 
     // Deferred
+    VulkanGraphicsPipeline::PipelineSettings pipelineSettings = {
+        .PushConstantsSize = sizeof(Petal::Params)
+    };
     DeferredRenderer def(
         *renderer,
         engine.GetLoggerSystem().GetLogger(LoggerSystem::GRAPHICS_LOGGER),
+        shader,
+        pipelineSettings,
         window->GetDimensions(),
-        [&graphicsContext, &renderer, &logger, &shader, &model, &targets](DeferredRenderer &deferredRenderer) {
-            return std::make_unique<MyPass>(graphicsContext, *renderer, deferredRenderer, logger, shader, model, targets);
+        [&graphicsContext, &renderer, &logger, &shader, &model](DeferredRenderer &deferredRenderer) {
+            return std::make_unique<MyPass>(graphicsContext, *renderer, deferredRenderer, logger, shader, model);
         },
         result
     );

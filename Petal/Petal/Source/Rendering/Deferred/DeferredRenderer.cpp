@@ -2,6 +2,7 @@
 
 #include "DeferredGBufferWritePass.h"
 #include "Graphics/Internal/RenderTarget.h"
+#include "Graphics/Internal/VulkanShader.h"
 #include "Graphics/Memory/GPUMemorySubsystem.h"
 #include "Rendering/Renderer.h"
 #include "Rendering/FrameGraph/PresentRenderPass.h"
@@ -12,16 +13,22 @@ namespace Petal {
     DeferredRenderer::DeferredRenderer(
         Renderer &renderer,
         const std::shared_ptr<Logger> &logger,
+        const std::shared_ptr<VulkanShader> &shader,
+        VulkanGraphicsPipeline::PipelineSettings &pipelineSettings,
         const glm::vec2 &windowSize,
         const RenderPassSupplier &renderPassSupplier,
         Result &resultOut
     ) : m_renderer(renderer),
         m_context(renderer.GetContext()),
+        m_shader(shader),
         m_logger(logger),
         m_windowSize(windowSize) {
         Timer timer;
 
         resultOut = CreateGBuffer();
+        if (resultOut != Result::SUCCESS) return;
+
+        resultOut = CreatePipeline(pipelineSettings);
         if (resultOut != Result::SUCCESS) return;
 
         resultOut = SetupRenderPasses(renderPassSupplier);
@@ -38,8 +45,21 @@ namespace Petal {
         return m_context;
     }
 
-    const std::vector<std::shared_ptr<RenderPass>> &DeferredRenderer::GetPasses() const {
+    const std::vector<std::shared_ptr<RenderPass> > &DeferredRenderer::GetPasses() const {
         return m_passes;
+    }
+
+    VulkanGraphicsPipeline &DeferredRenderer::GetPipeline() const {
+        return *m_pipeline;
+    }
+
+    Result DeferredRenderer::CreatePipeline(VulkanGraphicsPipeline::PipelineSettings &settings) {
+        settings.RenderTargets = m_gBuffer;
+        AllocatedOptional<VulkanGraphicsPipeline> pipeline = m_shader->CreatePipeline(settings);
+        PETAL_CHECK_OPTIONAL(pipeline, m_logger, "Failed to create deferred pipeline");
+
+        m_pipeline = pipeline.Release();
+        return Result::SUCCESS;
     }
 
     Result DeferredRenderer::CreateGBuffer() {

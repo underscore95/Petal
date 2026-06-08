@@ -62,7 +62,7 @@ namespace Petal {
 
         GPUMemorySubsystem &GetMemorySubsystem() const;
 
-        AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset, const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings);
+        AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset);
 
         // Set the debug name of a vulkan object
         // In release mode, this is a no op
@@ -130,10 +130,9 @@ namespace Petal {
 
         void CmdWritePushConstants(
             const CommandBufferVector &commandBuffers,
-            const VulkanShader &shader,
-            const void *data,
-            glm::u32 size
-        );
+            const VulkanGraphicsPipeline &pipeline,
+            const void *data, glm::u32 size
+        ) const;
 
         // Bind one or more vertex buffers
         void CmdBindVertexBuffer(

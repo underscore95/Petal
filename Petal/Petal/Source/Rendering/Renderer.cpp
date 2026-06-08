@@ -88,7 +88,7 @@ namespace Petal {
 
     void Renderer::CmdRender(
         const VulkanSwapchain::RenderCommandBuffers &commandBuffers,
-        const VulkanShader &shader,
+        const VulkanGraphicsPipeline &pipeline,
         const Petal::Params &params,
         const MeshResource &mesh,
         glm::u32 instances
@@ -97,26 +97,26 @@ namespace Petal {
             m_logger->Error("You must call SetCamera before rendering a mesh.");
         }
 
-        shader.BindResources(commandBuffers.GetCommands());
+        pipeline.GetShader().BindResources(pipeline, commandBuffers.GetCommands());
 
         m_context.CmdBindVertexBuffer(commandBuffers.GetCommands(), 0, {std::cref(mesh.GetVertexBuffer())});
         m_context.CmdBindIndexBuffer(commandBuffers.GetCommands(), mesh.GetIndexBuffer(), mesh.GetIndexType());
 
-        m_context.CmdWritePushConstants(commandBuffers.GetCommands(), shader, &params, sizeof(params));
+        m_context.CmdWritePushConstants(commandBuffers.GetCommands(), pipeline, &params, sizeof(params));
 
-        m_context.GetSwapchain().CmdRenderIndexed(shader, commandBuffers, mesh.GetNumIndices(), instances);
+        m_context.GetSwapchain().CmdRenderIndexed(pipeline, commandBuffers, mesh.GetNumIndices(), instances);
     }
 
     void Renderer::CmdRender(
         const VulkanSwapchain::RenderCommandBuffers &commandBuffers,
-        const VulkanShader &shader,
+        const VulkanGraphicsPipeline &pipeline,
         const ModelResource &model
     ) const {
         for (const std::unique_ptr<MeshResource> &mesh : model.GetMeshes()) {
             Petal::Params params = {
                 .DiffuseMap = 1, // todo
             };
-            CmdRender(commandBuffers, shader, params, *mesh);
+            CmdRender(commandBuffers, pipeline, params, *mesh);
         }
     }
 

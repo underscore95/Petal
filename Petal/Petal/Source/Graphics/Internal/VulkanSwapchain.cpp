@@ -350,20 +350,20 @@ namespace Petal {
     }
 
     void VulkanSwapchain::CmdRenderIndexed(
-        const VulkanShader &shader,
+        const VulkanGraphicsPipeline &pipeline,
         const RenderCommandBuffers &commandBuffers,
         glm::u32 numIndices,
         glm::u32 numInstances
     ) const {
         for (glm::u32 swapchainIndex = 0; swapchainIndex < commandBuffers.GetCommands().Size(); swapchainIndex++) {
-            const Optional<IntermediateShaderResource::FragmentShaderInfo> fragInfo = shader.GetIntermediateShader().FragmentShader;
+            const Optional<IntermediateShaderResource::FragmentShaderInfo> fragInfo = pipeline.GetShader().GetIntermediateShader().FragmentShader;
             if (fragInfo.HasValue() && !fragInfo->MatchesRenderTarget(commandBuffers.GetTargets().at(0), m_logger)) {
                 m_logger->Warn("Render Target index {} does not match shader", swapchainIndex);
             }
 
             VkCommandBuffer commandBuffer = commandBuffers.GetCommands().GetHandle(swapchainIndex);
 
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.GetPipeline().GetHandle());
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle());
             vkCmdDrawIndexed(commandBuffer, numIndices, numInstances, 0, 0, 0);
         }
     }

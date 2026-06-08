@@ -23,7 +23,6 @@ namespace Petal {
         GraphicsContext &renderer,
         const IntermediateShaderResource &shader,
         std::shared_ptr<Logger> logger,
-        const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings,
         Result &resultOut
     ) : m_renderer(renderer),
         m_logger(logger),
@@ -38,21 +37,10 @@ namespace Petal {
         resultOut = CreateDescriptors();
         if (resultOut != Result::SUCCESS) return;
 
-        m_pipeline = std::make_unique<VulkanGraphicsPipeline>(
-            m_renderer,
-            *this,
-            m_logger,
-            pipelineSettings,
-            resultOut
-        );
-        if (resultOut != Result::SUCCESS) return;
-
         logger->Verbose("Initialized Vulkan shader!");
     }
 
     VulkanShader::~VulkanShader() {
-        m_pipeline.reset();
-
         for (const Stage &stage : m_shaderStages) {
             if (stage.ShaderModule == VK_NULL_HANDLE) continue;
             vkDestroyShaderModule(m_renderer.GetDevice()->GetHandle(), stage.ShaderModule, nullptr);
@@ -234,6 +222,21 @@ namespace Petal {
         return m_intermediateShader;
     }
 
+    AllocatedOptional<VulkanGraphicsPipeline> VulkanShader::CreatePipeline(
+        const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings
+    ) const {
+        Result resultOut;
+        auto pipeline = std::make_unique<VulkanGraphicsPipeline>(
+            m_renderer,
+            *this,
+            m_logger,
+            pipelineSettings,
+            resultOut
+        );
+        PETAL_CHECK_COND_SILENT(resultOut != Result::SUCCESS, resultOut);
+        return std::move(pipeline);
+    }
+
     Result VulkanShader::BindTexturesImpl(const std::string &name, const std::vector<VkDescriptorImageInfo> &textures) const {
         const auto it = m_resources.find(name);
         PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find texture {}. Note resource names are case sensitive.", name);
@@ -275,11 +278,14 @@ namespace Petal {
         return Result::SUCCESS;
     }
 
-    void VulkanShader::BindResources(VkCommandBuffer commandBuffer) const {
+    void VulkanShader::BindResources(
+        const VulkanGraphicsPipeline &pipeline,
+        VkCommandBuffer commandBuffer
+    ) const {
         vkCmdBindDescriptorSets(
             commandBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_pipeline->GetLayout(),
+            pipeline.GetLayout(),
             0,
             static_cast<glm::u32>(m_descriptorSets.size()),
             m_descriptorSets.data(),
@@ -288,9 +294,12 @@ namespace Petal {
         );
     }
 
-    void VulkanShader::BindResources(const CommandBufferVector &commandBuffer) const {
+    void VulkanShader::BindResources(
+        const VulkanGraphicsPipeline &pipeline,
+        const CommandBufferVector &commandBuffer
+    ) const {
         for (glm::u32 i = 0; i < commandBuffer.Size(); i++) {
-            BindResources(commandBuffer.GetHandle(i));
+            BindResources(pipeline, commandBuffer.GetHandle(i));
         }
     }
 
@@ -300,10 +309,6 @@ namespace Petal {
 
     const std::vector<VkDescriptorSetLayout> &VulkanShader::GetDescriptorSetLayouts() const {
         return m_descriptorSetLayouts;
-    }
-
-    const VulkanGraphicsPipeline &VulkanShader::GetPipeline() const {
-        return *m_pipeline;
     }
 
     Result VulkanShader::CreateShaderModule() {
