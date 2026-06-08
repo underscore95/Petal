@@ -23,7 +23,7 @@ namespace Petal {
             GraphicsContext &context,
             const std::shared_ptr<Logger> &logger,
             const std::shared_ptr<CommandBufferVector> &commands,
-            std::vector<std::unique_ptr<RenderPass> > passes,
+            std::vector<std::shared_ptr<RenderPass> > passes,
             Result &resultOut
         );
 
@@ -48,7 +48,7 @@ namespace Petal {
         std::shared_ptr<Logger> m_logger;
         std::shared_ptr<CommandBufferVector> m_commands;
         std::unordered_map<std::shared_ptr<IVulkanResource>, Optional<ResourceState> > m_resources;
-        std::vector<std::unique_ptr<RenderPass> > m_passes;
+        std::vector<std::shared_ptr<RenderPass> > m_passes;
         std::vector<std::string> m_visualRepresentation;
     };
 } // Petal

@@ -1,6 +1,8 @@
 #include "GameCamera.h"
 #include "Petal.h"
 #include "../../Petal/Assets/Shaders/Common.h"
+#include "Rendering/Deferred/DeferredGBufferWritePass.h"
+#include "Rendering/Deferred/DeferredRenderer.h"
 using namespace Petal;
 
 // Petal::MeshBuilder CreateMesh() {
@@ -63,16 +65,17 @@ Model LoadModel(std::string path, const std::shared_ptr<Logger> &logger, const V
     return model;
 }
 
-class MyPass : public RenderPass {
+class MyPass : public DeferredGBufferWritePass {
 public:
     MyPass(
         GraphicsContext &graphicsContext,
         Renderer &renderer,
+        DeferredRenderer &deferredRenderer,
         const std::shared_ptr<Logger> &logger,
         const std::shared_ptr<VulkanShader> &shader,
         const std::shared_ptr<ModelResource> &model,
         const std::vector<RenderTarget> &targets
-    ) : RenderPass(logger, graphicsContext.GetSwapchain().NumSwapchainImages()),
+    ) : DeferredGBufferWritePass(logger, "MyPass", graphicsContext.GetSwapchain().NumSwapchainImages(), deferredRenderer),
         m_graphicsContext(graphicsContext),
         m_renderer(renderer),
         m_shader(shader),
@@ -82,13 +85,8 @@ public:
     }
 
 public:
-    const std::string &GetName() const override { return m_name; }
-
-    Result Record(const std::shared_ptr<CommandBufferVector> &commands) const override {
-        std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> renderCommands = m_graphicsContext.GetSwapchain().CmdBeginRendering(commands, m_targets);
-
+    Result Record(const std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> &renderCommands) const override {
         m_renderer.CmdRender(*renderCommands, *m_shader, *m_model);
-        renderCommands.reset(); // just to be explicit
 
         return Result::SUCCESS;
     }
@@ -98,7 +96,6 @@ private:
     Renderer &m_renderer;
     std::shared_ptr<VulkanShader> m_shader;
     std::shared_ptr<ModelResource> m_model;
-    std::string m_name = "MyPass";
     std::vector<RenderTarget> m_targets;
 };
 
@@ -189,9 +186,19 @@ int run(Timer &engineShutdownTime) {
         graphicsContext.GetSwapchain().NumSwapchainImages()
     ).Release();
 
-    std::vector<std::unique_ptr<RenderPass> > passes;
-    passes.push_back(std::make_unique<MyPass>(graphicsContext, *renderer, logger, shader, model, targets));
-    passes.push_back(std::make_unique<PresentRenderPass>(logger, "Present", targets, result));
+    // Deferred
+    DeferredRenderer def(
+        *renderer,
+        engine.GetLoggerSystem().GetLogger(LoggerSystem::GRAPHICS_LOGGER),
+        window->GetDimensions(),
+        [&graphicsContext, &renderer, &logger, &shader, &model, &targets](DeferredRenderer &deferredRenderer) {
+            return std::make_unique<MyPass>(graphicsContext, *renderer, deferredRenderer, logger, shader, model, targets);
+        },
+        result
+    );
+    assert(result == Result::SUCCESS);
+
+    std::vector<std::shared_ptr<RenderPass> > passes = def.GetPasses();
     FrameGraph frameGraph(graphicsContext, logger, commandBuffers, std::move(passes), result);
     assert(result == Result::SUCCESS);
     logger->Info("Frame Graph Generated: \n{}", frameGraph.ToString()[0]);

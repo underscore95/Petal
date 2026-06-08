@@ -23,10 +23,13 @@ namespace Petal {
     public:
         RenderPass(
             const std::shared_ptr<Logger> &logger,
+            const std::string& name,
             glm::u32 numCommandBuffers
         );
 
     public:
+        const std::string & GetName() const override;
+
         const std::vector<std::vector<PassResource> > &GetAccessedResources() const;
 
         // Record the commands of this render pass
@@ -57,6 +60,7 @@ namespace Petal {
 
     private:
         std::shared_ptr<Logger> m_logger;
+        std::string m_name;
         // each command buffer accesses std::vector<PassResource>
         std::vector<std::vector<PassResource> > m_accessedResources;
         size_t m_numCommandBuffers;

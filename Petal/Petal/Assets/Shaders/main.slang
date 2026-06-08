@@ -33,20 +33,22 @@ VOut vertexMain(
 }
 
 struct FOut {
-    float4 Color;
-    float4 Red;
+    float4 Position;
+    float4 Normal;
+    float4 Albedo;
 }
 
 [shader("fragment")]
 FOut fragmentMain(VOut input, uniform Params params) : SV_Target
 {
     FOut out;
-    out.Color = textures[params.DiffuseMap].Sample(input.uv);
+    out.Albedo = textures[params.DiffuseMap].Sample(input.uv);
 
-    if (out.Color.a < 0.1) discard;
-    out.Color.a = 1;
+    if (out.Albedo.a < 0.1) discard;
+    out.Albedo.a = 1;
 
-    out.Red = float4(1,0,0,1);
+    out.Normal =  float4(input.normal, 0);
+    out.Position = input.position;
 
     return out;
 }

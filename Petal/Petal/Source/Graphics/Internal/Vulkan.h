@@ -49,6 +49,7 @@ namespace Petal {
             case VK_FORMAT_B8G8R8A8_SRGB:
             case VK_FORMAT_R32_SFLOAT:
             case VK_FORMAT_D32_SFLOAT:
+            case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
                 return 4;
 
             case VK_FORMAT_R16G16B16A16_SFLOAT:

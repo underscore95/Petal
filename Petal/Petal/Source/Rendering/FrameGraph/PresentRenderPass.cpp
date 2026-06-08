@@ -7,14 +7,9 @@ namespace Petal {
         std::string name,
         const std::vector<RenderTarget> &targets,
         Result &resultOut
-    ) : RenderPass(logger, targets.size()),
-        m_name(name),
+    ) : RenderPass(logger, name, targets.size()),
         m_targets(targets) {
         resultOut = TrackRenderTargetPerCommand(targets, RenderTargetAction::PRESENT);
-    }
-
-    const std::string &PresentRenderPass::GetName() const {
-        return m_name;
     }
 
     Result PresentRenderPass::Record(const std::shared_ptr<CommandBufferVector> &commands) const {

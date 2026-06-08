@@ -7,13 +7,19 @@ namespace Petal {
 
     RenderPass::RenderPass(
         const std::shared_ptr<Logger> &logger,
+        const std::string &name,
         glm::u32 numCommandBuffers
     )
         : m_logger(logger),
+          m_name(name),
           m_numCommandBuffers(numCommandBuffers) {
         assert(m_numCommandBuffers < MAX_COMMAND_BUFFERS); // since we allocate an vector for every buffer, don't want to acccidentally allocate a billion vectors
 
         m_accessedResources.resize(m_numCommandBuffers);
+    }
+
+    const std::string &RenderPass::GetName() const {
+        return m_name;
     }
 
     const std::vector<std::vector<RenderPass::PassResource> > &RenderPass::GetAccessedResources() const {

@@ -57,6 +57,8 @@ namespace Petal {
 
         Result Bind(const VulkanShader &shader) const;
 
+        GraphicsContext & GetContext() const;
+
     private:
         Result CreateBuffers();
 

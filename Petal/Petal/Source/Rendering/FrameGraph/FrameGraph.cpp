@@ -24,7 +24,7 @@ namespace Petal {
         GraphicsContext &context,
         const std::shared_ptr<Logger> &logger,
         const std::shared_ptr<CommandBufferVector> &commands,
-        std::vector<std::unique_ptr<RenderPass> > passes,
+        std::vector<std::shared_ptr<RenderPass> > passes,
         Result &resultOut
     )
         : m_context(context),
@@ -162,7 +162,7 @@ namespace Petal {
         Result result = m_commands->BeginAll(0);
         PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
-        for (std::unique_ptr<RenderPass> &pass : m_passes) {
+        for (std::shared_ptr<RenderPass> &pass : m_passes) {
             PETAL_CHECK_COND(pass == nullptr, Result::FRAME_GRAPH_ERROR, m_logger, "Null pass in frame graph");
             PETAL_CHECK_COND(
                 pass->GetNumCommandBuffers() != m_commands->Size(),

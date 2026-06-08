@@ -136,6 +136,10 @@ add_library(Petal SHARED
         Source/Rendering/FrameGraph/ResourceUsage.cpp
         Source/Rendering/FrameGraph/ResourceUsage.h
         Source/Graphics/Shaders/IntermediateShaderResource.cpp
+        Source/Rendering/Deferred/DeferredRenderer.cpp
+        Source/Rendering/Deferred/DeferredRenderer.h
+        Source/Rendering/Deferred/DeferredGBufferWritePass.cpp
+        Source/Rendering/Deferred/DeferredGBufferWritePass.h
 )
 
 # Macros

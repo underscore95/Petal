@@ -14,8 +14,6 @@ namespace Petal {
         );
 
     public:
-        const std::string &GetName() const override;
-
         Result Record(const std::shared_ptr<CommandBufferVector> &commands) const override;
 
     private:

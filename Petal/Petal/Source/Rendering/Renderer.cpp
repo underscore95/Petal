@@ -138,6 +138,10 @@ namespace Petal {
         return result;
     }
 
+    GraphicsContext &Renderer::GetContext() const {
+        return m_context;
+    }
+
     Result Renderer::CreateBuffers() {
         // Vertex
         constexpr glm::u32 VERTEX_BUFFER_SIZE = 1024 * 1024 * 512;

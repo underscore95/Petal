@@ -144,7 +144,10 @@ namespace Petal {
                 .layerCount = 1
             }
         };
-        m_size = m_textureCreateInfo.Size.x * m_textureCreateInfo.Size.y * m_textureCreateInfo.Size.z * VkFormatValueSize(m_textureCreateInfo.Format);
+
+        VkMemoryRequirements memReq;
+        vkGetImageMemoryRequirements(m_context.GetDevice()->GetHandle(), m_handle, &memReq);
+        m_size = memReq.size;
 
         res = vkCreateImageView(m_context.GetDevice()->GetHandle(), &viewInfo, nullptr, &m_view);
         PETAL_CHECK_COND(res != VK_SUCCESS, Result::VMA_TEXTURE_CREATION_FAILED, m_logger, "Failed to create view for texture {}", m_name);
