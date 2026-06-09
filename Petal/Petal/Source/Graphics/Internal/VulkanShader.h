@@ -1,5 +1,7 @@
 #pragma once
 
+#include <complex.h>
+
 #include "Common.h"
 #include <vulkan/vulkan_core.h>
 
@@ -10,6 +12,7 @@
 #include "Graphics/Memory/Textures/VulkanTexture.h"
 #include "Graphics/Resources/ResourceType.h"
 #include "Graphics/Shaders/IntermediateShaderResource.h"
+#include "Rendering/Deferred/DeferredRenderer.h"
 
 namespace Petal {
     struct VertexType;
@@ -56,16 +59,18 @@ namespace Petal {
                 i++;
             }
 
-            return BindTexturesImpl(name, imageInfos);
+            return BindTexturesImpl(name, imageInfos.data(), imageInfos.size());
         }
 
+        Result BindTexture(const std::string &name, const VulkanTexture &texture) const;
+
         // Must be called once for each command buffer before this shader is used
-        void BindResources(
+        void CmdBindResources(
             const VulkanGraphicsPipeline &pipeline,
             VkCommandBuffer commandBuffer
         ) const;
 
-        void BindResources(
+        void CmdBindResources(
             const VulkanGraphicsPipeline &pipeline,
             const CommandBufferVector &commandBuffer
         ) const;
@@ -80,7 +85,7 @@ namespace Petal {
         AllocatedOptional<VulkanGraphicsPipeline> CreatePipeline(const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings) const;
 
     private:
-        Result BindTexturesImpl(const std::string &name, const std::vector<VkDescriptorImageInfo> &textures) const;
+        Result BindTexturesImpl(const std::string &name, const VkDescriptorImageInfo *imageInfos, glm::u32 numImageInfos) const;
 
         Result CreateShaderModule();
 

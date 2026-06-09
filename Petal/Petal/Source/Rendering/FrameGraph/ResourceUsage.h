@@ -11,8 +11,12 @@ namespace Petal {
         ResourceUsage(
             VkPipelineStageFlags2 stageMask,
             VkAccessFlags2 accessMask,
-            Optional<VkImageLayout> imageLayout = Result::PETAL_OPTIONAL_EMPTY
+            const Optional<VkImageLayout> &imageLayout = Result::PETAL_OPTIONAL_EMPTY
         );
+
+        bool operator==(const ResourceUsage &usage) const;
+
+        bool operator!=(const ResourceUsage &usage) const;
 
         static ResourceUsage Undefined();
 
@@ -55,5 +59,7 @@ namespace Petal {
         static ResourceUsage TransferDestination();
 
         static ResourceUsage Present();
+
+        static ResourceUsage Invalid();
     };
 }

@@ -2,6 +2,7 @@
 #include "Petal.h"
 #include "../../Petal/Assets/Shaders/Common.h"
 #include "Rendering/Deferred/DeferredGBufferWritePass.h"
+#include "Rendering/Deferred/DeferredLightingPass.h"
 #include "Rendering/Deferred/DeferredRenderer.h"
 using namespace Petal;
 
@@ -79,12 +80,16 @@ public:
         m_renderer(renderer),
         m_deferredRenderer(deferredRenderer),
         m_model(model) {
-        TrackRenderTargetPerCommand(deferredRenderer.GetGBuffer(), RenderTargetAction::RENDER);
+        TrackRenderTargetPerCommand(
+            deferredRenderer.GetGBuffer(),
+            ResourceUsage::ColorAttachment(),
+            ResourceUsage::DepthAttachmentReadWrite()
+        );
     }
 
 public:
     Result Record(const std::shared_ptr<VulkanSwapchain::RenderCommandBuffers> &renderCommands) const override {
-        m_renderer.CmdRender(*renderCommands, m_deferredRenderer.GetPipeline(), *m_model);
+        m_renderer.CmdRender(*renderCommands, m_deferredRenderer.GetGBufferPipeline(), *m_model);
 
         return Result::SUCCESS;
     }
@@ -134,16 +139,25 @@ int run(Timer &engineShutdownTime) {
     // }
 
     // Shader
-    ShaderAsset asset(
-        "C:/Coding/Projects/Petal/Petal/Petal/Assets/Shaders/main.slang",
+    ShaderAsset gBufferShaderAsset(
+        "C:/Coding/Projects/Petal/Petal/Petal/Assets/Shaders/GBuffer.slang",
         {
             {ShaderType::VERTEX, {"vertexMain"}},
             {ShaderType::FRAGMENT, {"fragmentMain"}}
         }
     );
+    std::shared_ptr<VulkanShader> gBufferShader = graphicsContext.CompileShader(gBufferShaderAsset).Release();
+    assert(gBufferShader);
 
-    std::shared_ptr<VulkanShader> shader = graphicsContext.CompileShader(asset).Release();
-    assert(shader);
+    ShaderAsset deferredShaderAsset(
+        "C:/Coding/Projects/Petal/Petal/Petal/Assets/Shaders/DeferredLighting.slang",
+        {
+            {ShaderType::VERTEX, {"vertexMain"}},
+            {ShaderType::FRAGMENT, {"fragmentMain"}}
+        }
+    );
+    std::shared_ptr<VulkanShader> deferredShader = graphicsContext.CompileShader(deferredShaderAsset).Release();
+    assert(deferredShader);
 
     // textures
     std::shared_ptr<VulkanTexture> iconTexture = graphicsContext.GetMemorySubsystem().LoadTextureFromDisk(
@@ -156,7 +170,7 @@ int run(Timer &engineShutdownTime) {
         ImageLoaderSettings{},
         TextureCreateInfo{}
     ).Release();
-    shader->BindTextures<std::vector<std::shared_ptr<VulkanTexture> > >("textures", std::vector{iconTexture, testTexture});
+    gBufferShader->BindTextures<std::vector<std::shared_ptr<VulkanTexture> > >("textures", std::vector{iconTexture, testTexture});
 
     // Renderer
     RendererSettings rendererSettings = {
@@ -165,10 +179,10 @@ int run(Timer &engineShutdownTime) {
     std::shared_ptr<Renderer> renderer = graphicsContext.CreateRenderer(rendererSettings).Release();
 
     // std::shared_ptr<MeshResource> mesh = renderer->UploadMesh(CreateMesh()).Release();
-    Model cpuModel = LoadModel("C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", logger, shader->GetIntermediateShader().VertexType.Value());
+    Model cpuModel = LoadModel("C:/Coding/Projects/Petal/Petal/Petal/Assets/Models/Spider/spider.obj", logger, gBufferShader->GetIntermediateShader().VertexType.Value());
     std::shared_ptr<ModelResource> model = renderer->UploadModel(cpuModel, "MyModel").Release();
 
-    Result result = renderer->Bind(*shader);
+    Result result = renderer->Bind(*gBufferShader);
     assert(result == Result::SUCCESS);
 
     GameCamera camera(window, renderer, logger);
@@ -182,17 +196,45 @@ int run(Timer &engineShutdownTime) {
 
     // Deferred
     VulkanGraphicsPipeline::PipelineSettings pipelineSettings = {
-        .PushConstantsSize = sizeof(Petal::Params)
+        .PushConstantsSize = sizeof(Petal::Params) // todo different settings for different shader?
     };
+
+    DeferredRenderer::RenderPassSupplier<DeferredGBufferWritePass> gBufferWriteSupplier = [&graphicsContext, &renderer, &logger, &gBufferShader, &model
+            ](DeferredRenderer &deferredRenderer) {
+        return static_cast<std::unique_ptr<DeferredGBufferWritePass>>(std::make_unique<MyPass>(
+            graphicsContext, *renderer,
+            deferredRenderer,
+            logger,
+            gBufferShader,
+            model
+        ));
+    };
+
+    DeferredRenderer::RenderPassSupplier<DeferredLightingPass> lightingSupplier = [&logger, &graphicsContext
+            ](DeferredRenderer &deferredRenderer) -> AllocatedOptional<DeferredLightingPass> {
+        Result deferredLightingResult;
+        auto lightingPass = std::make_unique<DeferredLightingPass>(
+            logger,
+            "Deferred Lighting",
+            graphicsContext.GetSwapchain().NumSwapchainImages(),
+            deferredRenderer,
+            deferredLightingResult
+        );
+        if (deferredLightingResult == Result::SUCCESS) return lightingPass;
+        return deferredLightingResult;
+    };
+
     DeferredRenderer def(
         *renderer,
         engine.GetLoggerSystem().GetLogger(LoggerSystem::GRAPHICS_LOGGER),
-        shader,
+        gBufferShader,
+        pipelineSettings,
+        deferredShader,
         pipelineSettings,
         window->GetDimensions(),
-        [&graphicsContext, &renderer, &logger, &shader, &model](DeferredRenderer &deferredRenderer) {
-            return std::make_unique<MyPass>(graphicsContext, *renderer, deferredRenderer, logger, shader, model);
-        },
+        graphicsContext.GetSwapchain().GetSwapchainRenderTarget(),
+        gBufferWriteSupplier,
+        lightingSupplier,
         result
     );
     assert(result == Result::SUCCESS);

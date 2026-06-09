@@ -1,8 +1,3 @@
-// http://shader-slang.org/slang-playground/
-// This example demonstrates how to define vertex and fragment shader entrypoints.
-// This is a compile-only example, so there is no output from the playground.
-// You can use the "Compile" button to compile this example to different targets.
-
 #include "Common.h"
 
 Sampler2D textures[];
@@ -42,7 +37,7 @@ struct FOut {
 FOut fragmentMain(VOut input, uniform Params params) : SV_Target
 {
     FOut out;
-    out.Albedo = textures[params.DiffuseMap].Sample(input.uv);
+    out.Albedo = textures[params.DiffuseMap].Sample(input.uv); // todo: output UV and image to sample instead?
 
     if (out.Albedo.a < 0.1) discard;
     out.Albedo.a = 1;

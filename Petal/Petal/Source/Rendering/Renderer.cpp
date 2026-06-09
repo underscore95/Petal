@@ -97,7 +97,7 @@ namespace Petal {
             m_logger->Error("You must call SetCamera before rendering a mesh.");
         }
 
-        pipeline.GetShader().BindResources(pipeline, commandBuffers.GetCommands());
+        pipeline.GetShader().CmdBindResources(pipeline, commandBuffers.GetCommands());
 
         m_context.CmdBindVertexBuffer(commandBuffers.GetCommands(), 0, {std::cref(mesh.GetVertexBuffer())});
         m_context.CmdBindIndexBuffer(commandBuffers.GetCommands(), mesh.GetIndexBuffer(), mesh.GetIndexType());

@@ -1,6 +1,7 @@
 #include "DeferredRenderer.h"
 
 #include "DeferredGBufferWritePass.h"
+#include "DeferredLightingPass.h"
 #include "Graphics/Internal/RenderTarget.h"
 #include "Graphics/Internal/VulkanShader.h"
 #include "Graphics/Memory/GPUMemorySubsystem.h"
@@ -13,25 +14,31 @@ namespace Petal {
     DeferredRenderer::DeferredRenderer(
         Renderer &renderer,
         const std::shared_ptr<Logger> &logger,
-        const std::shared_ptr<VulkanShader> &shader,
-        VulkanGraphicsPipeline::PipelineSettings &pipelineSettings,
+        const std::shared_ptr<VulkanShader> &gBufferShader,
+        VulkanGraphicsPipeline::PipelineSettings &gBufferPipelineSettings,
+        const std::shared_ptr<VulkanShader> &lightingShader,
+        VulkanGraphicsPipeline::PipelineSettings &lightingPipelineSettings,
         const glm::vec2 &windowSize,
-        const RenderPassSupplier &renderPassSupplier,
+        const std::vector<RenderTarget> &renderTarget,
+        const RenderPassSupplier<DeferredGBufferWritePass> &gBufferWriteSupplier,
+        const RenderPassSupplier<DeferredLightingPass> &lightingSupplier,
         Result &resultOut
     ) : m_renderer(renderer),
         m_context(renderer.GetContext()),
-        m_shader(shader),
         m_logger(logger),
-        m_windowSize(windowSize) {
+        m_windowSize(windowSize),
+        m_gBufferShader(gBufferShader),
+        m_lightingShader(lightingShader),
+        m_renderTarget(renderTarget) {
         Timer timer;
 
         resultOut = CreateGBuffer();
         if (resultOut != Result::SUCCESS) return;
 
-        resultOut = CreatePipeline(pipelineSettings);
+        resultOut = CreatePipelines(gBufferPipelineSettings, lightingPipelineSettings);
         if (resultOut != Result::SUCCESS) return;
 
-        resultOut = SetupRenderPasses(renderPassSupplier);
+        resultOut = SetupRenderPasses(gBufferWriteSupplier, lightingSupplier);
         if (resultOut != Result::SUCCESS) return;
 
         m_logger->Verbose("Deferred Renderer initialised in {} ms", timer.MillisSinceStart());
@@ -39,6 +46,10 @@ namespace Petal {
 
     const std::vector<RenderTarget> &DeferredRenderer::GetGBuffer() const {
         return m_gBuffer;
+    }
+
+    const std::vector<RenderTarget> &DeferredRenderer::GetFinalRenderTarget() const {
+        return m_renderTarget;
     }
 
     GraphicsContext &DeferredRenderer::GetContext() const {
@@ -49,37 +60,78 @@ namespace Petal {
         return m_passes;
     }
 
-    VulkanGraphicsPipeline &DeferredRenderer::GetPipeline() const {
-        return *m_pipeline;
+    VulkanGraphicsPipeline &DeferredRenderer::GetGBufferPipeline() const {
+        return *m_gBufferPipeline;
     }
 
-    Result DeferredRenderer::CreatePipeline(VulkanGraphicsPipeline::PipelineSettings &settings) {
-        settings.RenderTargets = m_gBuffer;
-        AllocatedOptional<VulkanGraphicsPipeline> pipeline = m_shader->CreatePipeline(settings);
-        PETAL_CHECK_OPTIONAL(pipeline, m_logger, "Failed to create deferred pipeline");
+    VulkanGraphicsPipeline &DeferredRenderer::GetLightingPipeline() const {
+        return *m_lightingPipeline;
+    }
 
-        m_pipeline = pipeline.Release();
+    Renderer &DeferredRenderer::GetRenderer() const {
+        return m_renderer;
+    }
+
+    const std::vector<DeferredRenderer::GBufferTextures> &DeferredRenderer::GetGBufferTextures() const {
+        return m_gBufferTextures;
+    }
+
+    Result DeferredRenderer::CreatePipelines(
+        VulkanGraphicsPipeline::PipelineSettings &gBufferPipelineSettings,
+        VulkanGraphicsPipeline::PipelineSettings &lightingPipelineSettings
+    ) {
+        // gbuffer
+        gBufferPipelineSettings.RenderTargets = m_gBuffer;
+        AllocatedOptional<VulkanGraphicsPipeline> pipeline = m_gBufferShader->CreatePipeline(gBufferPipelineSettings);
+        PETAL_CHECK_OPTIONAL(pipeline, m_logger, "Failed to create deferred G-Buffer pipeline");
+
+        m_gBufferPipeline = pipeline.Release();
+
+        // lighting
+        lightingPipelineSettings.RenderTargets = m_renderTarget;
+        pipeline = m_lightingShader->CreatePipeline(lightingPipelineSettings);
+        PETAL_CHECK_OPTIONAL(pipeline, m_logger, "Failed to create deferred lighting pipeline");
+
+        m_lightingPipeline = pipeline.Release();
+
         return Result::SUCCESS;
     }
 
     Result DeferredRenderer::CreateGBuffer() {
         m_gBuffer.clear();
         m_gBuffer.resize(m_context.GetSwapchain().NumSwapchainImages());
+        m_gBufferTextures.clear();
+        m_gBufferTextures.resize(m_context.GetSwapchain().NumSwapchainImages());
         m_gBufferSize = 0;
 
         for (size_t i = 0; i < m_context.GetSwapchain().NumSwapchainImages(); i++) {
             RenderTarget target;
 
             // Position
-            Result result = CreateGBufferColorTexture(target, std::format("Deferred Position Buffer {}", i), VK_FORMAT_R16G16B16A16_SFLOAT);
+            Result result = CreateGBufferColorTexture(
+                target,
+                std::format("Deferred Position Buffer {}", i),
+                VK_FORMAT_R16G16B16A16_SFLOAT,
+                &m_gBufferTextures[i].Position
+            );
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
             // Normal
-            result = CreateGBufferColorTexture(target, std::format("Deferred Normal Buffer {}", i), VK_FORMAT_A2B10G10R10_UNORM_PACK32);
+            result = CreateGBufferColorTexture(
+                target,
+                std::format("Deferred Normal Buffer {}", i),
+                VK_FORMAT_A2B10G10R10_UNORM_PACK32,
+                &m_gBufferTextures[i].Normal
+            );
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
             // Albedo
-            result = CreateGBufferColorTexture(target, std::format("Deferred Albedo Buffer {}", i), VK_FORMAT_R8G8B8A8_UNORM);
+            result = CreateGBufferColorTexture(
+                target,
+                std::format("Deferred Albedo Buffer {}", i),
+                VK_FORMAT_R8G8B8A8_UNORM,
+                &m_gBufferTextures[i].Albedo
+            );
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
             // Depth buffer
@@ -112,36 +164,49 @@ namespace Petal {
     Result DeferredRenderer::CreateGBufferColorTexture(
         RenderTarget &target,
         const std::string &name,
-        VkFormat format
+        VkFormat format,
+        const VulkanTexture **outReference
     ) {
         TextureCreateInfo info = {
             .Size = {m_windowSize.x, m_windowSize.y, 1},
             .ImageType = VK_IMAGE_TYPE_2D,
             .ViewType = VK_IMAGE_VIEW_TYPE_2D,
             .Format = format,
-            .Usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .Usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT
         };
 
-        AllocatedOptional<VulkanTexture> texture = m_context.GetMemorySubsystem().CreateTexture(name, info);
-        PETAL_CHECK_OPTIONAL(texture, m_logger, "Failed to create {}", name);
+        AllocatedOptional<VulkanTexture> textureOptional = m_context.GetMemorySubsystem().CreateTexture(name, info);
+        PETAL_CHECK_OPTIONAL(textureOptional, m_logger, "Failed to create {}", name);
+        std::shared_ptr<VulkanTexture> texture = textureOptional.Release();
 
         m_gBufferSize += texture->GetSize();
-        target.Colors.push_back({texture.Release(), {0, 0, 0, 0}});
+        target.Colors.push_back({texture, {0, 0, 0, 0}});
+
+        *outReference = texture.get();
 
         return Result::SUCCESS;
     }
 
-    Result DeferredRenderer::SetupRenderPasses(const RenderPassSupplier &renderPassSupplier) {
+    Result DeferredRenderer::SetupRenderPasses(
+        const RenderPassSupplier<DeferredGBufferWritePass> &gBufferWriteSupplier,
+        const RenderPassSupplier<DeferredLightingPass> &lightingSupplier
+    ) {
         PETAL_CHECK_COND(!m_passes.empty(), Result::PETAL_DEFERRED_RENDERING_ERROR, m_logger, "Attempted to setup render passes multiple times");
 
-        std::unique_ptr<RenderPass> writePass = renderPassSupplier(*this);
-        PETAL_CHECK_COND(!m_passes.empty(), Result::PETAL_DEFERRED_RENDERING_ERROR, m_logger, "Failed to construct deferred write render pass from the supplier");
+        // g buffer write pass
+        AllocatedOptional<DeferredGBufferWritePass> gBufferWritePass = gBufferWriteSupplier(*this);
+        PETAL_CHECK_OPTIONAL(gBufferWritePass, m_logger, "Failed to construct deferred write render pass from the supplier");
+        m_passes.push_back(gBufferWritePass.Release());
 
-        m_passes.push_back(std::move(writePass));
+        // lighting pass
+        AllocatedOptional<DeferredLightingPass> lightingPass = lightingSupplier(*this);
+        PETAL_CHECK_OPTIONAL(lightingPass, m_logger, "Failed to construct deferred lighting render pass from the supplier");
+        m_passes.push_back(lightingPass.Release());
 
+        // present pass
         Result resultOut;
-        m_passes.push_back(std::make_shared<PresentRenderPass>(m_logger, "Deferred Present Pass", m_gBuffer, resultOut));
+        m_passes.push_back(std::make_shared<PresentRenderPass>(m_logger, "Deferred Present Pass", m_renderTarget, resultOut));
         PETAL_CHECK_COND(resultOut != Result::SUCCESS, resultOut, m_logger, "Failed to construct deferred present pass");
 
         return Result::SUCCESS;

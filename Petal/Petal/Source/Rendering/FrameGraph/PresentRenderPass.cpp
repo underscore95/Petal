@@ -9,7 +9,11 @@ namespace Petal {
         Result &resultOut
     ) : RenderPass(logger, name, targets.size()),
         m_targets(targets) {
-        resultOut = TrackRenderTargetPerCommand(targets, RenderTargetAction::PRESENT);
+        resultOut = TrackRenderTargetPerCommand(
+            targets,
+            ResourceUsage::Present(),
+            ResourceUsage::Invalid()
+        );
     }
 
     Result PresentRenderPass::Record(const std::shared_ptr<CommandBufferVector> &commands) const {

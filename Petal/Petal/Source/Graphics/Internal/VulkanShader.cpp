@@ -237,7 +237,7 @@ namespace Petal {
         return std::move(pipeline);
     }
 
-    Result VulkanShader::BindTexturesImpl(const std::string &name, const std::vector<VkDescriptorImageInfo> &textures) const {
+    Result VulkanShader::BindTexturesImpl(const std::string &name, const VkDescriptorImageInfo *imageInfos, glm::u32 numImageInfos) const {
         const auto it = m_resources.find(name);
         PETAL_CHECK_COND(it == m_resources.end(), Result::PETAL_SHADER_RESOURCE_NOT_FOUND, m_logger, "Failed to find texture {}. Note resource names are case sensitive.", name);
 
@@ -255,9 +255,9 @@ namespace Petal {
             .dstSet = m_descriptorSets[shaderResource.BindingSet],
             .dstBinding = shaderResource.BindingIndex,
             .dstArrayElement = 0,
-            .descriptorCount = static_cast<glm::u32>(textures.size()),
+            .descriptorCount = numImageInfos,
             .descriptorType = ResourceTypes::GetData(shaderResource.Type).VulkanDescriptorType,
-            .pImageInfo = textures.data(),
+            .pImageInfo = imageInfos,
             .pBufferInfo = nullptr,
             .pTexelBufferView = nullptr
         };
@@ -272,13 +272,18 @@ namespace Petal {
             nullptr
         );
 
-        m_logger->Verbose("Bound {} textures to set {} index {} (resource name: {})", textures.size(), shaderResource.BindingSet, shaderResource.BindingIndex,
+        m_logger->Verbose("Bound {} textures to set {} index {} (resource name: {})", numImageInfos, shaderResource.BindingSet, shaderResource.BindingIndex,
                           shaderResource.Name);
 
         return Result::SUCCESS;
     }
 
-    void VulkanShader::BindResources(
+    Result VulkanShader::BindTexture(const std::string &name, const VulkanTexture &texture) const {
+        const VkDescriptorImageInfo imageInfo = texture.GetDescriptorInfo();
+        return BindTexturesImpl(name, &imageInfo, 1);
+    }
+
+    void VulkanShader::CmdBindResources(
         const VulkanGraphicsPipeline &pipeline,
         VkCommandBuffer commandBuffer
     ) const {
@@ -294,12 +299,12 @@ namespace Petal {
         );
     }
 
-    void VulkanShader::BindResources(
+    void VulkanShader::CmdBindResources(
         const VulkanGraphicsPipeline &pipeline,
         const CommandBufferVector &commandBuffer
     ) const {
         for (glm::u32 i = 0; i < commandBuffer.Size(); i++) {
-            BindResources(pipeline, commandBuffer.GetHandle(i));
+            CmdBindResources(pipeline, commandBuffer.GetHandle(i));
         }
     }
 

@@ -4,11 +4,21 @@ namespace Petal {
     ResourceUsage::ResourceUsage(
         VkPipelineStageFlags2 stageMask,
         VkAccessFlags2 accessMask,
-        Optional<VkImageLayout> imageLayout
+        const Optional<VkImageLayout> &imageLayout
     )
         : StageMask(stageMask),
           AccessMask(accessMask),
           ImageLayout(imageLayout) {
+    }
+
+    bool ResourceUsage::operator==(const ResourceUsage &usage) const {
+        return StageMask == usage.StageMask
+               && AccessMask == usage.AccessMask
+               && ImageLayout == usage.ImageLayout;
+    }
+
+    bool ResourceUsage::operator!=(const ResourceUsage &usage) const {
+        return !(*this == usage);
     }
 
     ResourceUsage ResourceUsage::Undefined() {
@@ -147,6 +157,14 @@ namespace Petal {
             VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             VK_ACCESS_2_NONE,
             VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+        };
+    }
+
+    ResourceUsage ResourceUsage::Invalid() {
+        return {
+            VK_PIPELINE_STAGE_2_NONE,
+            VK_ACCESS_2_NONE,
+            Result::PETAL_OPTIONAL_EMPTY
         };
     }
 }

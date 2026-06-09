@@ -23,12 +23,12 @@ namespace Petal {
     public:
         RenderPass(
             const std::shared_ptr<Logger> &logger,
-            const std::string& name,
+            const std::string &name,
             glm::u32 numCommandBuffers
         );
 
     public:
-        const std::string & GetName() const override;
+        const std::string &GetName() const override;
 
         const std::vector<std::vector<PassResource> > &GetAccessedResources() const;
 
@@ -51,15 +51,16 @@ namespace Petal {
             const ResourceUsage &usage
         );
 
-        enum class RenderTargetAction {
-            RENDER, // color attachment optimal, etc
-            PRESENT // present optimal
-        };
+        Result TrackRenderTargetPerCommand(
+            const std::vector<RenderTarget> &targets,
+            const ResourceUsage &colorUsage,
+            const ResourceUsage &depthUsage
+        );
 
-        Result TrackRenderTargetPerCommand(const std::vector<RenderTarget> &targets, RenderTargetAction action);
+    protected:
+        std::shared_ptr<Logger> m_logger;
 
     private:
-        std::shared_ptr<Logger> m_logger;
         std::string m_name;
         // each command buffer accesses std::vector<PassResource>
         std::vector<std::vector<PassResource> > m_accessedResources;

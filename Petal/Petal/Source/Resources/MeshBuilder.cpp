@@ -18,7 +18,7 @@ namespace Petal {
 
     void MeshBuilder::SetIndices(const void *indices, glm::u32 size, IndexType indexType) {
         assert(m_indexType == indexType && "Attempted to push index of wrong size to mesh");
-        assert(size % IndexTypes::GetData(indexType).SizeInBytes == 0);
+        assert(size % IndexTypes::GetData(indexType).SizeInBytes == 0); // todo this is stupid
         m_indices.resize(size);
         memcpy(m_indices.data(), indices, size);
         m_numIndices = size / IndexTypes::GetData(indexType).SizeInBytes;

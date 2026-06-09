@@ -11,7 +11,7 @@ namespace Petal {
         DeferredRenderer &deferredRenderer
     ) : RenderPass(logger, name, numCommandBuffers),
         m_deferredRenderer(deferredRenderer) {
-        TrackRenderTargetPerCommand(m_deferredRenderer.GetGBuffer(), RenderTargetAction::RENDER);
+        TrackRenderTargetPerCommand(m_deferredRenderer.GetGBuffer(), ResourceUsage::ColorAttachment(), ResourceUsage::DepthAttachmentReadWrite());
     }
 
     Result DeferredGBufferWritePass::Record(const std::shared_ptr<CommandBufferVector> &commands) const {
