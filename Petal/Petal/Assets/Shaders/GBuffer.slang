@@ -42,7 +42,7 @@ FOut fragmentMain(VOut input, uniform Params params) : SV_Target
     if (out.Albedo.a < 0.1) discard;
     out.Albedo.a = 1;
 
-    out.Normal =  float4(input.normal, 0);
+    out.Normal = float4(input.normal, 0) * 0.5 + 0.5; // remap from [-1, 1] to [0, 1]
     out.Position = input.position;
 
     return out;

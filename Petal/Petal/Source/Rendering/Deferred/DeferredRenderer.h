@@ -7,6 +7,10 @@
 #include "Rendering/FrameGraph/RenderPass.h"
 
 namespace Petal {
+    struct DeferredLighting;
+}
+
+namespace Petal {
     class VulkanTexture;
     struct TextureCreateInfo;
     class GraphicsContext;
@@ -56,7 +60,9 @@ namespace Petal {
 
         Renderer &GetRenderer() const;
 
-    const     std::vector<GBufferTextures>& GetGBufferTextures() const;
+        const std::vector<GBufferTextures> &GetGBufferTextures() const;
+
+        Result SetLighting(const DeferredLighting &lighting) const;
 
     private:
         Result CreatePipelines(
@@ -70,13 +76,15 @@ namespace Petal {
             RenderTarget &target,
             const std::string &name,
             VkFormat format,
-            const VulkanTexture** outReference
+            const VulkanTexture **outReference
         );
 
         Result SetupRenderPasses(
             const RenderPassSupplier<DeferredGBufferWritePass> &gBufferWriteSupplier,
             const RenderPassSupplier<DeferredLightingPass> &lightingSupplier
         );
+
+        Result CreateLightingBuffer();
 
     private:
         Renderer &m_renderer;
@@ -92,5 +100,6 @@ namespace Petal {
         size_t m_gBufferSize = 0;
         std::vector<std::shared_ptr<RenderPass> > m_passes;
         std::vector<RenderTarget> m_renderTarget;
+        std::unique_ptr<VulkanBuffer> m_lightingBuffer;
     };
 } // Petal

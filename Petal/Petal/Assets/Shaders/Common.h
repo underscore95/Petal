@@ -2,6 +2,7 @@
 #define PETAL_GUARD_COMMON 1
 
 #include "Petal/Math.h"
+#include "Petal/Alignment.h"
 
 #ifdef __cplusplus
 namespace Petal {
@@ -15,6 +16,20 @@ namespace Petal {
 
     struct Params {
         uint DiffuseMap;
+    };
+
+    struct Light {
+        float3 Position;
+        UINT_PADDING_1;
+        float3 Color;
+        UINT_PADDING_1;
+    };
+
+    struct DeferredLighting {
+        Light Lights[1024];
+
+        uint NumLights;
+        UINT_PADDING_3;
     };
 
     struct CameraMatrices {
