@@ -1,5 +1,6 @@
 #include "GPUMemorySubsystem.h"
 
+#include "MultipleBuffers.h"
 #include "Buffers/GPUBuffer.h"
 #include "Graphics/Internal/VulkanQueue.h"
 #include "Resources/Image.h"
@@ -302,5 +303,43 @@ namespace Petal {
         PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
         return buffer;
+    }
+
+    AllocatedOptional<MultipleBuffers> GPUMemorySubsystem::CreateMultipleBuffers(
+        const std::string &name,
+        glm::u32 sizePerBuffer,
+        glm::u32 numBuffers,
+        const BufferCreateInfo &createInfo
+    ) {
+        PETAL_CHECK_COND(sizePerBuffer == 0, Result::PETAL_BUFFER_CREATION_FAILED, m_logger, "sizePerBuffer was 0 for {}", name);
+        PETAL_CHECK_COND(numBuffers == 0, Result::PETAL_BUFFER_CREATION_FAILED, m_logger, "numBuffers was 0 for {}", name);
+
+        AllocatedOptional<VulkanBuffer> backer = CreateVulkanBuffer(name, sizePerBuffer * numBuffers, createInfo);
+        PETAL_CHECK_OPTIONAL_SILENT(backer);
+
+        AllocatedOptional<MultipleBuffers> buffers = std::make_unique<MultipleBuffers>();
+        buffers->BackingBuffer = backer.Release();
+
+        for (glm::u32 i = 0; i < numBuffers; i++) {
+            AllocatedOptional<GPUBuffer> gpuBuffer = CreateBackedBuffer(std::format("{} ({})", name, i), sizePerBuffer, buffers->BackingBuffer);
+            PETAL_CHECK_OPTIONAL_SILENT(gpuBuffer);
+
+            buffers->Buffers.push_back(gpuBuffer.Release());
+        }
+
+        return std::move(buffers);
+    }
+
+    AllocatedOptional<MultipleBuffers> GPUMemorySubsystem::CreateSwapchainBuffers(
+        const std::string &name,
+        glm::u32 sizePerBuffer,
+        const BufferCreateInfo &createInfo
+    ) {
+        return CreateMultipleBuffers(
+            name,
+            sizePerBuffer,
+            m_context.GetSwapchain().NumSwapchainImages(),
+            createInfo
+        );
     }
 } // Petal

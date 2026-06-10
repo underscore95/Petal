@@ -369,7 +369,7 @@ namespace Petal {
     }
 
     void VulkanSwapchain::ScheduleSwapchainFrames(const std::function<void()> &function) const {
-        m_engine.GetScheduler().ScheduleFrames(function, NumSwapchainImages());
+        m_engine.GetScheduler().ScheduleFramesSync(function, NumSwapchainImages());
     }
 
     Result VulkanSwapchain::CreateSyncObjects() {

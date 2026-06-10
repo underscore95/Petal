@@ -3,6 +3,7 @@
 #include "RendererSettings.h"
 #include "Camera/Camera.h"
 #include "Graphics/GraphicsContext.h"
+#include "Graphics/Memory/MultipleBuffers.h"
 #include "Graphics/Memory/Textures/VulkanTexture.h"
 #include "Resources/ModelResource.h"
 
@@ -66,8 +67,7 @@ namespace Petal {
         std::shared_ptr<Logger> m_logger;
         std::shared_ptr<VulkanBuffer> m_vertexBuffer;
         std::shared_ptr<VulkanBuffer> m_indexBuffer;
-        std::vector<std::shared_ptr<IBuffer> > m_cameraBuffers;
-        std::shared_ptr<VulkanBuffer> m_cameraBufferBacked;
+        std::unique_ptr<MultipleBuffers> m_cameraBuffers;
         glm::u32 m_numUploadedMeshes = 0;
         glm::u32 m_numUploadedModels = 0;
         RendererSettings m_rendererSettings;

@@ -46,6 +46,8 @@ namespace Petal {
         DISABLE_COPY_AND_MOVE(GraphicsContext);
 
     public:
+        Engine &GetEngine() const;
+
         Window &GetWindow() const;
 
         VkSurfaceKHR GetSurface() const;

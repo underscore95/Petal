@@ -2,6 +2,7 @@
 
 #include "DeferredGBufferWritePass.h"
 #include "DeferredLightingPass.h"
+#include "Engine.h"
 #include "../../../Assets/Shaders/Common.h"
 #include "Graphics/Internal/RenderTarget.h"
 #include "Graphics/Internal/VulkanShader.h"
@@ -32,6 +33,7 @@ namespace Petal {
         m_lightingShader(lightingShader),
         m_renderTarget(renderTarget) {
         Timer timer;
+        m_lightingInfo = std::make_unique<DeferredLighting>();
 
         resultOut = CreateGBuffer();
         if (resultOut != Result::SUCCESS) return;
@@ -46,6 +48,10 @@ namespace Petal {
         if (resultOut != Result::SUCCESS) return;
 
         m_logger->Verbose("Deferred Renderer initialised in {} ms", timer.MillisSinceStart());
+    }
+
+    DeferredRenderer::~DeferredRenderer() {
+        CancelLightingWriteTasks();
     }
 
     const std::vector<RenderTarget> &DeferredRenderer::GetGBuffer() const {
@@ -88,8 +94,21 @@ namespace Petal {
         return m_gBufferAlbedoTextures;
     }
 
-    Result DeferredRenderer::SetLighting(const DeferredLighting &lighting) const {
-        return m_context.GetMemorySubsystem().Write(*m_lightingBuffer, &lighting, sizeof(DeferredLighting));
+    void DeferredRenderer::SetLighting(const DeferredLighting &lighting) {
+        static constexpr auto writeFunc = [](const DeferredRenderer &renderer, glm::u32 index) {
+            Result result = renderer.m_context.GetMemorySubsystem().Write((*renderer.m_lightingBuffer)[index], renderer.m_lightingInfo.get(), sizeof(DeferredLighting));
+            if (result != Result::SUCCESS) {
+                renderer.m_logger->Warn("Failed to write deferred lighting: {}", result);
+            }
+        };
+
+        CancelLightingWriteTasks();
+        *m_lightingInfo.get() = lighting;
+        writeFunc(*this, 0); // write this frame
+
+        for (size_t i = 1; i < m_context.GetSwapchain().NumSwapchainImages(); i++) {
+            m_context.GetEngine().GetScheduler().ScheduleFramesSyncCancellable([this, i]() { writeFunc(*this, i); }, i);
+        }
     }
 
     Result DeferredRenderer::CreatePipelines(
@@ -230,25 +249,31 @@ namespace Petal {
     }
 
     Result DeferredRenderer::CreateLightingBuffer() {
-        AllocatedOptional<VulkanBuffer> buffer = m_context.GetMemorySubsystem().CreateVulkanBuffer(
+        AllocatedOptional<MultipleBuffers> buffer = m_context.GetMemorySubsystem().CreateSwapchainBuffers(
             "Deferred Lighting",
             sizeof(DeferredLighting),
             {.BufferType = BufferType::CONSTANT_BUFFER}
         );
 
-        PETAL_CHECK_OPTIONAL(buffer, m_logger, "Failed to create deferred lighting buffer");
+        PETAL_CHECK_OPTIONAL(buffer, m_logger, "Failed to create deferred lighting buffers");
 
         m_lightingBuffer = buffer.Release();
 
-        Result result = m_lightingShader->BindBuffer("Lighting", m_lightingBuffer); // todo don't hard code name
+        Result result = m_lightingShader->BindBuffer("Lighting", m_lightingBuffer->Buffers); // todo don't hard code name
         PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
-        result = SetLighting({
+        SetLighting({
             .Lights = {Light{.Position = {-11.07969, 5.55642, -2.38159}, .Color = {1, 0.5, 0.5}}},
             .NumLights = 1
         });
-        PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
         return Result::SUCCESS;
+    }
+
+    void DeferredRenderer::CancelLightingWriteTasks() {
+        for (const Scheduler::SyncTaskId id : m_lightingWriteTasks) {
+            m_context.GetEngine().GetScheduler().Cancel<Scheduler::CancellableTaskType::FRAMES_SYNC>(id);
+        }
+        m_lightingWriteTasks.clear();
     }
 } // Petal

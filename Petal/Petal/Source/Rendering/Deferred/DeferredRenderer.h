@@ -7,6 +7,7 @@
 #include "Rendering/FrameGraph/RenderPass.h"
 
 namespace Petal {
+    struct MultipleBuffers;
     struct DeferredLighting;
 }
 
@@ -18,7 +19,6 @@ namespace Petal {
     class Renderer;
 
     class DeferredRenderer {
-
         template<typename T>
             requires std::derived_from<T, RenderPass>
         using RenderPassSupplier = std::function<AllocatedOptional<T>(DeferredRenderer &)>;
@@ -38,6 +38,8 @@ namespace Petal {
             const RenderPassSupplier<DeferredLightingPass> &lightingSupplier,
             Result &resultOut
         );
+
+        ~DeferredRenderer();
 
     public:
         const std::vector<RenderTarget> &GetGBuffer() const;
@@ -61,7 +63,7 @@ namespace Petal {
 
         const std::vector<std::shared_ptr<VulkanTexture> > &GetAlbedoTextures() const;
 
-        Result SetLighting(const DeferredLighting &lighting) const;
+        void SetLighting(const DeferredLighting &lighting);
 
     private:
         Result CreatePipelines(
@@ -85,6 +87,8 @@ namespace Petal {
 
         Result CreateLightingBuffer();
 
+        void CancelLightingWriteTasks();
+
     private:
         Renderer &m_renderer;
         GraphicsContext &m_context;
@@ -101,6 +105,8 @@ namespace Petal {
         size_t m_gBufferSize = 0;
         std::vector<std::shared_ptr<RenderPass> > m_passes;
         std::vector<RenderTarget> m_renderTarget;
-        std::shared_ptr<VulkanBuffer> m_lightingBuffer;
+        std::unique_ptr<MultipleBuffers> m_lightingBuffer;
+        std::unique_ptr<DeferredLighting> m_lightingInfo;
+        std::vector<Scheduler::SyncTaskId> m_lightingWriteTasks;
     };
 } // Petal

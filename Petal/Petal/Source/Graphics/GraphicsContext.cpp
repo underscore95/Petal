@@ -97,6 +97,10 @@ namespace Petal {
         m_logger->Verbose("Destroyed renderer");
     }
 
+    Engine &GraphicsContext::GetEngine() const {
+        return m_engine;
+    }
+
     Window &GraphicsContext::GetWindow() const {
         return *m_window;
     }

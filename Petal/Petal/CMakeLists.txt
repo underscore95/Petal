@@ -143,6 +143,7 @@ add_library(Petal SHARED
         Source/Rendering/Deferred/DeferredLightingPass.cpp
         Source/Rendering/Deferred/DeferredLightingPass.h
         Assets/Shaders/Petal/Alignment.h
+        Source/Graphics/Memory/MultipleBuffers.h
 )
 
 # Macros

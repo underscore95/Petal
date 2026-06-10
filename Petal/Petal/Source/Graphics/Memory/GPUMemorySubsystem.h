@@ -3,10 +3,8 @@
 #include "Buffers/VulkanBuffer.h"
 
 namespace Petal {
+    struct MultipleBuffers;
     struct ImageLoaderSettings;
-}
-
-namespace Petal {
     struct TextureCreateInfo;
     class VulkanTexture;
     class GPUBuffer;
@@ -64,6 +62,21 @@ namespace Petal {
             glm::u32 size,
             const BufferCreateInfo &createInfo = {}
         );
+
+        // Create a single VulkanBuffer with multiple GPUBuffers
+        AllocatedOptional<MultipleBuffers> CreateMultipleBuffers(
+            const std::string &name,
+            glm::u32 sizePerBuffer,
+            glm::u32 numBuffers,
+            const BufferCreateInfo &createInfo = {}
+        );
+
+        // Create a single VulkanBuffer with one GPUBuffer per swapchain image
+        AllocatedOptional<MultipleBuffers> CreateSwapchainBuffers(
+            const std::string& name,
+            glm::u32 sizePerBuffer,
+            const BufferCreateInfo &createInfo = {}
+            );
 
         // Write to a buffer
         Result Write(

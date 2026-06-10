@@ -129,14 +129,14 @@ namespace Petal {
         };
 
         m_context.GetMemorySubsystem().Write(
-            *m_cameraBuffers[m_context.GetSwapchain().GetSwapchainIndex()],
+            (*m_cameraBuffers)[m_context.GetSwapchain().GetSwapchainIndex()],
             &matrices,
             sizeof(matrices)
         ); // TODO write async
     }
 
     Result Renderer::Bind(const VulkanShader &shader) const {
-        Result result = shader.BindBuffer(m_rendererSettings.CameraBufferName, m_cameraBuffers);
+        Result result = shader.BindBuffer(m_rendererSettings.CameraBufferName, m_cameraBuffers->Buffers);
         if (result != Result::SUCCESS) return result;
 
         return result;
@@ -170,25 +170,14 @@ namespace Petal {
         m_indexBuffer = bufferOpt.Release();
 
         // Camera
-        glm::u32 numSwapchainImages = m_context.GetSwapchain().NumSwapchainImages();
         bufferInfo = {.BufferType = BufferType::CONSTANT_BUFFER};
-        bufferOpt = m_context.GetMemorySubsystem().CreateVulkanBuffer(
+        AllocatedOptional<MultipleBuffers> multipleBuffersOpt = m_context.GetMemorySubsystem().CreateSwapchainBuffers(
             "Camera Buffer",
-            sizeof(Petal::CameraMatrices) * numSwapchainImages,
+            sizeof(Petal::CameraMatrices),
             bufferInfo
         );
-        PETAL_CHECK_OPTIONAL(bufferOpt, m_logger, "Failed to create camera buffer");
-        m_cameraBufferBacked = bufferOpt.Release();
-
-        for (size_t i = 0; i < numSwapchainImages; i++) {
-            AllocatedOptional<GPUBuffer> optional = m_context.GetMemorySubsystem().CreateBackedBuffer(
-                std::format("Camera Buffer {}", i),
-                sizeof(CameraMatrices),
-                m_cameraBufferBacked
-            );
-            PETAL_CHECK_OPTIONAL(optional, m_logger, "Failed to create camera GPUBuffer");
-            m_cameraBuffers.push_back(optional.Release());
-        }
+        PETAL_CHECK_OPTIONAL(multipleBuffersOpt, m_logger, "Failed to create camera buffer");
+        m_cameraBuffers = multipleBuffersOpt.Release();
 
         return Result::SUCCESS;
     }
