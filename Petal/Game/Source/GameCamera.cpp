@@ -19,7 +19,6 @@ void GameCamera::Update(float dt) {
     constexpr float lookSensitivity = 0.0025f;
     constexpr float moveSpeed = 5.0f;
 
-    bool dirty = false;
     glm::vec3 movement(0.0f);
 
     if (m_window->IsKeyHeld(Key::W))
@@ -43,7 +42,6 @@ void GameCamera::Update(float dt) {
     if (movement != glm::vec3{0, 0, 0}) {
         movement = glm::normalize(movement);
         m_camera.Move(movement * moveSpeed * dt);
-        dirty = true;
     }
 
     if (m_window->IsMouseButtonHeld(MouseButton::RIGHT)) {
@@ -63,12 +61,9 @@ void GameCamera::Update(float dt) {
         );
 
         m_camera.SetRotation(rotation);
-        dirty = true;
     }
 
-    if (dirty) {
-        m_renderer->SetCamera(m_camera);
-    }
+    m_renderer->SetCamera(m_camera);
 }
 
 Petal::Camera &GameCamera::GetCamera() {

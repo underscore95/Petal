@@ -170,7 +170,7 @@ int run(Timer &engineShutdownTime) {
         ImageLoaderSettings{},
         TextureCreateInfo{}
     ).Release();
-    gBufferShader->BindTextures<std::vector<std::shared_ptr<VulkanTexture> > >("textures", std::vector{iconTexture, testTexture});
+    gBufferShader->BindTextures("textures", std::vector{iconTexture, testTexture});
 
     // Renderer
     RendererSettings rendererSettings = {

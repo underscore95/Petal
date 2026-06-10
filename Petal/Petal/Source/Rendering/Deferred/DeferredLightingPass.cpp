@@ -21,9 +21,13 @@ namespace Petal {
 
         // bind g buffer
         // todo support different descriptor sets for different command buffers
-        resultOut = m_deferredRenderer.GetLightingPipeline().GetShader().BindTexture("gBufferAlbedo", *deferredRenderer.GetGBufferTextures()[0].Albedo);
-        resultOut = m_deferredRenderer.GetLightingPipeline().GetShader().BindTexture("gBufferNormal", *deferredRenderer.GetGBufferTextures()[0].Normal);
-        resultOut = m_deferredRenderer.GetLightingPipeline().GetShader().BindTexture("gBufferPosition", *deferredRenderer.GetGBufferTextures()[0].Position);
+        resultOut = m_deferredRenderer.GetLightingPipeline().GetShader().BindTexture("gBufferAlbedo", deferredRenderer.GetAlbedoTextures());
+        if (resultOut != Result::SUCCESS) return;
+
+        resultOut = m_deferredRenderer.GetLightingPipeline().GetShader().BindTexture("gBufferNormal", deferredRenderer.GetNormalTextures());
+        if (resultOut != Result::SUCCESS) return;
+
+        resultOut = m_deferredRenderer.GetLightingPipeline().GetShader().BindTexture("gBufferPosition", deferredRenderer.GetPositionTextures());
         if (resultOut != Result::SUCCESS) return;
 
         // g buffer

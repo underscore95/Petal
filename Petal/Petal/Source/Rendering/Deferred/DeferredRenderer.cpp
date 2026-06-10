@@ -76,8 +76,16 @@ namespace Petal {
         return m_renderer;
     }
 
-    const std::vector<DeferredRenderer::GBufferTextures> &DeferredRenderer::GetGBufferTextures() const {
-        return m_gBufferTextures;
+    const std::vector<std::shared_ptr<VulkanTexture> > &DeferredRenderer::GetPositionTextures() const {
+        return m_gBufferPositionTextures;
+    }
+
+    const std::vector<std::shared_ptr<VulkanTexture> > &DeferredRenderer::GetNormalTextures() const {
+        return m_gBufferNormalTextures;
+    }
+
+    const std::vector<std::shared_ptr<VulkanTexture> > &DeferredRenderer::GetAlbedoTextures() const {
+        return m_gBufferAlbedoTextures;
     }
 
     Result DeferredRenderer::SetLighting(const DeferredLighting &lighting) const {
@@ -108,8 +116,9 @@ namespace Petal {
     Result DeferredRenderer::CreateGBuffer() {
         m_gBuffer.clear();
         m_gBuffer.resize(m_context.GetSwapchain().NumSwapchainImages());
-        m_gBufferTextures.clear();
-        m_gBufferTextures.resize(m_context.GetSwapchain().NumSwapchainImages());
+        m_gBufferPositionTextures.clear();
+        m_gBufferNormalTextures.clear();
+        m_gBufferAlbedoTextures.clear();
         m_gBufferSize = 0;
 
         for (size_t i = 0; i < m_context.GetSwapchain().NumSwapchainImages(); i++) {
@@ -120,7 +129,7 @@ namespace Petal {
                 target,
                 std::format("Deferred Position Buffer {}", i),
                 VK_FORMAT_R16G16B16A16_SFLOAT,
-                &m_gBufferTextures[i].Position
+                m_gBufferPositionTextures
             );
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
@@ -129,7 +138,7 @@ namespace Petal {
                 target,
                 std::format("Deferred Normal Buffer {}", i),
                 VK_FORMAT_R8G8B8A8_UNORM,
-                &m_gBufferTextures[i].Normal
+                m_gBufferNormalTextures
             );
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
@@ -138,7 +147,7 @@ namespace Petal {
                 target,
                 std::format("Deferred Albedo Buffer {}", i),
                 VK_FORMAT_R8G8B8A8_UNORM,
-                &m_gBufferTextures[i].Albedo
+                m_gBufferAlbedoTextures
             );
             PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
@@ -173,7 +182,7 @@ namespace Petal {
         RenderTarget &target,
         const std::string &name,
         VkFormat format,
-        const VulkanTexture **outReference
+        std::vector<std::shared_ptr<VulkanTexture> > &pushTo
     ) {
         TextureCreateInfo info = {
             .Size = {m_windowSize.x, m_windowSize.y, 1},
@@ -191,7 +200,7 @@ namespace Petal {
         m_gBufferSize += texture->GetSize();
         target.Colors.push_back({texture, {0, 0, 0, 0}});
 
-        *outReference = texture.get();
+        pushTo.push_back(texture);
 
         return Result::SUCCESS;
     }
@@ -231,7 +240,7 @@ namespace Petal {
 
         m_lightingBuffer = buffer.Release();
 
-        Result result = m_lightingShader->BindBuffer("Lighting", *m_lightingBuffer); // todo don't hard code name
+        Result result = m_lightingShader->BindBuffer("Lighting", m_lightingBuffer); // todo don't hard code name
         PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
         result = SetLighting({

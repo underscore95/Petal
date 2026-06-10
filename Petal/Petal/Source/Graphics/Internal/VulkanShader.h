@@ -46,28 +46,37 @@ namespace Petal {
 
     public:
         // Bind a resource
-        Result BindBuffer(const std::string &name, const IBuffer &buffer) const;
 
-        // T must be iterable (vector, StableVector, etc)
-        template<typename Container>
-        Result BindTextures(const std::string &name, const Container &textures) const {
-            std::vector<VkDescriptorImageInfo> imageInfos(textures.size());
-            size_t i = 0;
-            for (const auto &texture : textures) {
-                static_assert(typeid(texture) == typeid(std::shared_ptr<VulkanTexture>));
-                imageInfos[i] = texture->GetDescriptorInfo();
-                i++;
-            }
+        // If std::shared_ptr<IBuffer> is passed into the variant, bind it to all swapchain textures
+        // If std::vector<std::shared_ptr<IBuffer>> is passed into the variant,
+        // its size must be equal to the number of swapchain textures and each buffer will be bound to the respective swapchain texture
+        Result BindBuffer(
+            const std::string &name,
+            const std::variant<std::shared_ptr<IBuffer>, std::vector<std::shared_ptr<IBuffer> > > &bufferToBind
+        ) const;
 
-            return BindTexturesImpl(name, imageInfos.data(), imageInfos.size());
-        }
+        // If std::shared_ptr<VulkanTexture> is passed into the variant, bind the texture to all swapchain textures
+        // If std::vector<std::shared_ptr<VulkanTexture>> is passed into the variant, bind each texture to
+        // its respective swapchain texture. The size of the vector must be equal to the number of swapchain textures.
+        Result BindTexture(
+            const std::string &name,
+            const std::variant<std::shared_ptr<VulkanTexture>, std::vector<std::shared_ptr<VulkanTexture> > > &texturesToBind
+        ) const;
 
-        Result BindTexture(const std::string &name, const VulkanTexture &texture) const;
+        // If std::vector<std::shared_ptr<VulkanTexture>> is passed into the variant, bind the textures to all swapchain textures
+        // If std::vector<std::vector<std::shared_ptr<VulkanTexture>>> is passed into the variant,
+        // its size must be equal to the number of swapchain textures and each std::vector<std::shared_ptr<VulkanTexture>>
+        // will be bound to the respective swapchain texture.
+        Result BindTextures(
+            const std::string &name,
+            const std::variant<std::vector<std::shared_ptr<VulkanTexture> >, std::vector<std::vector<std::shared_ptr<VulkanTexture> > > > &texturesToBind
+        ) const;
 
         // Must be called once for each command buffer before this shader is used
         void CmdBindResources(
             const VulkanGraphicsPipeline &pipeline,
-            VkCommandBuffer commandBuffer
+            VkCommandBuffer commandBuffer,
+            glm::u32 swapchainIndex
         ) const;
 
         void CmdBindResources(
@@ -85,8 +94,6 @@ namespace Petal {
         AllocatedOptional<VulkanGraphicsPipeline> CreatePipeline(const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings) const;
 
     private:
-        Result BindTexturesImpl(const std::string &name, const VkDescriptorImageInfo *imageInfos, glm::u32 numImageInfos) const;
-
         Result CreateShaderModule();
 
         Result CreateDescriptors();
@@ -98,9 +105,10 @@ namespace Petal {
         GraphicsContext &m_renderer;
         std::shared_ptr<Logger> m_logger;
         IntermediateShaderResource m_intermediateShader;
+        glm::u32 m_numSwapchainImages;
         VkDescriptorPool m_descriptorPool;
         std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
-        std::vector<VkDescriptorSet> m_descriptorSets;
+        std::vector<std::vector<VkDescriptorSet> > m_descriptorSets;
         // resource name -> resource
         std::unordered_map<std::string, ShaderResource> m_resources;
         std::vector<Stage> m_shaderStages;

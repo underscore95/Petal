@@ -70,6 +70,7 @@ namespace Petal {
         PETAL_OPTIONAL_EMPTY, // Created with no value, may not be an error
         PETAL_UNEXPECTED_NULLPTR,
         PETAL_ALLOCATION_FAILED,
+        PETAL_INVALID_LENGTH
     };
 
     template<typename T>

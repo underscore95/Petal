@@ -18,11 +18,6 @@ namespace Petal {
     class Renderer;
 
     class DeferredRenderer {
-        struct GBufferTextures {
-            const VulkanTexture *Albedo;
-            const VulkanTexture *Position;
-            const VulkanTexture *Normal;
-        };
 
         template<typename T>
             requires std::derived_from<T, RenderPass>
@@ -60,7 +55,11 @@ namespace Petal {
 
         Renderer &GetRenderer() const;
 
-        const std::vector<GBufferTextures> &GetGBufferTextures() const;
+        const std::vector<std::shared_ptr<VulkanTexture> > &GetPositionTextures() const;
+
+        const std::vector<std::shared_ptr<VulkanTexture> > &GetNormalTextures() const;
+
+        const std::vector<std::shared_ptr<VulkanTexture> > &GetAlbedoTextures() const;
 
         Result SetLighting(const DeferredLighting &lighting) const;
 
@@ -76,7 +75,7 @@ namespace Petal {
             RenderTarget &target,
             const std::string &name,
             VkFormat format,
-            const VulkanTexture **outReference
+            std::vector<std::shared_ptr<VulkanTexture> > &pushTo
         );
 
         Result SetupRenderPasses(
@@ -96,10 +95,12 @@ namespace Petal {
         std::unique_ptr<VulkanGraphicsPipeline> m_gBufferPipeline;
         std::unique_ptr<VulkanGraphicsPipeline> m_lightingPipeline;
         std::vector<RenderTarget> m_gBuffer;
-        std::vector<GBufferTextures> m_gBufferTextures;
+        std::vector<std::shared_ptr<VulkanTexture> > m_gBufferAlbedoTextures;
+        std::vector<std::shared_ptr<VulkanTexture> > m_gBufferNormalTextures;
+        std::vector<std::shared_ptr<VulkanTexture> > m_gBufferPositionTextures;
         size_t m_gBufferSize = 0;
         std::vector<std::shared_ptr<RenderPass> > m_passes;
         std::vector<RenderTarget> m_renderTarget;
-        std::unique_ptr<VulkanBuffer> m_lightingBuffer;
+        std::shared_ptr<VulkanBuffer> m_lightingBuffer;
     };
 } // Petal

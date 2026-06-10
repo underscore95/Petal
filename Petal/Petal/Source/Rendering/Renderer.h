@@ -52,11 +52,11 @@ namespace Petal {
             const VulkanGraphicsPipeline &pipeline, const ModelResource &model
         ) const;
 
-        void SetCamera(const Camera& camera);
+        void SetCamera(const Camera &camera);
 
         Result Bind(const VulkanShader &shader) const;
 
-        GraphicsContext & GetContext() const;
+        GraphicsContext &GetContext() const;
 
     private:
         Result CreateBuffers();
@@ -66,7 +66,8 @@ namespace Petal {
         std::shared_ptr<Logger> m_logger;
         std::shared_ptr<VulkanBuffer> m_vertexBuffer;
         std::shared_ptr<VulkanBuffer> m_indexBuffer;
-        std::shared_ptr<VulkanBuffer> m_cameraBuffer;
+        std::vector<std::shared_ptr<IBuffer> > m_cameraBuffers;
+        std::shared_ptr<VulkanBuffer> m_cameraBufferBacked;
         glm::u32 m_numUploadedMeshes = 0;
         glm::u32 m_numUploadedModels = 0;
         RendererSettings m_rendererSettings;
