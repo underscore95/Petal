@@ -40,6 +40,8 @@ namespace Petal {
     ) {
         Timer timer;
 
+        m_logger->Verbose("Compiling shader {}", asset.Source.string());
+
         IntermediateShaderResource out = {};
 
         // Load module
@@ -228,7 +230,7 @@ namespace Petal {
             }
         }
 
-        m_logger->Verbose("Compiled and reflected shader in {} ms", timer.MillisSinceStart());
+        m_logger->Verbose("Compiled and reflected shader {} in {} ms", asset.Source.string(), timer.MillisSinceStart());
         return out;
     }
 

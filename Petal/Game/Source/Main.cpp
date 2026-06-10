@@ -80,11 +80,7 @@ public:
         m_renderer(renderer),
         m_deferredRenderer(deferredRenderer),
         m_model(model) {
-        TrackRenderTargetPerCommand(
-            deferredRenderer.GetGBuffer(),
-            ResourceUsage::ColorAttachment(),
-            ResourceUsage::DepthAttachmentReadWrite()
-        );
+
     }
 
 public:

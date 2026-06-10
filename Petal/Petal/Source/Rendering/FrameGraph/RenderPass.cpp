@@ -37,6 +37,12 @@ namespace Petal {
             m_logger,
             "Index {} (num command buffers: {}) out of bounds when tracking resource {} in pass {}", index, m_numCommandBuffers, resource.Resource->GetName(), GetName()
         );
+        PETAL_CHECK_COND(
+            std::find(m_accessedResources[index].begin(), m_accessedResources[index].end(), resource) != m_accessedResources[index].end(),
+            Result::PETAL_RENDER_PASS_RESOURCE_ERROR,
+            m_logger,
+            "Index {} tried to track resource {} in pass {} multiple times", index, resource.Resource->GetName(), GetName()
+        );
         m_accessedResources[index].push_back(resource);
         return Result::SUCCESS;
     }

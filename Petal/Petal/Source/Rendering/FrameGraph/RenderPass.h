@@ -18,6 +18,14 @@ namespace Petal {
             std::shared_ptr<IVulkanResource> Resource;
             ResourceType ResourceType;
             ResourceUsage Usage;
+
+            friend bool operator==(const PassResource &lhs, const PassResource &rhs) {
+                return lhs.Resource == rhs.Resource;
+            }
+
+            friend bool operator!=(const PassResource &lhs, const PassResource &rhs) {
+                return !(lhs == rhs);
+            }
         };
 
     public:
