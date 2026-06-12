@@ -1,9 +1,13 @@
 #pragma once
 
-#include "Buffers/VulkanBuffer.h"
+#include "Common.h"
+#include "Buffers/BufferCreateInfo.h"
 
 namespace Petal {
-    struct MultipleBuffers;
+    class IBuffer;
+    class CommandBuffer;
+    class VulkanBuffer;
+    class SwapchainBuffers;
     struct ImageLoaderSettings;
     struct TextureCreateInfo;
     class VulkanTexture;
@@ -21,8 +25,6 @@ namespace Petal {
         ~GPUMemorySubsystem();
 
     public:
-        // TODO: System for writing to buffers every frame which submits frame commands instead of blocking commands?
-
         // Create a texture.
         // A VulkanTexture is similar to a VulkanBuffer where it has full control over its memory, and it is not shared with other resources, unlike a GPUBuffer.
         AllocatedOptional<VulkanTexture> CreateTexture(
@@ -63,20 +65,13 @@ namespace Petal {
             const BufferCreateInfo &createInfo = {}
         );
 
-        // Create a single VulkanBuffer with multiple GPUBuffers
-        AllocatedOptional<MultipleBuffers> CreateMultipleBuffers(
+        // Create a single VulkanBuffer with one GPUBuffer per swapchain image.
+        // SwapchainBuffers contains a utility for writing to the correct buffer each frame, but Update() must be called every frame.
+        AllocatedOptional<SwapchainBuffers> CreateSwapchainBuffers(
             const std::string &name,
             glm::u32 sizePerBuffer,
-            glm::u32 numBuffers,
             const BufferCreateInfo &createInfo = {}
         );
-
-        // Create a single VulkanBuffer with one GPUBuffer per swapchain image
-        AllocatedOptional<MultipleBuffers> CreateSwapchainBuffers(
-            const std::string& name,
-            glm::u32 sizePerBuffer,
-            const BufferCreateInfo &createInfo = {}
-            );
 
         // Write to a buffer
         Result Write(

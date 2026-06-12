@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Graphics/Internal/VulkanSwapchain.h"
 #include "Rendering/FrameGraph/RenderPass.h"
 

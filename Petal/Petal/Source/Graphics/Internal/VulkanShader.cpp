@@ -1,15 +1,12 @@
 #include "VulkanShader.h"
-
 #include "Graphics/Shaders/IntermediateShaderResource.h"
-#include "Graphics/Internal/RenderingDevice.h"
-#include "../Memory/Buffers/GPUBuffer.h"
-#include "FormatContainers.h"
 #include "VulkanGraphicsPipeline.h"
-#include "VulkanQueue.h"
-#include "VulkanSwapchain.h"
 #include "../../../Assets/Shaders/Common.h"
-#include "CommandBuffers/CommandBuffer.h"
-#include "../Memory/Buffers/IBuffer.h"
+#include "Graphics/Memory/Buffers/IBuffer.h"
+#include "Graphics/Memory/Buffers/SwapchainBuffers.h"
+#include "Graphics/Shaders/ShaderType.h"
+#include "Graphics/GraphicsContext.h"
+#include "Graphics/Memory/Textures/VulkanTexture.h"
 
 namespace Petal {
     struct SetInfo {
@@ -186,7 +183,7 @@ namespace Petal {
 
     Result VulkanShader::BindBuffer(
         const std::string &name,
-        const std::variant<std::shared_ptr<IBuffer>, std::vector<std::shared_ptr<IBuffer> > > &bufferToBind
+        const std::variant<std::shared_ptr<IBuffer>, std::reference_wrapper<const SwapchainBuffers> > &bufferToBind
     ) const {
         const auto it = m_resources.find(name);
 
@@ -241,16 +238,16 @@ namespace Petal {
                 shaderResource.Name
             );
         } else {
-            const auto &buffers = std::get<std::vector<std::shared_ptr<IBuffer> > >(bufferToBind);
+            const SwapchainBuffers &buffers = std::get<std::reference_wrapper<const SwapchainBuffers> >(bufferToBind).get();
 
             PETAL_CHECK_CONTAINER_LENGTH(
-                buffers,
+                buffers.GetBuffers(),
                 m_numSwapchainImages,
                 m_logger
             );
 
             for (size_t swapchainIndex = 0; swapchainIndex < m_numSwapchainImages; swapchainIndex++) {
-                const IBuffer &buffer = *buffers[swapchainIndex];
+                const IBuffer &buffer = buffers[swapchainIndex];
 
                 bufferInfos[swapchainIndex] = buffer.GetDescriptorInfo();
 

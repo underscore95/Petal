@@ -1,20 +1,15 @@
 #pragma once
 
-#include <complex.h>
-
 #include "Common.h"
-#include <vulkan/vulkan_core.h>
-
 #include "VulkanGraphicsPipeline.h"
-#include "Graphics/Shaders/ShaderType.h"
-#include "Graphics/GraphicsContext.h"
-#include "Graphics/VertexType.h"
-#include "Graphics/Memory/Textures/VulkanTexture.h"
-#include "Graphics/Resources/ResourceType.h"
 #include "Graphics/Shaders/IntermediateShaderResource.h"
-#include "Rendering/Deferred/DeferredRenderer.h"
 
 namespace Petal {
+    class CommandBufferVector;
+    class VulkanTexture;
+    class GraphicsContext;
+    enum class ShaderType;
+    class SwapchainBuffers;
     struct VertexType;
     class IBuffer;
     struct ShaderResource;
@@ -48,11 +43,11 @@ namespace Petal {
         // Bind a resource
 
         // If std::shared_ptr<IBuffer> is passed into the variant, bind it to all swapchain textures
-        // If std::vector<std::shared_ptr<IBuffer>> is passed into the variant,
+        // If std::reference_wrapper<const SwapchainBuffers> is passed into the variant,
         // its size must be equal to the number of swapchain textures and each buffer will be bound to the respective swapchain texture
         Result BindBuffer(
             const std::string &name,
-            const std::variant<std::shared_ptr<IBuffer>, std::vector<std::shared_ptr<IBuffer> > > &bufferToBind
+            const std::variant<std::shared_ptr<IBuffer>, std::reference_wrapper<const SwapchainBuffers> > &bufferToBind
         ) const;
 
         // If std::shared_ptr<VulkanTexture> is passed into the variant, bind the texture to all swapchain textures

@@ -1,13 +1,16 @@
 #pragma once
-#include "Resources/MeshResource.h"
+
 #include "RendererSettings.h"
-#include "Camera/Camera.h"
-#include "Graphics/GraphicsContext.h"
-#include "Graphics/Memory/MultipleBuffers.h"
-#include "Graphics/Memory/Textures/VulkanTexture.h"
-#include "Resources/ModelResource.h"
+#include "Graphics/Internal/VulkanSwapchain.h"
 
 namespace Petal {
+    class ModelResource;
+    class MeshResource;
+    class VulkanGraphicsPipeline;
+    class Camera;
+    class VulkanShader;
+    class GraphicsContext;
+    class SwapchainBuffers;
     struct Params;
     class Model;
     class VulkanBuffer;
@@ -26,6 +29,9 @@ namespace Petal {
         ~Renderer();
 
     public:
+        // Call this once per frame
+        void Render() const;
+
         // Upload a mesh to the GPU
         // Optionally include a name for the resource
         AllocatedOptional<MeshResource> UploadMesh(
@@ -67,7 +73,7 @@ namespace Petal {
         std::shared_ptr<Logger> m_logger;
         std::shared_ptr<VulkanBuffer> m_vertexBuffer;
         std::shared_ptr<VulkanBuffer> m_indexBuffer;
-        std::unique_ptr<MultipleBuffers> m_cameraBuffers;
+        std::unique_ptr<SwapchainBuffers> m_cameraBuffers;
         glm::u32 m_numUploadedMeshes = 0;
         glm::u32 m_numUploadedModels = 0;
         RendererSettings m_rendererSettings;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../AllocationTracker.h"
+#include "Graphics/Memory/AllocationTracker.h"
 #include "Common.h"
 #include "IBuffer.h"
 
@@ -19,7 +19,7 @@ namespace Petal {
         );
 
         // Automatically removes the allocation from the backing buffer's allocation tracker
-        ~GPUBuffer();
+        ~GPUBuffer() override;
 
     public:
         VkDescriptorBufferInfo GetDescriptorInfo() const override;

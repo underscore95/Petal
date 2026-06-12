@@ -1,5 +1,6 @@
 #include "ModelResource.h"
 #include "MeshResource.h"
+#include "Resources/Model.h"
 
 namespace Petal {
     ModelResource::ModelResource(

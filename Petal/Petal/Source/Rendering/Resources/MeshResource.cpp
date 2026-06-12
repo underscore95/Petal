@@ -1,5 +1,5 @@
 #include "MeshResource.h"
-#include "../../Graphics/Memory/Buffers/GPUBuffer.h"
+#include "Graphics/Memory/Buffers/GPUBuffer.h"
 #include "Graphics/Other/IndexType.h"
 
 namespace Petal {

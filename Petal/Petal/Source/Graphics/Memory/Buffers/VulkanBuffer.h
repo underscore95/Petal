@@ -1,21 +1,11 @@
 #pragma once
 
-#include "../AllocationTracker.h"
-#include "Common.h"
-#include "BufferType.h"
+#include "BufferCreateInfo.h"
 #include "IBuffer.h"
 #include "Graphics/Internal/VulkanAllocator.h"
-#include "vulkan/vulkan.h"
+#include "Graphics/Memory/AllocationTracker.h"
 
 namespace Petal {
-    struct BufferCreateInfo {
-        BufferType BufferType = BufferType::STORAGE_BUFFER;
-        bool DeviceLocal = true;
-        bool HostVisible = false;
-        bool IsTransferDest = true;
-        bool IsTransferSource = false;
-    };
-
     class GraphicsContext;
 
     class VulkanBuffer : public IBuffer {

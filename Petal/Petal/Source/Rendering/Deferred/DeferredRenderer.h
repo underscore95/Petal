@@ -7,11 +7,8 @@
 #include "Rendering/FrameGraph/RenderPass.h"
 
 namespace Petal {
-    struct MultipleBuffers;
+    class SwapchainBuffers;
     struct DeferredLighting;
-}
-
-namespace Petal {
     class VulkanTexture;
     struct TextureCreateInfo;
     class GraphicsContext;
@@ -42,6 +39,9 @@ namespace Petal {
         ~DeferredRenderer();
 
     public:
+        // Call this once per frame
+        void Render() const;
+
         const std::vector<RenderTarget> &GetGBuffer() const;
 
         // The swapchain or something
@@ -63,7 +63,7 @@ namespace Petal {
 
         const std::vector<std::shared_ptr<VulkanTexture> > &GetAlbedoTextures() const;
 
-        void SetLighting(const DeferredLighting &lighting);
+        void SetLighting(const std::shared_ptr<DeferredLighting> &lighting);
 
     private:
         Result CreatePipelines(
@@ -87,8 +87,6 @@ namespace Petal {
 
         Result CreateLightingBuffer();
 
-        void CancelLightingWriteTasks();
-
     private:
         Renderer &m_renderer;
         GraphicsContext &m_context;
@@ -105,8 +103,6 @@ namespace Petal {
         size_t m_gBufferSize = 0;
         std::vector<std::shared_ptr<RenderPass> > m_passes;
         std::vector<RenderTarget> m_renderTarget;
-        std::unique_ptr<MultipleBuffers> m_lightingBuffer;
-        std::unique_ptr<DeferredLighting> m_lightingInfo;
-        std::vector<Scheduler::SyncTaskId> m_lightingWriteTasks;
+        std::unique_ptr<SwapchainBuffers> m_lightingBuffer;
     };
 } // Petal

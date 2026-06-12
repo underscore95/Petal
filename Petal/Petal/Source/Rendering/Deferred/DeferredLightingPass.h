@@ -4,9 +4,6 @@
 
 namespace Petal {
     class MeshResource;
-}
-
-namespace Petal {
     class DeferredRenderer;
 
     class DeferredLightingPass : public RenderPass {

@@ -220,7 +220,7 @@ int run(Timer &engineShutdownTime) {
         return deferredLightingResult;
     };
 
-    DeferredRenderer def(
+    DeferredRenderer deferredRenderer(
         *renderer,
         engine.GetLoggerSystem().GetLogger(LoggerSystem::GRAPHICS_LOGGER),
         gBufferShader,
@@ -235,7 +235,7 @@ int run(Timer &engineShutdownTime) {
     );
     assert(result == Result::SUCCESS);
 
-    std::vector<std::shared_ptr<RenderPass> > passes = def.GetPasses();
+    std::vector<std::shared_ptr<RenderPass> > passes = deferredRenderer.GetPasses();
     FrameGraph frameGraph(graphicsContext, logger, commandBuffers, std::move(passes), result);
     assert(result == Result::SUCCESS);
     logger->Info("Frame Graph Generated: \n{}", frameGraph.ToString()[0]);
@@ -267,6 +267,8 @@ int run(Timer &engineShutdownTime) {
         }
 
         engine.Render();
+        renderer->Render();
+        deferredRenderer.Render();
         dt = timer.SecondsSinceStart();
     }
     graphicsContext.DeviceWaitIdle();

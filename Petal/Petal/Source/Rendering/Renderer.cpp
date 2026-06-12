@@ -1,10 +1,17 @@
 #include "Renderer.h"
 
-#include "../Resources/MeshBuilder.h"
+#include "Resources/MeshBuilder.h"
 #include "Graphics/Internal/VulkanShader.h"
 #include "Graphics/Memory/GPUMemorySubsystem.h"
 #include "../Assets/Shaders/Common.h"
 #include "Resources/Model.h"
+#include "Camera/Camera.h"
+#include "Graphics/GraphicsContext.h"
+#include "Graphics/Memory/Buffers/SwapchainBuffers.h"
+#include "Graphics/Memory/Buffers/GPUBuffer.h"
+#include "Graphics/Memory/Buffers/VulkanBuffer.h"
+#include "Resources/MeshResource.h"
+#include "Resources/ModelResource.h"
 
 namespace Petal {
     Renderer::Renderer(
@@ -23,6 +30,10 @@ namespace Petal {
     }
 
     Renderer::~Renderer() {
+    }
+
+    void Renderer::Render() const {
+        m_cameraBuffers->Render();
     }
 
     AllocatedOptional<MeshResource> Renderer::UploadMesh(
@@ -136,7 +147,7 @@ namespace Petal {
     }
 
     Result Renderer::Bind(const VulkanShader &shader) const {
-        Result result = shader.BindBuffer(m_rendererSettings.CameraBufferName, m_cameraBuffers->Buffers);
+        Result result = shader.BindBuffer(m_rendererSettings.CameraBufferName, *m_cameraBuffers);
         if (result != Result::SUCCESS) return result;
 
         return result;
@@ -171,7 +182,7 @@ namespace Petal {
 
         // Camera
         bufferInfo = {.BufferType = BufferType::CONSTANT_BUFFER};
-        AllocatedOptional<MultipleBuffers> multipleBuffersOpt = m_context.GetMemorySubsystem().CreateSwapchainBuffers(
+        AllocatedOptional<SwapchainBuffers> multipleBuffersOpt = m_context.GetMemorySubsystem().CreateSwapchainBuffers(
             "Camera Buffer",
             sizeof(Petal::CameraMatrices),
             bufferInfo

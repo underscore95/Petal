@@ -1,5 +1,6 @@
 #include "VulkanGraphicsPipeline.h"
 
+#include "ITexture.h"
 #include "RenderingDevice.h"
 #include "RenderTarget.h"
 #include "VulkanSwapchain.h"

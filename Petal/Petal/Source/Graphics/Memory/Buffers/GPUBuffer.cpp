@@ -1,5 +1,4 @@
 #include "GPUBuffer.h"
-
 #include "VulkanBuffer.h"
 
 namespace Petal {

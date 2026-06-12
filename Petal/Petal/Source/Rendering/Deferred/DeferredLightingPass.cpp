@@ -2,10 +2,12 @@
 
 #include "DeferredRenderer.h"
 #include "../../../Assets/Shaders/Common.h"
+#include "Graphics/GraphicsContext.h"
 #include "Graphics/Internal/VulkanShader.h"
 #include "Graphics/Other/IndexType.h"
 #include "Rendering/Renderer.h"
 #include "Resources/MeshBuilder.h"
+#include "Rendering/Resources/MeshResource.h"
 
 namespace Petal {
     DeferredLightingPass::DeferredLightingPass(

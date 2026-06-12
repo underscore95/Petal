@@ -30,6 +30,10 @@ namespace Petal {
 
         uint NumLights;
         UINT_PADDING_3;
+
+        UINT_PADDING_4;
+        UINT_PADDING_4;
+        UINT_PADDING_4;
     };
 
     struct CameraMatrices {

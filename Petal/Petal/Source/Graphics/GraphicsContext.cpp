@@ -16,6 +16,8 @@
 #include "Shaders/IntermediateShaderResource.h"
 #include "Shaders/ShaderSubsystem.h"
 #include "Internal/VulkanShader.h"
+#include "Memory/Buffers/GPUBuffer.h"
+#include "Memory/Buffers/VulkanBuffer.h"
 #include "Rendering/Renderer.h"
 
 namespace Petal {

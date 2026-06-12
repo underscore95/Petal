@@ -25,6 +25,8 @@
 #include "Rendering/FrameGraph/FrameGraph.h"
 #include "Rendering/FrameGraph/RenderPass.h"
 #include "Rendering/FrameGraph/PresentRenderPass.h"
+#include "Rendering/Resources/MeshResource.h"
+#include "Rendering/Resources/ModelResource.h"
 
 #include "Resources/MeshBuilder.h"
 #include "Resources/ImageLoaderSettings.h"
