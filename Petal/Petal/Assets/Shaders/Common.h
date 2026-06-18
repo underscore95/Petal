@@ -1,33 +1,48 @@
-#ifndef PETAL_SHADER_COMMON
-#define PETAL_SHADER_COMMON 1
+#ifndef PETAL_GUARD_COMMON
+#define PETAL_GUARD_COMMON 1
+
+#include "Petal/Math.h"
+#include "Petal/Alignment.h"
 
 #ifdef __cplusplus
-
-#include <glm/glm.hpp>
-
-namespace PetalShader {
-    using float3 = glm::vec3;
-    using float2 = glm::vec2;
-    using float4x4 = glm::mat4x4;
-
+namespace Petal {
 #endif
 
     struct VertexData {
         float3 position;
-        float padding;
         float3 normal;
-        float padding2;
         float2 uv;
-        float padding3;
-        float padding4;
     };
 
-    struct Camera {
-        float4x4 mvp;
+    struct Params {
+        uint DiffuseMap;
+    };
+
+    struct Light {
+        float3 Position;
+        UINT_PADDING_1;
+        float3 Color;
+        UINT_PADDING_1;
+    };
+
+    struct DeferredLighting {
+        Light Lights[1024];
+
+        uint NumLights;
+        UINT_PADDING_3;
+
+        UINT_PADDING_4;
+        UINT_PADDING_4;
+        UINT_PADDING_4;
+    };
+
+    struct CameraMatrices {
+        float4x4 ViewMatrix;
+        float4x4 ProjMatrix;
     };
 
 #ifdef __cplusplus
 } // PetalShader
 #endif
 
-#endif // PETAL_SHADER_COMMON
+#endif // PETAL_GUARD_COMMON

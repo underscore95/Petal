@@ -4,22 +4,39 @@
 
 namespace Petal {
     enum class ResourceType {
+        // Make sure to fill out EnumData in the .cpp
         STORAGE_BUFFER,
-        COUNT
+        CONSTANT_BUFFER,
+        COMBINED_SAMPLER,
+        COUNT,
     };
 
     class ResourceTypes {
         ResourceTypes() = delete;
 
     public:
+        enum class Category {
+            BUFFER, TEXTURE
+        };
+
         struct EnumData {
-            const char* Name;
+            const char *Name;
             VkDescriptorType VulkanDescriptorType;
-            bool IsBuffer;
+            Category ResourceCategory;
+
+            EnumData(
+                const char *name,
+                VkDescriptorType vulkanDescriptorType,
+                Category resourceCategory
+            )
+                : Name(name),
+                  VulkanDescriptorType(vulkanDescriptorType),
+                  ResourceCategory(resourceCategory) {
+            }
         };
 
     public:
-        static const EnumData& GetData(ResourceType resourceType);
+        static const EnumData &GetData(ResourceType resourceType);
 
     private:
         static const std::array<EnumData, static_cast<size_t>(ResourceType::COUNT)> Data;
@@ -27,3 +44,4 @@ namespace Petal {
 }
 
 PETAL_MAKE_ENUM_FORMATTABLE(Petal::ResourceType);
+PETAL_MAKE_ENUM_FORMATTABLE(Petal::ResourceTypes::Category);

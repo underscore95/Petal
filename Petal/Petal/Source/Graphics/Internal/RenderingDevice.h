@@ -28,7 +28,7 @@ namespace Petal {
         ~RenderingDevice();
 
     public:
-        VkDevice GetDevice() const;
+        VkDevice GetHandle() const;
 
         VkPhysicalDevice GetPhysicalDevice() const;
 
@@ -49,14 +49,15 @@ namespace Petal {
         // Search for a supported depth format
         Optional<VkFormat> FindDepthFormat() const;
 
+        // Query the surface capabilities, this is called by GraphicsContext when the swapchain is recreated
+        Result QueryDeviceSurfaceCapabilities();
+
     private:
         Optional<VkFormat> FindSupportedFormat(
             const std::vector<VkFormat> &candidates,
             VkImageTiling tiling,
             VkFormatFeatureFlags requestedFeatures
         ) const;
-
-        Result QueryDeviceSurfaceCapabilities();
 
         Result SelectPhysicalDevice(const DeviceRequirements &deviceRequirements);
 

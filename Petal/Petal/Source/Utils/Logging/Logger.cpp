@@ -5,9 +5,11 @@ namespace Petal {
 
     Logger::Logger(
         std::string name,
-        LogLevel logLevel
+        LogLevel logLevel,
+        bool mute
     ) : m_name(std::move(name)),
-        m_level(logLevel) {
+        m_level(logLevel),
+        m_muted(mute) {
     }
 
     const std::string &Logger::GetName() const {
@@ -18,9 +20,14 @@ namespace Petal {
         m_level = level;
     }
 
+    void Logger::SetMuted(bool muted) {
+        m_muted = muted;
+    }
+
     void Logger::Log(const std::string &message, LogLevel level) {
         static constexpr const char *ResetColour = "\033[0m";
         if (m_level > level) return;
+        if (m_muted) return;
 
         std::unique_lock lock(Mutex);
         std::cout << std::format(

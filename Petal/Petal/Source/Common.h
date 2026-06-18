@@ -12,6 +12,7 @@
 #include "Logging/LoggerSystem.h"
 #include "Logging/Errors/ErrorHandler.h"
 #include "Logging/Errors/Optional.h"
-#include "Graphics/Internal/VkFormat.h"
+#include "Graphics/Internal/Vulkan.h"
 #include "Constants.h"
 #include "Utils/Scheduler.h"
+#include "Utils/StableVector.h"

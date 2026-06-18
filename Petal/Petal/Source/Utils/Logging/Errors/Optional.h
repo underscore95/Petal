@@ -25,7 +25,7 @@ namespace Petal {
             }
         }
 
-        Optional(const Optional &other) = delete;
+        Optional(const Optional &other) = default;
 
         Optional(Optional &&other) noexcept
             : m_value(std::move(other.m_value)),
@@ -33,7 +33,7 @@ namespace Petal {
               m_result(other.m_result) {
         }
 
-        Optional &operator=(const Optional &other) = delete;
+        Optional &operator=(const Optional &other) = default;
 
         Optional &operator=(Optional &&other) noexcept {
             if (this == &other)
@@ -51,19 +51,70 @@ namespace Petal {
 
         ~Optional() = default;
 
-        static constexpr Optional Empty() {
-            return Result::PETAL_OPTIONAL_EMPTY;
-        }
-
     public:
         Result GetResult() const { return m_result; }
-        T *Value() { return m_present ? &m_value : nullptr; }
+
+        T &Value() {
+            assert(HasValue());
+            return m_value;
+        }
+
+        const T &Value() const {
+            assert(HasValue());
+            return m_value;
+        }
+
         bool HasValue() const { return m_present; }
         bool IsEmpty() const { return !HasValue(); }
 
         T *operator->() {
             assert(HasValue());
-            return m_value.get();
+            return &m_value;
+        }
+
+        const T *operator->() const {
+            assert(HasValue());
+            return &m_value;
+        }
+
+        T &operator*() {
+            assert(HasValue());
+            return m_value;
+        }
+
+        const T &operator*() const {
+            assert(HasValue());
+            return m_value;
+        }
+
+        T *Data() {
+            assert(HasValue());
+            return &m_value;
+        }
+
+        const T *Data() const {
+            assert(HasValue());
+            return &m_value;
+        }
+
+        T &OrElse(T &def) {
+            if (HasValue()) return m_value;
+            return def;
+        }
+
+        const T &OrElse(const T &def) const {
+            if (HasValue()) return m_value;
+            return def;
+        }
+
+        bool operator==(const Optional &other) const {
+            if (HasValue() && other.HasValue()) return Value() == other.Value();
+            if (IsEmpty() && other.IsEmpty()) return true;
+            return false;
+        }
+
+        bool operator!=(const Optional &other) const {
+            return !(*this == other);
         }
 
     private:
@@ -157,12 +208,14 @@ namespace Petal {
         static_assert(!IsResult<T>::value, "OptionalRef<Result> is forbidden because it creates constructor ambiguity.");
 
     public:
+        // ReSharper disable once CppNonExplicitConvertingConstructor
         OptionalRef(T &value)
             : m_value(&value),
               m_present(true),
               m_result(Result::SUCCESS) {
         }
 
+        // ReSharper disable once CppNonExplicitConvertingConstructor
         OptionalRef(Result result)
             : m_value(nullptr),
               m_present(false),
@@ -174,46 +227,14 @@ namespace Petal {
             }
         }
 
-        OptionalRef(const OptionalRef &other) = delete;
-
-        OptionalRef(OptionalRef &&other) noexcept
-            : m_value(other.m_value),
-              m_present(other.m_present),
-              m_result(other.m_result) {
-        }
-
-        OptionalRef &operator=(const OptionalRef &other) = delete;
-
-        OptionalRef &operator=(OptionalRef &&other) noexcept {
-            if (this == &other)
-                return *this;
-
-            m_value = other.m_value;
-            m_present = other.m_present;
-            m_result = other.m_result;
-
-            other.m_value = nullptr;
-            other.m_present = false;
-            other.m_result = Result::PETAL_OPTIONAL_MOVED_OUT;
-
-            return *this;
-        }
-
-        ~OptionalRef() {
-            m_value = nullptr;
-        }
-
-        static constexpr OptionalRef Empty() {
-            return Result::PETAL_OPTIONAL_EMPTY;
-        }
-
     public:
         Result GetResult() const {
             return m_result;
         }
 
-        T *Value() {
-            return m_present ? m_value : nullptr;
+        T &Value() {
+            assert(HasValue());
+            return *m_value;
         }
 
         bool HasValue() const {
@@ -226,7 +247,17 @@ namespace Petal {
 
         T *operator->() {
             assert(HasValue());
-            return m_value.get();
+            return m_value;
+        }
+
+        T &operator*() {
+            assert(HasValue());
+            return *m_value;
+        }
+
+        const T &operator*() const {
+            assert(HasValue());
+            return *m_value;
         }
 
     private:

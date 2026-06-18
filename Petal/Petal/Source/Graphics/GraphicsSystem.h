@@ -32,7 +32,11 @@ namespace Petal {
 
         const Version &GetAPIVersion() const;
 
-        ShaderSubsystem& GetShaderSubsystem() const;
+        ShaderSubsystem &GetShaderSubsystem() const;
+
+#ifndef NDEBUG
+        const PFN_vkSetDebugUtilsObjectNameEXT &VulkanSetDebugObjectNameFunction() const;
+#endif
 
     private:
         // Instance
@@ -76,6 +80,12 @@ namespace Petal {
 
         void DestroyDebugMessenger() const;
 
+#ifndef NDEBUG
+        Result FindSetObjectDebugNameFunction();
+
+        void SetObjectDebugNameImpl();
+#endif
+
     private:
         Engine &m_engine;
         Version m_apiVersion;
@@ -85,5 +95,8 @@ namespace Petal {
         VkDebugUtilsMessengerEXT m_debugMessenger;
         std::unordered_set<std::unique_ptr<GraphicsContext> > m_renderers;
         std::unique_ptr<ShaderSubsystem> m_shaderSubsystem;
+#ifndef NDEBUG
+        PFN_vkSetDebugUtilsObjectNameEXT m_vkSetDebugUtilsObjectNameEXT;
+#endif
     };
 } // Petal

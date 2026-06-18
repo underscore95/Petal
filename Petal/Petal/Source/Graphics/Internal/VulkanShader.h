@@ -1,16 +1,19 @@
 #pragma once
 
 #include "Common.h"
-#include <vulkan/vulkan_core.h>
-#include "Graphics/Shaders/ShaderType.h"
-#include "Graphics/GraphicsContext.h"
-#include "Graphics/Resources/ResourceType.h"
+#include "VulkanGraphicsPipeline.h"
+#include "Graphics/Shaders/IntermediateShaderResource.h"
 
 namespace Petal {
-    class VulkanGraphicsPipeline;
+    class CommandBufferVector;
+    class VulkanTexture;
+    class GraphicsContext;
+    enum class ShaderType;
+    class SwapchainBuffers;
+    struct VertexType;
+    class IBuffer;
     struct ShaderResource;
     class GPUBuffer;
-    struct IntermediateShaderResource;
 
     class VulkanShader {
     private:
@@ -38,36 +41,71 @@ namespace Petal {
 
     public:
         // Bind a resource
-        Result BindBuffer(const std::string &name, const GPUBuffer &buffer);
+
+        // If std::shared_ptr<IBuffer> is passed into the variant, bind it to all swapchain textures
+        // If std::reference_wrapper<const SwapchainBuffers> is passed into the variant,
+        // its size must be equal to the number of swapchain textures and each buffer will be bound to the respective swapchain texture
+        Result BindBuffer(
+            const std::string &name,
+            const std::variant<std::shared_ptr<IBuffer>, std::reference_wrapper<const SwapchainBuffers> > &bufferToBind
+        ) const;
+
+        // If std::shared_ptr<VulkanTexture> is passed into the variant, bind the texture to all swapchain textures
+        // If std::vector<std::shared_ptr<VulkanTexture>> is passed into the variant, bind each texture to
+        // its respective swapchain texture. The size of the vector must be equal to the number of swapchain textures.
+        Result BindTexture(
+            const std::string &name,
+            const std::variant<std::shared_ptr<VulkanTexture>, std::vector<std::shared_ptr<VulkanTexture> > > &texturesToBind
+        ) const;
+
+        // If std::vector<std::shared_ptr<VulkanTexture>> is passed into the variant, bind the textures to all swapchain textures
+        // If std::vector<std::vector<std::shared_ptr<VulkanTexture>>> is passed into the variant,
+        // its size must be equal to the number of swapchain textures and each std::vector<std::shared_ptr<VulkanTexture>>
+        // will be bound to the respective swapchain texture.
+        Result BindTextures(
+            const std::string &name,
+            const std::variant<std::vector<std::shared_ptr<VulkanTexture> >, std::vector<std::vector<std::shared_ptr<VulkanTexture> > > > &texturesToBind
+        ) const;
 
         // Must be called once for each command buffer before this shader is used
-        void BindResources(VkCommandBuffer commandBuffer) const;
-        void BindResources(const CommandBufferVector& commandBuffer) const;
+        void CmdBindResources(
+            const VulkanGraphicsPipeline &pipeline,
+            VkCommandBuffer commandBuffer,
+            glm::u32 swapchainIndex
+        ) const;
+
+        void CmdBindResources(
+            const VulkanGraphicsPipeline &pipeline,
+            const CommandBufferVector &commandBuffer
+        ) const;
 
         const std::vector<Stage> &GetShaderStages() const;
 
         const std::vector<VkDescriptorSetLayout> &GetDescriptorSetLayouts() const;
 
-        const VulkanGraphicsPipeline &GetPipeline() const;
+        const IntermediateShaderResource &GetIntermediateShader() const;
+
+        // Create a pipeline for this shader
+        AllocatedOptional<VulkanGraphicsPipeline> CreatePipeline(const VulkanGraphicsPipeline::PipelineSettings &pipelineSettings) const;
 
     private:
-        Result CreateShaderModule(
-            const IntermediateShaderResource &shader
-        );
+        Result CreateShaderModule();
 
-        Result CreateDescriptors(
-            const IntermediateShaderResource &shader
-        );
+        Result CreateDescriptors();
+
+        // Maximum size of a dynamic array, since we need to allocate space for descriptors during initialization
+        glm::u32 GetMaxDescriptors(glm::u32 set, glm::u32 binding) const;
 
     private:
         GraphicsContext &m_renderer;
         std::shared_ptr<Logger> m_logger;
+        IntermediateShaderResource m_intermediateShader;
+        glm::u32 m_numSwapchainImages;
         VkDescriptorPool m_descriptorPool;
         std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
-        std::vector<VkDescriptorSet> m_descriptorSets;
+        std::vector<std::vector<VkDescriptorSet> > m_descriptorSets;
         // resource name -> resource
         std::unordered_map<std::string, ShaderResource> m_resources;
         std::vector<Stage> m_shaderStages;
-        std::unique_ptr<VulkanGraphicsPipeline> m_pipeline;
     };
 } // Petal

@@ -52,7 +52,204 @@ struct std::formatter<type> : std::formatter<std::string> { \
 };
 
 // Common types
+// std::filesystem::path
 PETAL_MAKE_FORMATTABLE(
     std::filesystem::path, path,
     std::format("{}", path.string())
 );
+
+// glm::mat4x4
+template<>
+struct std::formatter<glm::mat4>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::mat4& m, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{{{:.5f}, {:.5f}, {:.5f}, {:.5f}}},\n"
+            " {{{:.5f}, {:.5f}, {:.5f}, {:.5f}}},\n"
+            " {{{:.5f}, {:.5f}, {:.5f}, {:.5f}}},\n"
+            " {{{:.5f}, {:.5f}, {:.5f}, {:.5f}}}}}",
+            m[0][0], m[1][0], m[2][0], m[3][0],
+            m[0][1], m[1][1], m[2][1], m[3][1],
+            m[0][2], m[1][2], m[2][2], m[3][2],
+            m[0][3], m[1][3], m[2][3], m[3][3]);
+    }
+};
+
+// glm::vec2
+template<>
+struct std::formatter<glm::vec2>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::vec2& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{:.5f}, {:.5f}}}",
+            v.x, v.y);
+    }
+};
+
+// glm::vec3
+template<>
+struct std::formatter<glm::vec3>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::vec3& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{:.5f}, {:.5f}, {:.5f}}}",
+            v.x, v.y, v.z);
+    }
+};
+
+// glm::vec4
+template<>
+struct std::formatter<glm::vec4>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::vec4& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{:.5f}, {:.5f}, {:.5f}, {:.5f}}}",
+            v.x, v.y, v.z, v.w);
+    }
+};
+
+// glm::ivec2
+template<>
+struct std::formatter<glm::ivec2>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::ivec2& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}}}",
+            v.x, v.y);
+    }
+};
+
+// glm::ivec3
+template<>
+struct std::formatter<glm::ivec3>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::ivec3& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}, {}}}",
+            v.x, v.y, v.z);
+    }
+};
+
+// glm::ivec4
+template<>
+struct std::formatter<glm::ivec4>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::ivec4& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}, {}, {}}}",
+            v.x, v.y, v.z, v.w);
+    }
+};
+
+// glm::uvec2
+template<>
+struct std::formatter<glm::uvec2>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::uvec2& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}}}",
+            v.x, v.y);
+    }
+};
+
+// glm::uvec3
+template<>
+struct std::formatter<glm::uvec3>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::uvec3& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}, {}}}",
+            v.x, v.y, v.z);
+    }
+};
+
+// glm::uvec4
+template<>
+struct std::formatter<glm::uvec4>
+{
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto format(const glm::uvec4& v, FormatContext& ctx) const
+    {
+        return std::format_to(
+            ctx.out(),
+            "{{{}, {}, {}, {}}}",
+            v.x, v.y, v.z, v.w);
+    }
+};

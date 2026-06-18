@@ -8,13 +8,17 @@
 #include "Internal/CommandBuffers/CommandBuffer.h"
 #include "Internal/CommandBuffers/CommandBufferVector.h"
 #include "Internal/RenderingDevice.h"
+#include "Internal/VulkanGraphicsPipeline.h"
 #include "Internal/VulkanSwapchain.h"
 #include "Internal/Sync/VulkanFence.h"
 #include "Internal/Sync/VulkanSemaphore.h"
-#include "Memory/GPUBufferSubsystem.h"
+#include "Memory/GPUMemorySubsystem.h"
 #include "Shaders/IntermediateShaderResource.h"
 #include "Shaders/ShaderSubsystem.h"
 #include "Internal/VulkanShader.h"
+#include "Memory/Buffers/GPUBuffer.h"
+#include "Memory/Buffers/VulkanBuffer.h"
+#include "Rendering/Renderer.h"
 
 namespace Petal {
     GraphicsContext::GraphicsContext(
@@ -26,7 +30,7 @@ namespace Petal {
         Result &result
     )
         : m_engine(engine),
-          m_renderingSystem(renderingSystem),
+          m_graphicsSystem(renderingSystem),
           m_window(window),
           m_graphicsSettings(graphicsSettings) {
         m_logger = engine.GetLoggerSystem().GetLogger(LoggerSystem::GRAPHICS_LOGGER);
@@ -59,10 +63,10 @@ namespace Petal {
         result = CreateCommandPools();
         if (result != Result::SUCCESS) return;
 
-        result = CreateSwapchain();
+        m_memorySubsystem = std::make_unique<GPUMemorySubsystem>(*this, m_engine.GetLoggerSystem().GetLogger(LoggerSystem::GPU_MEMORY_LOGGER), result);
         if (result != Result::SUCCESS) return;
 
-        m_bufferSubsystem = std::make_unique<GPUBufferSubsystem>(*this, m_logger, result);
+        result = CreateSwapchain();
         if (result != Result::SUCCESS) return;
 
         result = Result::SUCCESS;
@@ -70,7 +74,7 @@ namespace Petal {
     }
 
     GraphicsContext::~GraphicsContext() {
-        m_bufferSubsystem.reset();
+        m_memorySubsystem.reset();
 
         Result result = DeviceWaitIdle();
         if (result != Result::SUCCESS) {
@@ -80,7 +84,7 @@ namespace Petal {
         m_swapchain.reset();
 
         for (const auto &[_, commandPool] : m_commandPools) {
-            vkDestroyCommandPool(m_device->GetDevice(), commandPool, nullptr);
+            vkDestroyCommandPool(m_device->GetHandle(), commandPool, nullptr);
         }
         m_commandPools.clear();
 
@@ -88,11 +92,15 @@ namespace Petal {
         m_device.reset();
 
         if (m_surface) {
-            vkDestroySurfaceKHR(m_renderingSystem.GetInstance(), m_surface, nullptr);
+            vkDestroySurfaceKHR(m_graphicsSystem.GetInstance(), m_surface, nullptr);
             m_surface = VK_NULL_HANDLE;
         }
 
         m_logger->Verbose("Destroyed renderer");
+    }
+
+    Engine &GraphicsContext::GetEngine() const {
+        return m_engine;
     }
 
     Window &GraphicsContext::GetWindow() const {
@@ -116,33 +124,48 @@ namespace Petal {
     }
 
     GraphicsSystem &GraphicsContext::GetRenderingSystem() const {
-        return m_renderingSystem;
+        return m_graphicsSystem;
     }
 
     const GraphicsSettings &GraphicsContext::GetGraphicsSettings() const {
         return m_graphicsSettings;
     }
 
-    GPUBufferSubsystem &GraphicsContext::GetBufferSubsystem() const {
-        return *m_bufferSubsystem;
+    GPUMemorySubsystem &GraphicsContext::GetMemorySubsystem() const {
+        return *m_memorySubsystem;
     }
 
-    AllocatedOptional<VulkanShader> GraphicsContext::CompileShader(const ShaderAsset &asset) {
+    AllocatedOptional<VulkanShader> GraphicsContext::CompileShader(
+        const ShaderAsset &asset
+    ) {
         // TODO cache the SPIRV and reflection info
 
-        Optional<IntermediateShaderResource> intermediateShader = m_renderingSystem.GetShaderSubsystem().CompileSlangShader(asset);
+        Optional<IntermediateShaderResource> intermediateShader = m_graphicsSystem.GetShaderSubsystem().CompileSlangShader(asset);
         PETAL_CHECK_OPTIONAL_SILENT(intermediateShader);
 
         Result result;
-        auto shader = AllocatedOptional<VulkanShader>::Emplace(
+        AllocatedOptional<VulkanShader> shader = std::make_unique<VulkanShader>(
             *this,
-            *intermediateShader.Value(),
+            intermediateShader.Value(),
             m_logger,
             result
         );
         if (result != Result::SUCCESS) return result;
         return shader;
     }
+
+#ifndef NDEBUG
+    void GraphicsContext::SetObjectDebugNameImpl(glm::u64 handle, VkObjectType objectType, const std::string &objectName) const {
+        VkDebugUtilsObjectNameInfoEXT info = {
+            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+            .pNext = nullptr,
+            .objectType = objectType,
+            .objectHandle = handle,
+            .pObjectName = objectName.c_str()
+        };
+        m_graphicsSystem.VulkanSetDebugObjectNameFunction()(m_device->GetHandle(), &info);
+    }
+#endif
 
     AllocatedOptional<CommandBuffer> GraphicsContext::CreateCommandBuffer(
         const VulkanQueue &queue, VkCommandBufferLevel level
@@ -158,7 +181,7 @@ namespace Petal {
         VkCommandPool commandPool = it->second;
 
         Result result;
-        auto commandBuffer = AllocatedOptional<CommandBuffer>::Emplace(m_logger, m_device->GetDevice(), commandPool, level, result);
+        auto commandBuffer = AllocatedOptional<CommandBuffer>::Emplace(m_logger, m_device->GetHandle(), commandPool, level, result);
         PETAL_CHECK_COND_SILENT(result != Result::SUCCESS, result);
 
         return commandBuffer;
@@ -227,7 +250,7 @@ namespace Petal {
         for (glm::u32 i = 0; i < count; i++) {
             Optional<std::shared_ptr<VulkanFence> > fence = CreateFence(flags);
             PETAL_CHECK_OPTIONAL_SILENT(fence);
-            fences.push_back(*fence.Value());
+            fences.push_back(fence.Value());
         }
 
         return fences;
@@ -249,18 +272,26 @@ namespace Petal {
         for (glm::u32 i = 0; i < count; i++) {
             Optional<std::shared_ptr<VulkanSemaphore> > semaphore = CreateSemaphore(flags);
             PETAL_CHECK_OPTIONAL_SILENT(semaphore);
-            semaphores.push_back(*semaphore.Value());
+            semaphores.push_back(semaphore.Value());
         }
 
         return semaphores;
+    }
+
+    AllocatedOptional<Renderer> GraphicsContext::CreateRenderer(
+        const RendererSettings &settings
+    ) {
+        Result resultOut;
+        auto renderer = std::make_unique<Renderer>(*this, m_logger, settings, resultOut);
+        PETAL_CHECK_COND_SILENT(resultOut != Result::SUCCESS, resultOut);
+        return renderer;
     }
 
     void GraphicsContext::CmdTransitionImage(
         VkCommandBuffer commandBuffer,
         VkImage image,
         VkImageLayout oldLayout,
-        VkImageLayout newLayout,
-        OptionalRef<VkImageMemoryBarrier2> transition
+        VkImageLayout newLayout
     ) {
         VkImageMemoryBarrier2 imageBarrier{
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -268,15 +299,20 @@ namespace Petal {
             .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
             .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-            .dstAccessMask = newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR ? 0 : VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
+            .dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT,
             .oldLayout = oldLayout,
             .newLayout = newLayout,
             .srcQueueFamilyIndex = GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
             .dstQueueFamilyIndex = GetDevice()->GetGraphicsQueueFamily().GetQueueFamilyIndex(),
             .image = image,
-            .subresourceRange = DEFAULT_IMAGE_SUBRESOURCE_RANGE
+            .subresourceRange = DEFAULT_IMAGE_COLOR_SUBRESOURCE_RANGE
         };
+        if (newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) imageBarrier.dstAccessMask = 0;
 
+        CmdTransitionImage(commandBuffer, imageBarrier);
+    }
+
+    void GraphicsContext::CmdTransitionImage(VkCommandBuffer commandBuffer, VkImageMemoryBarrier2 transition) {
         VkDependencyInfo depInfo{
             .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             .pNext = nullptr,
@@ -286,14 +322,14 @@ namespace Petal {
             .bufferMemoryBarrierCount = 0,
             .pBufferMemoryBarriers = nullptr,
             .imageMemoryBarrierCount = 1,
-            .pImageMemoryBarriers = transition.HasValue() ? transition.Value() : &imageBarrier
+            .pImageMemoryBarriers = &transition
         };
 
         vkCmdPipelineBarrier2(commandBuffer, &depInfo);
     }
 
     Result GraphicsContext::DeviceWaitIdle() {
-        VkResult result = vkDeviceWaitIdle(m_device->GetDevice());
+        VkResult result = vkDeviceWaitIdle(m_device->GetHandle());
         PETAL_CHECK_COND(result != VK_SUCCESS, Result::VULKAN_DEVICE_WAIT_IDLE_FAILED, m_logger, "{}", result);
         return Result::SUCCESS;
     }
@@ -304,8 +340,73 @@ namespace Petal {
 
         m_swapchain.reset();
 
+        m_device->QueryDeviceSurfaceCapabilities();
         result = CreateSwapchain();
         return result;
+    }
+
+    void GraphicsContext::CmdWritePushConstants(
+        const CommandBufferVector &commandBuffers,
+        const VulkanGraphicsPipeline &pipeline,
+        const void *data,
+        glm::u32 size
+    ) const {
+        assert(commandBuffers.IsSwapchainSize());
+        for (glm::u32 i = 0; i < commandBuffers.Size(); i++) {
+            vkCmdPushConstants(
+                commandBuffers.GetHandle(i),
+                pipeline.GetLayout(),
+                VK_SHADER_STAGE_ALL,
+                0,
+                size,
+                data
+            );
+        }
+    }
+
+    void GraphicsContext::CmdBindVertexBuffer(
+        const CommandBufferVector &commandBuffers,
+        glm::u32 firstBinding,
+        const std::vector<std::reference_wrapper<const GPUBuffer> > &buffers
+    ) const {
+        assert(commandBuffers.IsSwapchainSize());
+        if (buffers.empty()) {
+            m_logger->Warn("Binding 0 vertex buffers");
+        }
+
+        std::vector<VkBuffer> bufferHandles;
+        bufferHandles.reserve(buffers.size());
+        std::vector<VkDeviceSize> bufferOffsets;
+        bufferOffsets.reserve(buffers.size());
+        for (std::reference_wrapper<const GPUBuffer> buffer : buffers) {
+            bufferHandles.push_back(buffer.get().GetBackingBuffer()->GetHandle());
+            bufferOffsets.push_back(buffer.get().GetAllocation().Location);
+        }
+
+        for (glm::u32 i = 0; i < commandBuffers.Size(); i++) {
+            vkCmdBindVertexBuffers(
+                commandBuffers.GetHandle(i),
+                firstBinding,
+                buffers.size(),
+                bufferHandles.data(),
+                bufferOffsets.data()
+            );
+        }
+    }
+
+    void GraphicsContext::CmdBindIndexBuffer(
+        const CommandBufferVector &commandBuffers,
+        const GPUBuffer &buffer,
+        IndexType indexType
+    ) const {
+        for (glm::u32 i = 0; i < commandBuffers.Size(); i++) {
+            vkCmdBindIndexBuffer(
+                commandBuffers.GetHandle(i),
+                buffer.GetBackingBuffer()->GetHandle(),
+                buffer.GetAllocation().Location,
+                IndexTypes::GetData(indexType).VulkanIndexType
+            );
+        }
     }
 
     Result GraphicsContext::CreateCommandPools() {
@@ -318,7 +419,7 @@ namespace Petal {
             };
 
             VkCommandPool commandPool = VK_NULL_HANDLE;
-            VkResult res = vkCreateCommandPool(m_device->GetDevice(), &cmdPoolCreateInfo, nullptr, &commandPool);
+            VkResult res = vkCreateCommandPool(m_device->GetHandle(), &cmdPoolCreateInfo, nullptr, &commandPool);
             PETAL_CHECK_COND(res != VK_SUCCESS, Result::VULKAN_COMMAND_POOL_CREATION_FAILED, m_logger, "Failed to create command pool: {}", res);
 
             m_commandPools[queue.GetQueueFamilyIndex()] = commandPool;

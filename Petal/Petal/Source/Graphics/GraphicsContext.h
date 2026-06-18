@@ -4,12 +4,17 @@
 #include "Common.h"
 #include "GraphicsSettings.h"
 #include "Internal/DeviceRequirements.h"
+#include "Internal/VulkanGraphicsPipeline.h"
+#include "Other/IndexType.h"
+#include "Rendering/RendererSettings.h"
 
 namespace Petal {
-    class GPUBufferSubsystem;
+    class GPUBuffer;
 }
 
 namespace Petal {
+    class Renderer;
+    class GPUMemorySubsystem;
     class VulkanShader;
     struct ShaderAsset;
     class VulkanQueue;
@@ -41,6 +46,8 @@ namespace Petal {
         DISABLE_COPY_AND_MOVE(GraphicsContext);
 
     public:
+        Engine &GetEngine() const;
+
         Window &GetWindow() const;
 
         VkSurfaceKHR GetSurface() const;
@@ -55,9 +62,17 @@ namespace Petal {
 
         const GraphicsSettings &GetGraphicsSettings() const;
 
-        GPUBufferSubsystem &GetBufferSubsystem() const;
+        GPUMemorySubsystem &GetMemorySubsystem() const;
 
         AllocatedOptional<VulkanShader> CompileShader(const ShaderAsset &asset);
+
+        // Set the debug name of a vulkan object
+        // In release mode, this is a no op
+        void SetObjectDebugName(glm::u64 handle, VkObjectType objectType, const std::string &objectName) const {
+#ifndef NDEBUG
+            SetObjectDebugNameImpl(handle, objectType, objectName);
+#endif
+        }
 
         // Create a command buffer.
         // It is recommended to move the command buffer into a shared ptr after creation so it can be converted into a CommandBufferRef
@@ -93,14 +108,20 @@ namespace Petal {
 
         Optional<std::vector<std::shared_ptr<VulkanSemaphore> > > CreateSemaphores(glm::u32 count, VkSemaphoreCreateFlags flags = 0);
 
+        AllocatedOptional<Renderer> CreateRenderer(const RendererSettings &settings);
+
         // Shorthand for transitioning an image layout
-        // By default, an excessively blocking barrier for graphics queue images is used, but this can be overridden by passing a transition parameter
+        // By default, an excessively blocking barrier for graphics queue images is used
         void CmdTransitionImage(
             VkCommandBuffer commandBuffer,
             VkImage image,
             VkImageLayout oldLayout,
-            VkImageLayout newLayout,
-            OptionalRef<VkImageMemoryBarrier2> transition = OptionalRef<VkImageMemoryBarrier2>::Empty()
+            VkImageLayout newLayout
+        );
+
+        void CmdTransitionImage(
+            VkCommandBuffer commandBuffer,
+            VkImageMemoryBarrier2 transition
         );
 
         Result DeviceWaitIdle();
@@ -109,8 +130,36 @@ namespace Petal {
         // This is required if the window is resized.
         Result RecreateSwapchain();
 
-        static constexpr VkImageSubresourceRange DEFAULT_IMAGE_SUBRESOURCE_RANGE = {
+        void CmdWritePushConstants(
+            const CommandBufferVector &commandBuffers,
+            const VulkanGraphicsPipeline &pipeline,
+            const void *data, glm::u32 size
+        ) const;
+
+        // Bind one or more vertex buffers
+        void CmdBindVertexBuffer(
+            const CommandBufferVector &commandBuffers,
+            glm::u32 firstBinding,
+            const std::vector<std::reference_wrapper<const GPUBuffer> > &buffers
+        ) const;
+
+        // Bind an index buffer
+        void CmdBindIndexBuffer(
+            const CommandBufferVector &commandBuffers,
+            const GPUBuffer &buffer,
+            IndexType indexType
+        ) const;
+
+        static constexpr VkImageSubresourceRange DEFAULT_IMAGE_COLOR_SUBRESOURCE_RANGE = {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        };
+
+        static constexpr VkImageSubresourceRange DEFAULT_IMAGE_DEPTH_SUBRESOURCE_RANGE = {
+            .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
@@ -122,9 +171,13 @@ namespace Petal {
 
         Result CreateSwapchain();
 
+#ifndef NDEBUG
+        void SetObjectDebugNameImpl(glm::u64 handle, VkObjectType objectType, const std::string &objectName) const;
+#endif
+
     private:
         Engine &m_engine;
-        GraphicsSystem &m_renderingSystem;
+        GraphicsSystem &m_graphicsSystem;
         std::shared_ptr<Window> m_window;
 
         VkSurfaceKHR m_surface;
@@ -135,6 +188,6 @@ namespace Petal {
         // Queue family -> command pool
         std::unordered_map<glm::u32, VkCommandPool> m_commandPools;
         std::shared_ptr<VulkanSwapchain> m_swapchain;
-        std::unique_ptr<GPUBufferSubsystem> m_bufferSubsystem;
+        std::unique_ptr<GPUMemorySubsystem> m_memorySubsystem;
     };
 } // Petal

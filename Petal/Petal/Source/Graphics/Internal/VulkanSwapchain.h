@@ -1,13 +1,16 @@
 #pragma once
 #include "Common.h"
+#include "VulkanGraphicsPipeline.h"
 #include "CommandBuffers/CommandBufferRef.h"
 
 
 namespace Petal {
-    class VulkanShader;
+    struct RenderTarget;
 }
 
 namespace Petal {
+    class VulkanTexture;
+    class VulkanShader;
     class GraphicsContext;
     class VulkanSemaphore;
     class CommandBufferVector;
@@ -18,7 +21,7 @@ namespace Petal {
     public:
         VulkanSwapchain(
             Engine &engine,
-            GraphicsContext &renderer,
+            GraphicsContext &context,
             const VulkanQueue &queueFamily,
             Result &resultOut
         );
@@ -43,13 +46,6 @@ namespace Petal {
         // This is guaranteed to be between 0 and NumSwapchainImages()-1
         glm::u32 GetSwapchainIndex() const;
 
-        // Record a command to clear a specific swapchain image into a command buffer
-        void CmdClear(
-            VkCommandBuffer commandBuffer,
-            const Color &color,
-            glm::u32 swapchainIndex
-        ) const;
-
         // Submit a command used to render the frame.
         // It will be stored and all frame command buffers will be executed at once at the end of frame
         void SubmitFrameCommand(
@@ -61,24 +57,53 @@ namespace Petal {
 
         VkSurfaceFormat2KHR GetSurfaceFormat() const;
 
+        const std::vector<RenderTarget> &GetSwapchainRenderTarget() const;
+
+        struct RenderCommandBuffers {
+            friend class VulkanSwapchain;
+
+        private:
+            RenderCommandBuffers(
+                GraphicsContext &context,
+                const std::shared_ptr<CommandBufferVector> &commands,
+                const std::vector<RenderTarget> &renderTargets
+            );
+
+        public:
+            ~RenderCommandBuffers();
+
+            const std::vector<RenderTarget> &GetTargets() const;
+
+            DISABLE_COPY_AND_MOVE(RenderCommandBuffers);
+
+        public:
+            const CommandBufferVector &GetCommands() const;
+
+        private:
+            GraphicsContext &m_context;
+            std::shared_ptr<CommandBufferVector> m_commands;
+            std::vector<RenderTarget> m_renderTargets;
+        };
+
         // This must be called before any render commands are recorded into the command buffer
         // CommandBufferVector should contain NumSwapchainImages() command buffers
-        void CmdBeginRendering(const CommandBufferVector &commandBuffers) const;
-
-        // This must be called once all render commands have been recorded into the command buffer, if CmdBeginRendering has been called.
-        // CommandBufferVector should contain NumSwapchainImages() command buffers
-        void CmdEndRendering(const CommandBufferVector &commandBuffers) const;
+        // If renderTargets is empty, render to the swapchain
+        std::shared_ptr<RenderCommandBuffers> CmdBeginRendering(
+            const std::shared_ptr<CommandBufferVector> &commandBuffers,
+            OptionalRef<const std::vector<RenderTarget>> renderTargets = Result::PETAL_OPTIONAL_EMPTY
+        ) const;
 
         // Instanced rendering using a specific shader
-        // Bind the vertex buffer and index buffer (if using) to the shader before submitting the command buffer.
-        void CmdRender(
-            const VulkanShader &shader,
-            const CommandBufferVector &commandBuffers,
-            glm::u32 numVertices,
-            glm::u32 numInstances = 1,
-            glm::u32 firstVertex = 0,
-            glm::u32 firstInstance = 0
-        );
+        // Vertex/index buffers must be bound to the shader separately
+        void CmdRenderIndexed(
+            const VulkanGraphicsPipeline &pipeline,
+            const RenderCommandBuffers &commandBuffers,
+            glm::u32 numIndices, glm::u32 numInstances = 1
+        ) const;
+
+        // Schedule a function to run after <num swapchain images> frames
+        // Note this function will not run if the engine shuts down first however it will run if only the swapchain is destroyed
+        void ScheduleSwapchainFrames(const std::function<void()> &function) const;
 
     private:
         Result CreateSyncObjects();
@@ -93,14 +118,17 @@ namespace Petal {
 
         Result ChooseSurfaceFormat();
 
+        Result CreateDepthBuffer(glm::uvec2 windowSize);
+
     private:
-        GraphicsContext &m_renderer;
+        Engine &m_engine;
+        GraphicsContext &m_context;
         std::shared_ptr<Logger> m_logger;
         VkSwapchainKHR m_handle;
         VkSurfaceFormat2KHR m_swapchainSurfaceFormat;
         glm::u32 m_numSwapchainImages;
-        std::vector<VkImage> m_images;
-        std::vector<VkImageView> m_imageViews;
+        std::vector<VkImageView> m_swapchainImageViews;
+        std::vector<RenderTarget> m_swapchainTargets;
         std::shared_ptr<VulkanFence> m_blockingCommandFence;
 
         // Frame data

@@ -20,6 +20,9 @@ namespace Petal {
         ~ShaderSubsystem();
 
     public:
+        // Compile a Slang shader
+        // This converts to SPIRV and performs reflection, but it isn't actually compiled into a Vulkan shader until you compile the intermediate shader using the GraphicsContext.
+        //
         Optional<IntermediateShaderResource> CompileSlangShader(const ShaderAsset &asset);
 
     private:
@@ -29,7 +32,21 @@ namespace Petal {
 
         Result CreateSession();
 
-        Result ReflectResourceTypes(slang::VariableLayoutReflection *variableLayout, std::unordered_map<ShaderType, slang::IMetadata *> fullMetadata, std::vector<ShaderResource> &resources);
+        Result ReflectResourceTypes(slang::VariableLayoutReflection *variableLayout, std::unordered_map<ShaderType, slang::IMetadata *> fullMetadata,
+                                    std::vector<ShaderResource> &resources);
+
+        Result ReflectVertexInput(IntermediateShaderResource &shader, slang::ProgramLayout *programLayout, glm::u32 vertexEntryPointIndex);
+
+        Result ReflectFragmentOutput(IntermediateShaderResource& shader, slang::ProgramLayout *programLayout, glm::u32 fragmentEntryPointIndex);
+        Result ReflectFragmentOutputField(IntermediateShaderResource& shader, slang::VariableLayoutReflection* field);
+
+        // If variableLayout is a struct, recursively iterate and push the VariableLayoutReflection of all fields to the vecotr
+        // otherwise push variableLayout to the vector
+        // this does not clear the output vector!
+        void ReflectGetAllFieldsRecursive(
+            slang::VariableLayoutReflection *variableLayout,
+            std::vector<slang::VariableLayoutReflection *> &fieldsOut
+        );
 
     private:
         Engine &m_engine;

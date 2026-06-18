@@ -18,6 +18,8 @@ namespace Petal {
     public:
         void Update();
 
+        void LateUpdate();
+
         void Render();
 
         [[nodiscard]] std::shared_ptr<Window> OpenWindow(

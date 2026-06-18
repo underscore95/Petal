@@ -32,6 +32,8 @@ namespace Petal {
 
         void Update();
 
+        void LateUpdate();
+
         void Render();
 
     private:

@@ -20,9 +20,12 @@ namespace Petal {
         VULKAN_DEVICE_WAIT_IDLE_FAILED,
         VULKAN_PIPELINE_CREATION_FAILED,
         VULKAN_SHADER_CREATION_FAILED,
+        VULKAN_FIND_SET_OBJECT_DEBUG_NAME_FUNCTION_FAILED,
 
         // VMA Errors
         VMA_CREATION_FAILED,
+        VMA_TEXTURE_CREATION_FAILED,
+        VMA_TEXTURE_WRITE_FAILED,
         VMA_BUFFER_CREATION_FAILED,
         VMA_BUFFER_WRITE_FAILED,
 
@@ -37,7 +40,7 @@ namespace Petal {
         PETAL_SHADER_DESCRIPTOR_ERROR,
 
         // Petal Render Errors
-        PETAL_INVALID_GRAPHICS_SETTINGS,
+        PETAL_INVALID_SETTINGS,
         PETAL_INVALID_QUEUE_FAMILY,
         PETAL_BEGIN_RENDER_FAILED,
         PETAL_END_RENDER_FAILED,
@@ -47,12 +50,27 @@ namespace Petal {
         PETAL_WINDOW_RESIZED, // Window was resized, the swapchain needs to be recreated
         PETAL_UNSUPPORTED_FORMAT,
         PETAL_NO_SWAPCHAIN_SHADER,
+        PETAL_BUFFER_CREATION_FAILED,
+        FRAME_GRAPH_ERROR,
+        PETAL_RENDER_PASS_RESOURCE_ERROR,
+        PETAL_DEFERRED_RENDERING_ERROR,
+
+        // Petal Resource Errors
+        PETAL_FILE_DOES_NOT_EXIST,
+        PETAL_DIRECTORY_DOES_NOT_EXIST,
+        PETAL_IMAGE_LOADING_FAILED,
+        PETAL_MODEL_LOADING_FAILED,
+
+        // Assimp Errors
+        ASSIMP_MODEL_LOADING_FAILED,
 
         // Petal Other Errors
         PETAL_OPTIONAL_MOVED_OUT, // Contents of this optional were moved into another optional
         PETAL_OPTIONAL_RELEASED, // Contents of this optional were moved into another variable
         PETAL_OPTIONAL_EMPTY, // Created with no value, may not be an error
-        PETAL_UNEXPECTED_NULLPTR
+        PETAL_UNEXPECTED_NULLPTR,
+        PETAL_ALLOCATION_FAILED,
+        PETAL_INVALID_LENGTH
     };
 
     template<typename T>

@@ -1,6 +1,6 @@
 #include "GraphicsSystem.h"
 #include "Engine.h"
-#include "Internal/VkFormat.h"
+#include "Internal/Vulkan.h"
 #include "Memory/MemorySystem.h"
 #include "Window/Window.h"
 #include "Window/WindowSystem.h"
@@ -19,7 +19,9 @@ namespace Petal {
         if (CreateInstance() != Result::SUCCESS) return;
 
 #ifndef NDEBUG
-        if (CreateDebugCallback() != Result::SUCCESS)return;
+        if (CreateDebugCallback() != Result::SUCCESS) return;
+
+        if (FindSetObjectDebugNameFunction() != Result::SUCCESS) return;
 #endif
 
         Result result;
@@ -52,7 +54,7 @@ namespace Petal {
             result
         );
 
-        PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to create renderer: {}", static_cast<int>(result));
+        PETAL_CHECK_COND(result != Result::SUCCESS, result, m_logger, "Failed to create renderer: {}", result);
 
         auto it = m_renderers.insert(std::move(renderer));
         return *it.first->get();
@@ -64,6 +66,10 @@ namespace Petal {
 
     ShaderSubsystem &GraphicsSystem::GetShaderSubsystem() const {
         return *m_shaderSubsystem;
+    }
+
+    const PFN_vkSetDebugUtilsObjectNameEXT &GraphicsSystem::VulkanSetDebugObjectNameFunction() const {
+        return m_vkSetDebugUtilsObjectNameEXT;
     }
 
     Result GraphicsSystem::CreateInstance() {
@@ -246,7 +252,7 @@ namespace Petal {
             }
         }
         if (!objectsStr.empty()) {
-            objectsStr = "\nObjects: {}" + objectsStr;
+            objectsStr = "\nObjects: " + objectsStr;
         }
 
         // Build message
@@ -291,4 +297,17 @@ namespace Petal {
             m_logger->Verbose("Destroyed Debug Callback");
         }
     }
+
+#ifndef NDEBUG
+    Result GraphicsSystem::FindSetObjectDebugNameFunction() {
+        m_vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+            vkGetInstanceProcAddr(GetInstance(), "vkSetDebugUtilsObjectNameEXT")
+        );
+        PETAL_CHECK_COND(m_vkSetDebugUtilsObjectNameEXT == nullptr, Result::VULKAN_FIND_SET_OBJECT_DEBUG_NAME_FUNCTION_FAILED, m_logger, "");
+        return Result::SUCCESS;
+    }
+
+    void GraphicsSystem::SetObjectDebugNameImpl() {
+    }
+#endif
 } // Petal

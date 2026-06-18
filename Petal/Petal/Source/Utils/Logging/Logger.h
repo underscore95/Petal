@@ -6,7 +6,7 @@
 namespace Petal {
     class Logger {
     public:
-        Logger(std::string name, LogLevel logLevel);
+        Logger(std::string name, LogLevel logLevel, bool mute = false);
 
     public:
         template<typename... Args>
@@ -38,6 +38,8 @@ namespace Petal {
 
         void SetLevel(LogLevel level);
 
+        void SetMuted(bool muted);
+
     private:
         void Log(const std::string &message, LogLevel level);
 
@@ -47,5 +49,6 @@ namespace Petal {
     private:
         std::string m_name;
         LogLevel m_level;
+        bool m_muted;
     };
 } // Petal

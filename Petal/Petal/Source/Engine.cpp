@@ -21,7 +21,7 @@ namespace Petal {
 
         m_memorySystem = std::make_unique<MemorySystem>(*this);
         m_loggerSystem = std::make_shared<LoggerSystem>(*this);
-        m_scheduler = std::make_unique<Scheduler>(*this);
+        m_scheduler = std::make_unique<Scheduler>(m_loggerSystem->GetLogger(LoggerSystem::SCHEDULER_LOGGER));
         m_windowSystem = std::make_shared<WindowSystem>(*this);
         m_graphicsSystem = std::make_shared<GraphicsSystem>(*this, DeviceRequirements::DEFAULT_API_VERSION);
     }
@@ -59,6 +59,10 @@ namespace Petal {
 
     void Engine::Update() {
         m_windowSystem->Update();
+    }
+
+    void Engine::LateUpdate() {
+        m_windowSystem->LateUpdate();
     }
 
     void Engine::Render() {
